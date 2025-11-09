@@ -4,17 +4,29 @@
 
 // State management
 let allData = {
-    movies: [],
-    series: [],
-    updated: '',
-    next_update: ''
+    top10: {
+        movies: [],
+        series: [],
+        updated: '',
+        next_update: ''
+    },
+    new: {
+        movies: [],
+        series: [],
+        updated: '',
+        period: ''
+    }
 };
 
+let currentSection = 'top10'; // top10, new
 let currentFilter = 'all'; // all, movie, series
-let currentSort = 'rank'; // rank, rating, recommended
+let currentSort = 'rank'; // rank, rating, recommended, popularity
 
-// API endpoint - change this to your deployed Worker URL
-const API_ENDPOINT = '/api/top10';
+// API endpoints
+const API_ENDPOINTS = {
+    top10: '/api/top10',
+    new: '/api/netflix-new'
+};
 
 // DOM elements
 const loading = document.getElementById('loading');
@@ -23,6 +35,7 @@ const content = document.getElementById('content');
 const updateInfo = document.getElementById('updateInfo');
 const lastUpdate = document.getElementById('lastUpdate');
 const nextUpdate = document.getElementById('nextUpdate');
+const tabButtons = document.querySelectorAll('.tab-btn');
 const filterButtons = document.querySelectorAll('.filter-btn');
 const sortSelect = document.getElementById('sortSelect');
 const themeToggle = document.getElementById('themeToggle');
@@ -55,6 +68,25 @@ function setupEventListeners() {
     // Theme toggle
     themeToggle.addEventListener('click', toggleTheme);
 
+    // Section tabs
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            tabButtons.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentSection = btn.dataset.section;
+
+            // Update sort options based on section
+            updateSortOptions();
+
+            // Load data for the section if not already loaded
+            if (currentSection === 'new' && allData.new.movies.length === 0) {
+                fetchData('new');
+            } else {
+                displayData();
+            }
+        });
+    });
+
     // Filter buttons
     filterButtons.forEach(btn => {
         btn.addEventListener('click', () => {
@@ -72,25 +104,49 @@ function setupEventListeners() {
     });
 }
 
+// Update sort options based on section
+function updateSortOptions() {
+    if (currentSection === 'top10') {
+        sortSelect.innerHTML = `
+            <option value="rank">Pořadí na Netflix</option>
+            <option value="rating">Hodnocení (nejlepší)</option>
+            <option value="recommended">Jen doporučené (≥70%)</option>
+        `;
+        if (currentSort === 'popularity') currentSort = 'rank';
+    } else if (currentSection === 'new') {
+        sortSelect.innerHTML = `
+            <option value="popularity">Popularita</option>
+            <option value="rating">Hodnocení (nejlepší)</option>
+            <option value="recommended">Jen doporučené (≥70%)</option>
+        `;
+        if (currentSort === 'rank') currentSort = 'popularity';
+    }
+    sortSelect.value = currentSort;
+}
+
 // Fetch data from API
-async function fetchData() {
+async function fetchData(section = 'top10') {
     try {
         loading.classList.remove('hidden');
         error.classList.add('hidden');
         content.classList.add('hidden');
         updateInfo.classList.add('hidden');
 
+        const endpoint = API_ENDPOINTS[section];
+        const cacheKey = `topflix_data_${section}`;
+
         // Try to get from localStorage first (7-day cache)
-        const cachedData = getCachedData();
+        const cachedData = getCachedData(cacheKey);
         if (cachedData) {
             // Sanitize cached data too (in case old invalid data is cached)
-            allData = sanitizeData(cachedData);
+            const sanitized = sanitizeData(cachedData);
+            allData[section] = sanitized;
             displayData();
             return;
         }
 
         // Fetch from API
-        const response = await fetch(API_ENDPOINT);
+        const response = await fetch(endpoint);
 
         if (!response.ok) {
             // Try to get error details from response
@@ -122,15 +178,16 @@ async function fetchData() {
         }
 
         // Sanitize data - remove invalid ČSFD ratings (< 10%)
-        allData = sanitizeData(data);
+        const sanitized = sanitizeData(data);
+        allData[section] = sanitized;
 
         // Cache the data
-        cacheData(data);
+        cacheData(data, cacheKey);
 
         displayData();
     } catch (err) {
         console.error('Error fetching data:', err);
-        console.error('API Endpoint:', API_ENDPOINT);
+        console.error('API Endpoint:', endpoint);
         loading.classList.add('hidden');
         error.classList.remove('hidden');
     }
@@ -194,16 +251,16 @@ function sanitizeData(data) {
 }
 
 // Cache management
-function cacheData(data) {
+function cacheData(data, key) {
     const cacheItem = {
         data,
         timestamp: Date.now()
     };
-    localStorage.setItem('topflix_data', JSON.stringify(cacheItem));
+    localStorage.setItem(key, JSON.stringify(cacheItem));
 }
 
-function getCachedData() {
-    const cached = localStorage.getItem('topflix_data');
+function getCachedData(key) {
+    const cached = localStorage.getItem(key);
     if (!cached) return null;
 
     try {
@@ -227,9 +284,16 @@ function displayData() {
     content.classList.remove('hidden');
     updateInfo.classList.remove('hidden');
 
-    // Update info
-    lastUpdate.textContent = `Data k: ${formatDate(allData.updated)}`;
-    nextUpdate.textContent = `Další update: ${formatDate(allData.next_update)}`;
+    const sectionData = allData[currentSection];
+
+    // Update info based on section
+    if (currentSection === 'top10') {
+        lastUpdate.textContent = `Data k: ${formatDate(sectionData.updated)}`;
+        nextUpdate.textContent = `Další update: ${formatDate(sectionData.next_update)}`;
+    } else if (currentSection === 'new') {
+        lastUpdate.textContent = `Aktualizováno: ${formatDate(sectionData.updated)}`;
+        nextUpdate.textContent = sectionData.period || 'Posledních 6 měsíců';
+    }
 
     // Render content
     renderContent();
@@ -255,13 +319,14 @@ function renderContent() {
 // Get filtered data
 function getFilteredData() {
     let items = [];
+    const sectionData = allData[currentSection];
 
     if (currentFilter === 'all') {
-        items = [...allData.movies, ...allData.series];
+        items = [...sectionData.movies, ...sectionData.series];
     } else if (currentFilter === 'movie') {
-        items = allData.movies;
+        items = sectionData.movies;
     } else if (currentFilter === 'series') {
-        items = allData.series;
+        items = sectionData.series;
     }
 
     return items;
@@ -273,6 +338,8 @@ function getSortedData(data) {
 
     if (currentSort === 'rank') {
         return filtered.sort((a, b) => a.rank - b.rank);
+    } else if (currentSort === 'popularity') {
+        return filtered.sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
     } else if (currentSort === 'rating') {
         return filtered
             .filter(item => item.avg_rating !== null)
@@ -352,6 +419,11 @@ function createTitleCard(item) {
            </span>`
         : '';
 
+    // Rank badge (only for Top 10 section where rank exists)
+    const rankBadge = item.rank
+        ? `<span class="rank-badge">#${item.rank}</span>`
+        : '';
+
     card.innerHTML = `
         <div class="card-content">
             <div class="card-poster">
@@ -359,7 +431,7 @@ function createTitleCard(item) {
             </div>
             <div class="card-info">
                 <div class="card-header">
-                    <span class="rank-badge">#${item.rank}</span>
+                    ${rankBadge}
                     <div class="card-title">
                         <h2>${item.title || item.title_original}</h2>
                         ${item.title_original && item.title !== item.title_original
@@ -406,8 +478,9 @@ function formatDate(dateString) {
 
 // Refresh data (for manual refresh button if needed)
 function refreshData() {
-    localStorage.removeItem('topflix_data');
-    fetchData();
+    localStorage.removeItem('topflix_data_top10');
+    localStorage.removeItem('topflix_data_new');
+    fetchData(currentSection);
 }
 
 // Expose refresh function globally if needed
