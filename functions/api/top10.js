@@ -128,12 +128,15 @@ async function getTMDBData(title, type, apiKey) {
 }
 
 // ČSFD Scraper - two-step process
-async function getCSFDData(title) {
+async function getCSFDData(title, year, type) {
   try {
     await sleep(2000); // Rate limiting: 2 seconds between requests
 
+    // Build search query with year for better matching
+    const searchQuery = year ? `${title} ${year}` : title;
+
     // Step 1: Search for the film to get URL
-    const searchUrl = `https://www.csfd.cz/hledat/?q=${encodeURIComponent(title)}`;
+    const searchUrl = `https://www.csfd.cz/hledat/?q=${encodeURIComponent(searchQuery)}`;
     const searchResponse = await fetch(searchUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
@@ -153,14 +156,33 @@ async function getCSFDData(title) {
     }
 
     const articleHtml = articleMatch[1];
-    const urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
+
+    // Extract URL - prefer /serial/ for series, /film/ for movies
+    const expectedPrefix = type === 'series' ? '/serial/' : '/film/';
+    let urlMatch = articleHtml.match(new RegExp(`href="(${expectedPrefix.replace('/', '\\/')}[^"]+)"`, 'i'));
+
+    // Fallback: try both types
+    if (!urlMatch) {
+      urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
+    }
 
     if (!urlMatch) {
-      console.log(`ČSFD: No film URL found for "${title}"`);
+      console.log(`ČSFD: No URL found for "${title}"`);
       return { rating: null, url: null };
     }
 
-    const csfdUrl = `https://www.csfd.cz${urlMatch[1]}`;
+    let csfdUrl = urlMatch[1];
+
+    // Ensure it's absolute URL
+    if (!csfdUrl.startsWith('http')) {
+      csfdUrl = `https://www.csfd.cz${csfdUrl}`;
+    }
+
+    // Make sure we're on main page, not gallery or other subpage
+    // Remove trailing paths like /galerie/, /videa/, etc.
+    csfdUrl = csfdUrl.replace(/(\/film\/\d+-[^\/]+|\/serial\/\d+-[^\/]+)\/.*$/, '$1/');
+
+    console.log(`ČSFD: Found URL for "${title}": ${csfdUrl}`);
 
     // Step 2: Fetch the film page to get rating
     await sleep(2000); // Another 2s delay before fetching film page
@@ -176,40 +198,70 @@ async function getCSFDData(title) {
     const filmHtml = await filmResponse.text();
 
     // Extract rating from film page
-    // ČSFD film page patterns:
+    // ČSFD film page patterns (try multiple approaches):
+
+    let rating = null;
 
     // Pattern 1: <div class="film-rating-average">XX%</div>
     let ratingMatch = filmHtml.match(/<div[^>]*class="[^"]*film-rating-average[^"]*"[^>]*>(\d+)%<\/div>/i);
-
-    if (!ratingMatch) {
-      // Pattern 2: Look for rating in structured data or meta tags
-      ratingMatch = filmHtml.match(/rating[^>]*>(\d+)%/i);
+    if (ratingMatch) {
+      rating = parseInt(ratingMatch[1]);
+      console.log(`ČSFD: Found rating via film-rating-average: ${rating}%`);
     }
 
-    if (!ratingMatch) {
-      // Pattern 3: data-rating attribute
+    // Pattern 2: Look in film-header-name or film-header section
+    if (!rating) {
+      const headerMatch = filmHtml.match(/<header[^>]*class="[^"]*film-header[^"]*"[^>]*>([\s\S]*?)<\/header>/i);
+      if (headerMatch) {
+        const percentMatch = headerMatch[1].match(/(\d{2,3})%/);
+        if (percentMatch) {
+          rating = parseInt(percentMatch[1]);
+          console.log(`ČSFD: Found rating in header: ${rating}%`);
+        }
+      }
+    }
+
+    // Pattern 3: rating average in any context
+    if (!rating) {
+      ratingMatch = filmHtml.match(/(?:hodnocení|rating)[^>]*?>(\d{2,3})%/i);
+      if (ratingMatch) {
+        rating = parseInt(ratingMatch[1]);
+        console.log(`ČSFD: Found rating via generic pattern: ${rating}%`);
+      }
+    }
+
+    // Pattern 4: data-rating attribute
+    if (!rating) {
       const dataRating = filmHtml.match(/data-rating="(\d+)"/i);
       if (dataRating) {
-        ratingMatch = [null, dataRating[1]];
+        rating = parseInt(dataRating[1]);
+        console.log(`ČSFD: Found rating via data-rating: ${rating}%`);
       }
     }
 
-    if (!ratingMatch) {
-      // Pattern 4: Find percentage in rating context
-      // Look for rating section first
-      const ratingSection = filmHtml.match(/<section[^>]*class="[^"]*rating[^"]*"[^>]*>([\s\S]*?)<\/section>/i);
-      if (ratingSection) {
-        ratingMatch = ratingSection[1].match(/(\d{1,3})%/);
+    // Pattern 5: Look in origin section (where ratings are shown)
+    if (!rating) {
+      const originMatch = filmHtml.match(/<div[^>]*class="[^"]*origin[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+      if (originMatch) {
+        const percentMatch = originMatch[1].match(/(\d{2,3})%/);
+        if (percentMatch) {
+          rating = parseInt(percentMatch[1]);
+          console.log(`ČSFD: Found rating in origin: ${rating}%`);
+        }
       }
     }
-
-    const rating = ratingMatch ? parseInt(ratingMatch[1]) : null;
 
     // Validate rating is in reasonable range (10-100)
     // Ratings below 10% are likely parsing errors
     const validRating = rating && rating >= 10 && rating <= 100 ? rating : null;
 
-    console.log(`ČSFD data for "${title}": rating=${validRating}, url=${csfdUrl}`);
+    if (!validRating && rating) {
+      console.log(`ČSFD: Invalid rating ${rating}% for "${title}" (year: ${year}) - discarded`);
+    } else if (validRating) {
+      console.log(`ČSFD: Valid rating ${validRating}% for "${title}" (year: ${year})`);
+    } else {
+      console.log(`ČSFD: No rating found for "${title}" (year: ${year}) at ${csfdUrl}`);
+    }
 
     return {
       rating: validRating,
@@ -236,7 +288,12 @@ async function enrichTitle(title, rank, type, apiKey) {
   }
 
   // Get ČSFD data (rating + URL)
-  const csfdData = await getCSFDData(tmdbData.title_cz || title);
+  // Pass title, year, and type for better matching
+  const csfdData = await getCSFDData(
+    tmdbData.title_cz || title,
+    tmdbData.year,
+    type
+  );
 
   // Calculate average rating and quality indicator
   // Only use available ratings (TMDB always available, ČSFD optional)
