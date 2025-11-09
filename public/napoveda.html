@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Nápověda k aplikaci Topflix - barevné hodnocení filmů a seriálů">
+    <title>Nápověda - Topflix</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .help-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .help-section h2 {
+            color: var(--accent);
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .help-section h3 {
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            font-size: 1.2rem;
+        }
+
+        .help-section p {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 1rem;
+        }
+
+        .rating-example {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+            padding: 1rem;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+        }
+
+        .rating-example.green {
+            border-left: 4px solid var(--quality-green);
+        }
+
+        .rating-example.yellow {
+            border-left: 4px solid var(--quality-yellow);
+        }
+
+        .rating-example.red {
+            border-left: 4px solid var(--quality-red);
+        }
+
+        .rating-badge-example {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-weight: bold;
+            min-width: 120px;
+        }
+
+        .rating-badge-example.green {
+            background-color: rgba(70, 211, 105, 0.2);
+            border: 1px solid rgba(70, 211, 105, 0.4);
+            color: var(--quality-green);
+        }
+
+        .rating-badge-example.yellow {
+            background-color: rgba(255, 215, 0, 0.2);
+            border: 1px solid rgba(255, 215, 0, 0.4);
+            color: var(--quality-yellow);
+        }
+
+        .rating-badge-example.red {
+            background-color: rgba(255, 68, 68, 0.2);
+            border: 1px solid rgba(255, 68, 68, 0.4);
+            color: var(--quality-red);
+        }
+
+        .rating-description {
+            flex: 1;
+            color: var(--text-primary);
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 2rem;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 1rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        .credits {
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .credits p {
+            margin-bottom: 0.5rem;
+        }
+
+        .credits a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .credits a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <h1>🎬 Topflix</h1>
+                <p class="tagline">Nápověda</p>
+            </div>
+        </header>
+
+        <a href="index.html" class="back-link">← Zpět na hlavní stránku</a>
+
+        <!-- Help Content -->
+        <div class="help-section">
+            <h2>Barevné hodnocení filmů a seriálů</h2>
+
+            <p>
+                Aplikace Topflix používá barevné kódování pro rychlou orientaci v kvalitě filmů a seriálů
+                z Netflix Top 10. Hodnocení je založeno na průměru ze dvou zdrojů: mezinárodní databáze TMDB
+                a české filmové databáze ČSFD.
+            </p>
+
+            <h3>Stupnice hodnocení</h3>
+
+            <div class="rating-example green">
+                <div class="rating-badge-example green">
+                    70% - 100%
+                </div>
+                <div class="rating-description">
+                    <strong>🟢 Doporučeno (Zelená)</strong><br>
+                    Vysoce kvalitní filmy a seriály s velmi dobrým hodnocením. Tyto tituly stojí za zhlédnutí.
+                </div>
+            </div>
+
+            <div class="rating-example yellow">
+                <div class="rating-badge-example yellow">
+                    50% - 69%
+                </div>
+                <div class="rating-description">
+                    <strong>🟡 Průměr (Žlutá)</strong><br>
+                    Průměrné tituly s neutrálním hodnocením. Mohou bavit podle osobního vkusu.
+                </div>
+            </div>
+
+            <div class="rating-example red">
+                <div class="rating-badge-example red">
+                    0% - 49%
+                </div>
+                <div class="rating-description">
+                    <strong>🔴 Slabé (Červená)</strong><br>
+                    Tituly s nízkým hodnocením. Můžete na ně narazit ve Top 10, ale kvalita není zaručena.
+                </div>
+            </div>
+
+            <h3>Zdroje hodnocení</h3>
+
+            <p>
+                <strong>TMDB (The Movie Database):</strong> Mezinárodní databáze filmů a seriálů
+                s hodnocením 0-10. Pro srovnatelnost je převedeno na škálu 0-100%.
+            </p>
+
+            <p>
+                <strong>ČSFD (Česko-Slovenská filmová databáze):</strong> Domácí databáze
+                s hodnocením 0-100%. Pokud není hodnocení dostupné nebo je nevalidní (pod 10%),
+                nezobrazuje se.
+            </p>
+
+            <p>
+                <strong>Průměrné hodnocení:</strong> Konečné hodnocení se počítá jako průměr
+                dostupných hodnocení z obou zdrojů. Pokud je dostupné pouze jedno hodnocení,
+                použije se pouze to.
+            </p>
+        </div>
+
+        <div class="help-section">
+            <h2>O aplikaci</h2>
+
+            <p>
+                Topflix zobrazuje týdenní žebříček Netflix Top 10 pro Českou republiku,
+                obohacený o hodnocení z TMDB a ČSFD. Data jsou aktualizována každé úterý
+                a jsou cachovány pro rychlé načítání.
+            </p>
+
+            <h3>Funkce</h3>
+            <ul style="color: var(--text-secondary); line-height: 1.8;">
+                <li>Filtrování podle typu (filmy, seriály, vše)</li>
+                <li>Řazení podle pořadí na Netflix, hodnocení nebo jen doporučené tituly</li>
+                <li>Tmavý/světlý režim</li>
+                <li>Odkazy na TMDB a ČSFD pro detailní informace</li>
+                <li>Mobilní responzivní design</li>
+            </ul>
+
+            <div class="credits">
+                <p><strong>Autor:</strong> <a href="https://www.marigold.cz" target="_blank" rel="noopener">Patrick Zandl</a></p>
+                <p><strong>Technologie:</strong> <a href="https://vibecoding.cz" target="_blank" rel="noopener">vibecoding</a></p>
+                <p><strong>Hosting:</strong> Cloudflare Pages</p>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="index.html">Zpět na hlavní stránku</a>
+                <span>•</span>
+                <a href="https://www.themoviedb.org" target="_blank" rel="noopener">
+                    Data z TMDB
+                </a>
+                <span>•</span>
+                <a href="https://www.csfd.cz" target="_blank" rel="noopener">
+                    Hodnocení z ČSFD
+                </a>
+                <span>•</span>
+                <a href="https://top10.netflix.com" target="_blank" rel="noopener">
+                    Netflix Top 10
+                </a>
+            </div>
+            <p class="footer-note">
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
