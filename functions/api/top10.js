@@ -129,13 +129,18 @@ async function getTMDBData(title, type, apiKey) {
 
 // ČSFD Scraper - two-step process
 async function getCSFDData(title, year, type) {
+  // Skip ČSFD for series - they have complex season ratings that aren't useful
+  if (type === 'series') {
+    console.log(`ČSFD: Skipping series "${title}" - ČSFD only used for movies`);
+    return { rating: null, url: null };
+  }
+
   try {
     await sleep(2000); // Rate limiting: 2 seconds between requests
 
     // Build search query
-    // For series: search WITHOUT year (series names are unique, year confuses ČSFD)
     // For movies: search WITH year (many movies share names)
-    const searchQuery = (type === 'series') ? title : (year ? `${title} ${year}` : title);
+    const searchQuery = year ? `${title} ${year}` : title;
 
     // Step 1: Search for the film to get URL
     const searchUrl = `https://www.csfd.cz/hledat/?q=${encodeURIComponent(searchQuery)}`;
@@ -161,53 +166,16 @@ async function getCSFDData(title, year, type) {
     console.log(`ČSFD: Found ${articles.length} articles for "${title}"`);
 
     let csfdUrl = null;
-    let matchReason = '';
 
-    // For series: ČSFD uses /film/ for everything, detect series by /season-X/ in URL
-    if (type === 'series') {
-      // Look for URLs containing season paths (e.g., /film/987453-wednesday/987454-season-1/)
-      for (const articleMatch of articles) {
-        const articleHtml = articleMatch[1];
-        const urlMatch = articleHtml.match(/href="(\/film\/[^"]+\/[^"]*season-[^"\/]+\/)"/i);
+    // For movies: look for first /film/ URL (take first article)
+    for (const articleMatch of articles) {
+      const articleHtml = articleMatch[1];
+      const urlMatch = articleHtml.match(/href="(\/film\/[^"]+)"/i);
 
-        if (urlMatch) {
-          // Extract base URL (remove season part)
-          // E.g., /film/987453-wednesday/987454-season-1/ → /film/987453-wednesday/
-          csfdUrl = urlMatch[1].replace(/\/[^\/]*season-[^\/]+\/$/, '/');
-          matchReason = 'Found series via season URL pattern';
-          console.log(`ČSFD: ${matchReason}: ${csfdUrl}`);
-          break;
-        }
-      }
-    }
-
-    // For movies: look for /film/ URLs (standard path)
-    if (!csfdUrl && type === 'movie') {
-      for (const articleMatch of articles) {
-        const articleHtml = articleMatch[1];
-        const urlMatch = articleHtml.match(/href="(\/film\/[^"]+)"/i);
-
-        if (urlMatch) {
-          csfdUrl = urlMatch[1];
-          matchReason = 'Found movie with /film/ prefix';
-          console.log(`ČSFD: ${matchReason}: ${csfdUrl}`);
-          break;
-        }
-      }
-    }
-
-    // Fallback: take first /film/ URL
-    if (!csfdUrl) {
-      for (const articleMatch of articles) {
-        const articleHtml = articleMatch[1];
-        const urlMatch = articleHtml.match(/href="(\/film\/[^"]+)"/i);
-
-        if (urlMatch) {
-          csfdUrl = urlMatch[1];
-          matchReason = 'Fallback: first /film/ URL';
-          console.log(`ČSFD: ${matchReason}: ${csfdUrl}`);
-          break;
-        }
+      if (urlMatch) {
+        csfdUrl = urlMatch[1];
+        console.log(`ČSFD: Found movie URL: ${csfdUrl}`);
+        break;
       }
     }
 
