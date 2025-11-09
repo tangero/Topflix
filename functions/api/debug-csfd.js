@@ -53,28 +53,60 @@ export async function onRequest(context) {
     debug.step1_search.url = searchUrl;
     debug.step1_search.html_length = searchHtml.length;
 
-    // Extract article from search
-    const articleMatch = searchHtml.match(/<article[^>]*class="[^"]*article[^"]*"[^>]*>([\s\S]*?)<\/article>/i);
-    if (articleMatch) {
-      const articleHtml = articleMatch[1];
-      debug.step1_search.article_preview = articleHtml.substring(0, 500);
+    // Extract ALL articles from search results
+    const articleMatches = searchHtml.matchAll(/<article[^>]*class="[^"]*article[^"]*"[^>]*>([\s\S]*?)<\/article>/gi);
+    const articles = Array.from(articleMatches);
 
-      // Extract URL - prefer /serial/ for series, /film/ for movies
+    debug.step1_search.articles_found = articles.length;
+
+    if (articles.length === 0) {
+      debug.step1_search.error = 'No articles found in search results';
+    } else {
+      // Preview first article
+      debug.step1_search.first_article_preview = articles[0][1].substring(0, 500);
+
+      // Try to find the correct article based on type
       const expectedPrefix = type === 'series' ? '/serial/' : '/film/';
-      let urlMatch = articleHtml.match(new RegExp(`href="(${expectedPrefix.replace('/', '\\/')}[^"]+)"`, 'i'));
+      let csfdUrl = null;
+      let matchReason = '';
+      let matchedArticleIndex = -1;
 
       debug.step1_search.expected_type = type;
       debug.step1_search.expected_prefix = expectedPrefix;
 
-      // Fallback: try both types
-      if (!urlMatch) {
-        urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
-        debug.step1_search.fallback_used = true;
+      // First pass: try to find exact type match
+      for (let i = 0; i < articles.length; i++) {
+        const articleHtml = articles[i][1];
+        const urlMatch = articleHtml.match(new RegExp(`href="(${expectedPrefix.replace('/', '\\/')}[^"]+)"`, 'i'));
+
+        if (urlMatch) {
+          csfdUrl = urlMatch[1];
+          matchReason = `Found ${type} with correct prefix`;
+          matchedArticleIndex = i;
+          break;
+        }
       }
 
-      if (urlMatch) {
-        let csfdUrl = urlMatch[1];
+      // Second pass: if no type match, take first article with any film/serial URL
+      if (!csfdUrl) {
+        for (let i = 0; i < articles.length; i++) {
+          const articleHtml = articles[i][1];
+          const urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
+
+          if (urlMatch) {
+            csfdUrl = urlMatch[1];
+            matchReason = 'Fallback: first article with any URL';
+            matchedArticleIndex = i;
+            debug.step1_search.fallback_used = true;
+            break;
+          }
+        }
+      }
+
+      if (csfdUrl) {
         debug.step1_search.raw_url = csfdUrl;
+        debug.step1_search.match_reason = matchReason;
+        debug.step1_search.matched_article_index = matchedArticleIndex;
 
         // Ensure it's absolute URL
         if (!csfdUrl.startsWith('http')) {
@@ -92,14 +124,8 @@ export async function onRequest(context) {
         debug.step1_search.extracted_url = csfdUrl;
       } else {
         debug.step1_search.extracted_url = null;
-        debug.step1_search.error = 'No URL found in article';
+        debug.step1_search.error = 'No URL found in any article';
       }
-
-      // Check if rating in search (shouldn't be)
-      const searchPercents = articleHtml.match(/(\d{1,3})%/g);
-      debug.step1_search.percentages_found = searchPercents || [];
-    } else {
-      debug.step1_search.error = 'No article found in search results';
     }
 
     // STEP 2: Film page (only if URL found)

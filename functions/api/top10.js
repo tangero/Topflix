@@ -149,31 +149,54 @@ async function getCSFDData(title, year, type) {
 
     const searchHtml = await searchResponse.text();
 
-    // Extract film URL from search results
-    const articleMatch = searchHtml.match(/<article[^>]*class="[^"]*article[^"]*"[^>]*>([\s\S]*?)<\/article>/i);
+    // Extract ALL articles from search results (not just first one!)
+    const articleMatches = searchHtml.matchAll(/<article[^>]*class="[^"]*article[^"]*"[^>]*>([\s\S]*?)<\/article>/gi);
+    const articles = Array.from(articleMatches);
 
-    if (!articleMatch) {
+    if (articles.length === 0) {
       console.log(`ČSFD: No search results for "${title}"`);
       return { rating: null, url: null };
     }
 
-    const articleHtml = articleMatch[1];
+    console.log(`ČSFD: Found ${articles.length} articles for "${title}"`);
 
-    // Extract URL - prefer /serial/ for series, /film/ for movies
+    // Try to find the correct article based on type
     const expectedPrefix = type === 'series' ? '/serial/' : '/film/';
-    let urlMatch = articleHtml.match(new RegExp(`href="(${expectedPrefix.replace('/', '\\/')}[^"]+)"`, 'i'));
+    let csfdUrl = null;
+    let matchReason = '';
 
-    // Fallback: try both types
-    if (!urlMatch) {
-      urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
+    // First pass: try to find exact type match (/serial/ for series, /film/ for movies)
+    for (const articleMatch of articles) {
+      const articleHtml = articleMatch[1];
+      const urlMatch = articleHtml.match(new RegExp(`href="(${expectedPrefix.replace('/', '\\/')}[^"]+)"`, 'i'));
+
+      if (urlMatch) {
+        csfdUrl = urlMatch[1];
+        matchReason = `Found ${type} with correct prefix`;
+        console.log(`ČSFD: ${matchReason}: ${csfdUrl}`);
+        break;
+      }
     }
 
-    if (!urlMatch) {
+    // Second pass: if no type match, take first article with any film/serial URL
+    if (!csfdUrl) {
+      for (const articleMatch of articles) {
+        const articleHtml = articleMatch[1];
+        const urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
+
+        if (urlMatch) {
+          csfdUrl = urlMatch[1];
+          matchReason = 'Fallback: first article with any URL';
+          console.log(`ČSFD: ${matchReason}: ${csfdUrl}`);
+          break;
+        }
+      }
+    }
+
+    if (!csfdUrl) {
       console.log(`ČSFD: No URL found for "${title}"`);
       return { rating: null, url: null };
     }
-
-    let csfdUrl = urlMatch[1];
 
     // Ensure it's absolute URL
     if (!csfdUrl.startsWith('http')) {
