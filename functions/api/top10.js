@@ -117,6 +117,9 @@ async function getTMDBData(title, type, apiKey) {
       .map(c => c.name)
       .filter(Boolean) || [];
 
+    // Get origin country codes
+    const originCountry = details.origin_country || [];
+
     // Base result object
     const result = {
       tmdb_id: tmdbId,
@@ -130,7 +133,8 @@ async function getTMDBData(title, type, apiKey) {
       poster_url: details.poster_path
         ? `https://image.tmdb.org/t/p/w300${details.poster_path}`
         : null,
-      countries: countries
+      countries: countries,
+      origin_country: originCountry
     };
 
     // Add type-specific fields

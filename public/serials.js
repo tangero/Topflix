@@ -304,10 +304,10 @@ function renderContent() {
     });
 }
 
-// Get filtered data - Movies only for this page
+// Get filtered data - Series only for this page
 function getFilteredData() {
     const sectionData = allData[currentSection];
-    return sectionData.movies || [];
+    return sectionData.series || [];
 }
 
 // Get sorted data
@@ -393,9 +393,18 @@ function createTitleCard(item) {
         metaParts.push(`📅 ${item.year}`);
     }
 
-    // Runtime for movies
-    if (item.runtime) {
-        metaParts.push(`⏱️ ${formatRuntime(item.runtime)}`);
+    // Seasons and episodes for series
+    const seasonInfo = [];
+    if (item.number_of_seasons) {
+        const seasonLabel = item.number_of_seasons === 1 ? 'řada' :
+                           item.number_of_seasons <= 4 ? 'řady' : 'řad';
+        seasonInfo.push(`${item.number_of_seasons} ${seasonLabel}`);
+    }
+    if (item.number_of_episodes) {
+        seasonInfo.push(`${item.number_of_episodes} epizod`);
+    }
+    if (seasonInfo.length > 0) {
+        metaParts.push(`📺 ${seasonInfo.join(', ')}`);
     }
 
     // Genre

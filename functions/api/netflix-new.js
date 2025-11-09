@@ -66,6 +66,9 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 20) {
           .map(c => c.name)
           .filter(Boolean) || [];
 
+        // Get origin country codes
+        const originCountry = details.origin_country || [];
+
         const result = {
           tmdb_id: item.id,
           tmdb_url: tmdbUrl,
@@ -80,7 +83,8 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 20) {
             : null,
           type: type,
           popularity: item.popularity,
-          countries: countries
+          countries: countries,
+          origin_country: originCountry
         };
 
         // Add type-specific fields
