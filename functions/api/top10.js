@@ -127,13 +127,14 @@ async function getTMDBData(title, type, apiKey) {
   }
 }
 
-// ČSFD Scraper - improved version
+// ČSFD Scraper - two-step process
 async function getCSFDData(title) {
   try {
     await sleep(2000); // Rate limiting: 2 seconds between requests
 
+    // Step 1: Search for the film to get URL
     const searchUrl = `https://www.csfd.cz/hledat/?q=${encodeURIComponent(title)}`;
-    const response = await fetch(searchUrl, {
+    const searchResponse = await fetch(searchUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -141,71 +142,79 @@ async function getCSFDData(title) {
       }
     });
 
-    const html = await response.text();
+    const searchHtml = await searchResponse.text();
 
-    // ČSFD structure: Find first film/TV show result
-    // Look for article with class "article" containing film data
+    // Extract film URL from search results
+    const articleMatch = searchHtml.match(/<article[^>]*class="[^"]*article[^"]*"[^>]*>([\s\S]*?)<\/article>/i);
 
-    // Pattern 1: Try to find rating in film article structure
-    // The rating is typically in format: <div class="film-rating-average">XX%</div>
-    const articleMatch = html.match(/<article[^>]*class="[^"]*article[^"]*"[^>]*>([\s\S]*?)<\/article>/i);
-
-    if (articleMatch) {
-      const articleHtml = articleMatch[1];
-
-      // Extract URL - typically /film/123456-nazev/ or /tvshow/...
-      const urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
-      const csfdUrl = urlMatch ? `https://www.csfd.cz${urlMatch[1]}` : null;
-
-      // Extract rating - look for percentage in rating context
-      // Multiple patterns to try:
-
-      // Pattern: <span class="average">XX%</span>
-      let ratingMatch = articleHtml.match(/<span[^>]*class="[^"]*average[^"]*"[^>]*>(\d+)%<\/span>/i);
-
-      if (!ratingMatch) {
-        // Pattern: rating-XX% in class or data attribute
-        ratingMatch = articleHtml.match(/rating-(\d+)%/i);
-      }
-
-      if (!ratingMatch) {
-        // Pattern: data-rating="XX"
-        const dataRating = articleHtml.match(/data-rating="(\d+)"/i);
-        if (dataRating) {
-          ratingMatch = [null, dataRating[1]];
-        }
-      }
-
-      if (!ratingMatch) {
-        // Fallback: any XX% in the article (more reliable than global search)
-        ratingMatch = articleHtml.match(/(\d{1,3})%/);
-      }
-
-      const rating = ratingMatch ? parseInt(ratingMatch[1]) : null;
-
-      // Validate rating is in reasonable range (10-100)
-      // Ratings below 10% are likely parsing errors (wrong element scraped)
-      const validRating = rating && rating >= 10 && rating <= 100 ? rating : null;
-
-      console.log(`ČSFD data for "${title}": rating=${validRating}, url=${csfdUrl}`);
-
-      return {
-        rating: validRating,
-        url: csfdUrl
-      };
+    if (!articleMatch) {
+      console.log(`ČSFD: No search results for "${title}"`);
+      return { rating: null, url: null };
     }
 
-    // If article not found, try simpler approach
-    const simpleUrlMatch = html.match(/href="(\/film\/[^"]+)"/i);
-    if (simpleUrlMatch) {
-      return {
-        rating: null,
-        url: `https://www.csfd.cz${simpleUrlMatch[1]}`
-      };
+    const articleHtml = articleMatch[1];
+    const urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
+
+    if (!urlMatch) {
+      console.log(`ČSFD: No film URL found for "${title}"`);
+      return { rating: null, url: null };
     }
 
-    console.log(`ČSFD: No data found for "${title}"`);
-    return { rating: null, url: null };
+    const csfdUrl = `https://www.csfd.cz${urlMatch[1]}`;
+
+    // Step 2: Fetch the film page to get rating
+    await sleep(2000); // Another 2s delay before fetching film page
+
+    const filmResponse = await fetch(csfdUrl, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'cs,en;q=0.9',
+      }
+    });
+
+    const filmHtml = await filmResponse.text();
+
+    // Extract rating from film page
+    // ČSFD film page patterns:
+
+    // Pattern 1: <div class="film-rating-average">XX%</div>
+    let ratingMatch = filmHtml.match(/<div[^>]*class="[^"]*film-rating-average[^"]*"[^>]*>(\d+)%<\/div>/i);
+
+    if (!ratingMatch) {
+      // Pattern 2: Look for rating in structured data or meta tags
+      ratingMatch = filmHtml.match(/rating[^>]*>(\d+)%/i);
+    }
+
+    if (!ratingMatch) {
+      // Pattern 3: data-rating attribute
+      const dataRating = filmHtml.match(/data-rating="(\d+)"/i);
+      if (dataRating) {
+        ratingMatch = [null, dataRating[1]];
+      }
+    }
+
+    if (!ratingMatch) {
+      // Pattern 4: Find percentage in rating context
+      // Look for rating section first
+      const ratingSection = filmHtml.match(/<section[^>]*class="[^"]*rating[^"]*"[^>]*>([\s\S]*?)<\/section>/i);
+      if (ratingSection) {
+        ratingMatch = ratingSection[1].match(/(\d{1,3})%/);
+      }
+    }
+
+    const rating = ratingMatch ? parseInt(ratingMatch[1]) : null;
+
+    // Validate rating is in reasonable range (10-100)
+    // Ratings below 10% are likely parsing errors
+    const validRating = rating && rating >= 10 && rating <= 100 ? rating : null;
+
+    console.log(`ČSFD data for "${title}": rating=${validRating}, url=${csfdUrl}`);
+
+    return {
+      rating: validRating,
+      url: csfdUrl
+    };
 
   } catch (error) {
     console.error('Error fetching ČSFD data:', error);

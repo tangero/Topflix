@@ -22,10 +22,16 @@ export async function onRequest(context) {
   }
 
   try {
-    await sleep(2000); // Rate limiting
+    const debug = {
+      step1_search: {},
+      step2_film_page: {}
+    };
+
+    // STEP 1: Search
+    await sleep(2000);
 
     const searchUrl = `https://www.csfd.cz/hledat/?q=${encodeURIComponent(title)}`;
-    const response = await fetch(searchUrl, {
+    const searchResponse = await fetch(searchUrl, {
       headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -33,56 +39,78 @@ export async function onRequest(context) {
       }
     });
 
-    const html = await response.text();
+    const searchHtml = await searchResponse.text();
+    debug.step1_search.url = searchUrl;
+    debug.step1_search.html_length = searchHtml.length;
 
-    // Try all patterns
-    const patterns = {
-      article: null,
-      url: null,
-      rating_patterns: {}
-    };
-
-    // Find article
-    const articleMatch = html.match(/<article[^>]*class="[^"]*article[^"]*"[^>]*>([\s\S]*?)<\/article>/i);
+    // Extract article from search
+    const articleMatch = searchHtml.match(/<article[^>]*class="[^"]*article[^"]*"[^>]*>([\s\S]*?)<\/article>/i);
     if (articleMatch) {
       const articleHtml = articleMatch[1];
-      patterns.article = articleHtml.substring(0, 500); // First 500 chars
+      debug.step1_search.article_preview = articleHtml.substring(0, 500);
 
-      // Try URL extraction
+      // Extract film URL
       const urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
-      patterns.url = urlMatch ? `https://www.csfd.cz${urlMatch[1]}` : null;
+      debug.step1_search.extracted_url = urlMatch ? `https://www.csfd.cz${urlMatch[1]}` : null;
 
-      // Try all rating patterns
-      const pattern1 = articleHtml.match(/<span[^>]*class="[^"]*average[^"]*"[^>]*>(\d+)%<\/span>/i);
-      patterns.rating_patterns.average_span = pattern1 ? pattern1[1] : null;
-
-      const pattern2 = articleHtml.match(/rating-(\d+)%/i);
-      patterns.rating_patterns.rating_class = pattern2 ? pattern2[1] : null;
-
-      const pattern3 = articleHtml.match(/data-rating="(\d+)"/i);
-      patterns.rating_patterns.data_rating = pattern3 ? pattern3[1] : null;
-
-      const pattern4 = articleHtml.match(/(\d{1,3})%/);
-      patterns.rating_patterns.any_percent = pattern4 ? pattern4[1] : null;
-
-      // Try to find all percentages
-      const allPercents = articleHtml.match(/(\d{1,3})%/g);
-      patterns.rating_patterns.all_percentages = allPercents || [];
+      // Check if rating in search (shouldn't be)
+      const searchPercents = articleHtml.match(/(\d{1,3})%/g);
+      debug.step1_search.percentages_found = searchPercents || [];
+    } else {
+      debug.step1_search.error = 'No article found in search results';
     }
 
-    // Also check for film card structure
-    const filmCardMatch = html.match(/<div[^>]*class="[^"]*film-header[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
-    if (filmCardMatch) {
-      patterns.film_card = filmCardMatch[1].substring(0, 300);
+    // STEP 2: Film page (only if URL found)
+    if (debug.step1_search.extracted_url) {
+      await sleep(2000); // Rate limit
+
+      const filmResponse = await fetch(debug.step1_search.extracted_url, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+          'Accept-Language': 'cs,en;q=0.9',
+        }
+      });
+
+      const filmHtml = await filmResponse.text();
+      debug.step2_film_page.url = debug.step1_search.extracted_url;
+      debug.step2_film_page.html_length = filmHtml.length;
+      debug.step2_film_page.html_preview = filmHtml.substring(0, 1000);
+
+      // Try all rating patterns on film page
+      const patterns = {};
+
+      // Pattern 1: film-rating-average
+      const pattern1 = filmHtml.match(/<div[^>]*class="[^"]*film-rating-average[^"]*"[^>]*>(\d+)%<\/div>/i);
+      patterns.film_rating_average = pattern1 ? pattern1[1] : null;
+
+      // Pattern 2: any rating>XX%
+      const pattern2 = filmHtml.match(/rating[^>]*>(\d+)%/i);
+      patterns.rating_generic = pattern2 ? pattern2[1] : null;
+
+      // Pattern 3: data-rating
+      const pattern3 = filmHtml.match(/data-rating="(\d+)"/i);
+      patterns.data_rating = pattern3 ? pattern3[1] : null;
+
+      // Pattern 4: rating section
+      const ratingSection = filmHtml.match(/<section[^>]*class="[^"]*rating[^"]*"[^>]*>([\s\S]*?)<\/section>/i);
+      if (ratingSection) {
+        const sectionMatch = ratingSection[1].match(/(\d{1,3})%/);
+        patterns.rating_section = sectionMatch ? sectionMatch[1] : null;
+        patterns.rating_section_preview = ratingSection[1].substring(0, 300);
+      }
+
+      // Find all percentages
+      const allPercents = filmHtml.match(/(\d{1,3})%/g);
+      patterns.all_percentages = allPercents ? allPercents.slice(0, 20) : []; // First 20
+
+      debug.step2_film_page.rating_patterns = patterns;
     }
 
     // Return debug info
     return new Response(JSON.stringify({
       title,
-      search_url: searchUrl,
-      patterns,
-      html_preview: html.substring(0, 1000),
-      html_length: html.length
+      debug
     }, null, 2), {
       headers: {
         'Content-Type': 'application/json',
