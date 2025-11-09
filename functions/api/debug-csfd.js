@@ -30,10 +30,16 @@ export async function onRequest(context) {
       step2_film_page: {}
     };
 
-    // STEP 1: Search with year (if provided)
+    // STEP 1: Search
     await sleep(2000);
 
-    const searchQuery = year ? `${title} ${year}` : title;
+    // For series: search WITHOUT year (series names are unique, year confuses ČSFD)
+    // For movies: search WITH year (many movies share names)
+    const searchQuery = (type === 'series') ? title : (year ? `${title} ${year}` : title);
+    debug.step1_search.search_strategy = type === 'series'
+      ? 'Series: searching WITHOUT year'
+      : 'Movie: searching WITH year';
+
     const searchUrl = `https://www.csfd.cz/hledat/?q=${encodeURIComponent(searchQuery)}`;
     const searchResponse = await fetch(searchUrl, {
       headers: {

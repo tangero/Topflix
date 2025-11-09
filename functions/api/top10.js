@@ -132,8 +132,10 @@ async function getCSFDData(title, year, type) {
   try {
     await sleep(2000); // Rate limiting: 2 seconds between requests
 
-    // Build search query with year for better matching
-    const searchQuery = year ? `${title} ${year}` : title;
+    // Build search query
+    // For series: search WITHOUT year (series names are unique, year confuses ČSFD)
+    // For movies: search WITH year (many movies share names)
+    const searchQuery = (type === 'series') ? title : (year ? `${title} ${year}` : title);
 
     // Step 1: Search for the film to get URL
     const searchUrl = `https://www.csfd.cz/hledat/?q=${encodeURIComponent(searchQuery)}`;
