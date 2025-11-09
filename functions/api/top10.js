@@ -102,8 +102,12 @@ async function getTMDBData(title, type, apiKey) {
         .slice(0, 3)
         .join(', ');
 
+      // Build TMDB URL
+      const tmdbUrl = `https://www.themoviedb.org/${searchType}/${item.id}`;
+
       return {
         tmdb_id: item.id,
+        tmdb_url: tmdbUrl,
         title_original: item.original_title || item.original_name,
         title_cz: item.title || item.name,
         year: (item.release_date || item.first_air_date || '').substring(0, 4),
@@ -123,32 +127,88 @@ async function getTMDBData(title, type, apiKey) {
   }
 }
 
-// ČSFD Scraper
-async function getCSFDRating(title) {
+// ČSFD Scraper - improved version
+async function getCSFDData(title) {
   try {
     await sleep(2000); // Rate limiting: 2 seconds between requests
 
     const searchUrl = `https://www.csfd.cz/hledat/?q=${encodeURIComponent(title)}`;
     const response = await fetch(searchUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'cs,en;q=0.9',
       }
     });
 
     const html = await response.text();
 
-    // Try to extract rating from search results
-    // ČSFD uses percentage rating (0-100%)
-    const ratingMatch = html.match(/(\d+)%/);
+    // ČSFD structure: Find first film/TV show result
+    // Look for article with class "article" containing film data
 
-    if (ratingMatch) {
-      return parseInt(ratingMatch[1]);
+    // Pattern 1: Try to find rating in film article structure
+    // The rating is typically in format: <div class="film-rating-average">XX%</div>
+    const articleMatch = html.match(/<article[^>]*class="[^"]*article[^"]*"[^>]*>([\s\S]*?)<\/article>/i);
+
+    if (articleMatch) {
+      const articleHtml = articleMatch[1];
+
+      // Extract URL - typically /film/123456-nazev/ or /tvshow/...
+      const urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
+      const csfdUrl = urlMatch ? `https://www.csfd.cz${urlMatch[1]}` : null;
+
+      // Extract rating - look for percentage in rating context
+      // Multiple patterns to try:
+
+      // Pattern: <span class="average">XX%</span>
+      let ratingMatch = articleHtml.match(/<span[^>]*class="[^"]*average[^"]*"[^>]*>(\d+)%<\/span>/i);
+
+      if (!ratingMatch) {
+        // Pattern: rating-XX% in class or data attribute
+        ratingMatch = articleHtml.match(/rating-(\d+)%/i);
+      }
+
+      if (!ratingMatch) {
+        // Pattern: data-rating="XX"
+        const dataRating = articleHtml.match(/data-rating="(\d+)"/i);
+        if (dataRating) {
+          ratingMatch = [null, dataRating[1]];
+        }
+      }
+
+      if (!ratingMatch) {
+        // Fallback: any XX% in the article (more reliable than global search)
+        ratingMatch = articleHtml.match(/(\d{1,3})%/);
+      }
+
+      const rating = ratingMatch ? parseInt(ratingMatch[1]) : null;
+
+      // Validate rating is in reasonable range (0-100)
+      const validRating = rating && rating >= 0 && rating <= 100 ? rating : null;
+
+      console.log(`ČSFD data for "${title}": rating=${validRating}, url=${csfdUrl}`);
+
+      return {
+        rating: validRating,
+        url: csfdUrl
+      };
     }
 
-    return null;
+    // If article not found, try simpler approach
+    const simpleUrlMatch = html.match(/href="(\/film\/[^"]+)"/i);
+    if (simpleUrlMatch) {
+      return {
+        rating: null,
+        url: `https://www.csfd.cz${simpleUrlMatch[1]}`
+      };
+    }
+
+    console.log(`ČSFD: No data found for "${title}"`);
+    return { rating: null, url: null };
+
   } catch (error) {
-    console.error('Error fetching ČSFD rating:', error);
-    return null;
+    console.error('Error fetching ČSFD data:', error);
+    return { rating: null, url: null };
   }
 }
 
@@ -165,13 +225,13 @@ async function enrichTitle(title, rank, type, apiKey) {
     };
   }
 
-  // Get ČSFD rating
-  const csfdRating = await getCSFDRating(tmdbData.title_cz || title);
+  // Get ČSFD data (rating + URL)
+  const csfdData = await getCSFDData(tmdbData.title_cz || title);
 
   // Calculate average rating and quality indicator
   const ratings = [];
   if (tmdbData.tmdb_rating) ratings.push(tmdbData.tmdb_rating * 10); // Convert 0-10 to 0-100
-  if (csfdRating) ratings.push(csfdRating);
+  if (csfdData.rating) ratings.push(csfdData.rating);
 
   const avgRating = ratings.length > 0
     ? Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length)
@@ -188,7 +248,9 @@ async function enrichTitle(title, rank, type, apiKey) {
     year: tmdbData.year,
     genre: tmdbData.genre,
     tmdb_rating: tmdbData.tmdb_rating,
-    csfd_rating: csfdRating,
+    tmdb_url: tmdbData.tmdb_url,
+    csfd_rating: csfdData.rating,
+    csfd_url: csfdData.url,
     avg_rating: avgRating,
     quality,
     description: tmdbData.description,

@@ -319,6 +319,21 @@ body {
     font-weight: bold;
 }
 
+.rating-item .rating-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.rating-item .rating-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.rating-item .rating-link .value {
+    font-weight: bold;
+}
+
 .meta {
     display: flex;
     gap: 0.5rem;

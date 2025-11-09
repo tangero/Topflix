@@ -240,12 +240,17 @@ function createTitleCard(item) {
     // Type badge
     const typeLabel = item.type === 'movie' ? 'Film' : 'Seriál';
 
-    // Ratings
+    // Ratings with links
     const tmdbRating = item.tmdb_rating
         ? `<div class="rating-item">
             <span class="star">⭐</span>
             <span class="label">TMDB:</span>
-            <span class="value">${item.tmdb_rating}/10</span>
+            ${item.tmdb_url
+                ? `<a href="${item.tmdb_url}" target="_blank" rel="noopener noreferrer" class="rating-link" onclick="event.stopPropagation()">
+                    <span class="value">${item.tmdb_rating}/10</span>
+                   </a>`
+                : `<span class="value">${item.tmdb_rating}/10</span>`
+            }
            </div>`
         : '';
 
@@ -253,7 +258,12 @@ function createTitleCard(item) {
         ? `<div class="rating-item">
             <span class="star">⭐</span>
             <span class="label">ČSFD:</span>
-            <span class="value">${item.csfd_rating}%</span>
+            ${item.csfd_url
+                ? `<a href="${item.csfd_url}" target="_blank" rel="noopener noreferrer" class="rating-link" onclick="event.stopPropagation()">
+                    <span class="value">${item.csfd_rating}%</span>
+                   </a>`
+                : `<span class="value">${item.csfd_rating}%</span>`
+            }
            </div>`
         : '';
 
