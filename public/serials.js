@@ -21,6 +21,10 @@ let allData = {
 let currentSection = 'top10'; // top10, new
 let currentSort = 'rank'; // rank, rating, recommended, popularity
 
+// Region filter
+const INCLUDE_INTERNATIONAL_KEY = 'topflix_include_international';
+let includeInternational = false;
+
 // API endpoints
 const API_ENDPOINTS = {
     top10: '/api/top10',
@@ -37,10 +41,13 @@ const nextUpdate = document.getElementById('nextUpdate');
 const tabButtons = document.querySelectorAll('.tab-btn');
 const sortSelect = document.getElementById('sortSelect');
 const themeToggle = document.getElementById('themeToggle');
+const includeInternationalCheckbox = document.getElementById('includeInternational');
+const hiddenCountFeedback = document.getElementById('hiddenCountFeedback');
 
 // Initialize app
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
+    initRegionFilter();
     fetchData();
     setupEventListeners();
 });
@@ -61,10 +68,59 @@ function toggleTheme() {
     themeToggle.querySelector('.theme-icon').textContent = isLight ? '🌙' : '☀️';
 }
 
+// Region filter management
+function initRegionFilter() {
+    // Load preference from localStorage (default: false = hide international)
+    const saved = localStorage.getItem(INCLUDE_INTERNATIONAL_KEY);
+    includeInternational = saved === 'true';
+    includeInternationalCheckbox.checked = includeInternational;
+}
+
+function toggleInternational() {
+    includeInternational = includeInternationalCheckbox.checked;
+    localStorage.setItem(INCLUDE_INTERNATIONAL_KEY, includeInternational);
+    renderContent();
+}
+
+// Filter by region - remove Asian and Latin American films/series
+function filterByRegion(items) {
+    if (includeInternational) {
+        hiddenCountFeedback.classList.add('hidden');
+        return items;
+    }
+
+    // Asian countries
+    const asianCountries = ['JP', 'KR', 'CN', 'TW', 'HK', 'TH', 'IN', 'ID', 'PH', 'VN', 'SG', 'MY'];
+    // Latin American countries
+    const latinCountries = ['MX', 'BR', 'AR', 'CL', 'CO', 'PE', 'VE', 'EC', 'BO', 'UY', 'PY'];
+
+    const filtered = items.filter(item => {
+        const origins = item.origin_country || [];
+        // Keep item if it doesn't have any Asian or Latin American country
+        return !origins.some(country =>
+            asianCountries.includes(country) || latinCountries.includes(country)
+        );
+    });
+
+    // Update feedback
+    const hiddenCount = items.length - filtered.length;
+    if (hiddenCount > 0) {
+        hiddenCountFeedback.textContent = `(${hiddenCount} ${hiddenCount === 1 ? 'seriál skryt' : 'seriálů skryto'})`;
+        hiddenCountFeedback.classList.remove('hidden');
+    } else {
+        hiddenCountFeedback.classList.add('hidden');
+    }
+
+    return filtered;
+}
+
 // Event listeners
 function setupEventListeners() {
     // Theme toggle
     themeToggle.addEventListener('click', toggleTheme);
+
+    // Region filter toggle
+    includeInternationalCheckbox.addEventListener('change', toggleInternational);
 
     // Section tabs
     tabButtons.forEach(btn => {
@@ -290,7 +346,8 @@ function displayData() {
 // Render content based on filters and sort
 function renderContent() {
     const filteredData = getFilteredData();
-    const sortedData = getSortedData(filteredData);
+    const regionFiltered = filterByRegion(filteredData);
+    const sortedData = getSortedData(regionFiltered);
 
     content.innerHTML = '';
 
