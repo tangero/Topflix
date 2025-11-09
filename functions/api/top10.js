@@ -255,7 +255,37 @@ export async function onRequest(context) {
 
   // API endpoint
   try {
+    // Check if required bindings exist
+    if (!env.TOPFLIX_KV) {
+      console.error('TOPFLIX_KV binding is missing!');
+      return new Response(JSON.stringify({
+        error: 'KV namespace not configured',
+        details: 'TOPFLIX_KV binding is missing. Please configure it in Cloudflare Dashboard: Settings -> Functions -> KV namespace bindings'
+      }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCorsHeaders()
+        }
+      });
+    }
+
+    if (!env.TMDB_API_KEY) {
+      console.error('TMDB_API_KEY is missing!');
+      return new Response(JSON.stringify({
+        error: 'TMDB API key not configured',
+        details: 'TMDB_API_KEY environment variable is missing. Please add it in Cloudflare Dashboard: Settings -> Environment variables'
+      }), {
+        status: 500,
+        headers: {
+          'Content-Type': 'application/json',
+          ...getCorsHeaders()
+        }
+      });
+    }
+
     const weekKey = `netflix_top10_cz_${getWeekNumber(new Date())}`;
+    console.log('Fetching data for week:', weekKey);
 
     // Try to get from KV cache first
     let cachedData = await env.TOPFLIX_KV.get(weekKey);
@@ -285,7 +315,12 @@ export async function onRequest(context) {
       }
     });
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error('Error in top10 function:', error);
+    return new Response(JSON.stringify({
+      error: error.message,
+      stack: error.stack,
+      details: 'Check Cloudflare Dashboard -> Functions -> Real-time logs for more details'
+    }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',

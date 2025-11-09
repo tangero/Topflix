@@ -90,11 +90,36 @@ async function fetchData() {
 
         // Fetch from API
         const response = await fetch(API_ENDPOINT);
+
         if (!response.ok) {
-            throw new Error('Failed to fetch data');
+            // Try to get error details from response
+            let errorDetails = 'Failed to fetch data';
+            try {
+                const errorData = await response.json();
+                console.error('API Error:', errorData);
+                if (errorData.error) {
+                    errorDetails = errorData.error;
+                }
+                if (errorData.details) {
+                    console.error('Details:', errorData.details);
+                }
+                if (errorData.stack) {
+                    console.error('Stack:', errorData.stack);
+                }
+            } catch (e) {
+                console.error('Could not parse error response');
+            }
+            throw new Error(errorDetails);
         }
 
         const data = await response.json();
+
+        // Check if data has error field
+        if (data.error) {
+            console.error('API returned error:', data);
+            throw new Error(data.error);
+        }
+
         allData = data;
 
         // Cache the data
@@ -103,6 +128,7 @@ async function fetchData() {
         displayData();
     } catch (err) {
         console.error('Error fetching data:', err);
+        console.error('API Endpoint:', API_ENDPOINT);
         loading.classList.add('hidden');
         error.classList.remove('hidden');
     }
