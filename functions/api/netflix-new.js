@@ -199,8 +199,8 @@ export async function onRequest(context) {
       });
     }
 
-    // Generate cache key based on date
-    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}`;
+    // Generate cache key based on date (v2 for new metadata)
+    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v2`;
     console.log('Fetching data for:', cacheKey);
 
     // Try to get from KV cache first (if available)

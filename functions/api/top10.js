@@ -283,7 +283,7 @@ export async function onRequest(context) {
       });
     }
 
-    const weekKey = `netflix_top10_cz_${getWeekNumber(new Date())}`;
+    const weekKey = `netflix_top10_cz_${getWeekNumber(new Date())}_v2`;
     console.log('Fetching data for week:', weekKey);
 
     // Try to get from KV cache first
