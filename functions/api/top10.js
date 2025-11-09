@@ -183,8 +183,9 @@ async function getCSFDData(title) {
 
       const rating = ratingMatch ? parseInt(ratingMatch[1]) : null;
 
-      // Validate rating is in reasonable range (0-100)
-      const validRating = rating && rating >= 0 && rating <= 100 ? rating : null;
+      // Validate rating is in reasonable range (10-100)
+      // Ratings below 10% are likely parsing errors (wrong element scraped)
+      const validRating = rating && rating >= 10 && rating <= 100 ? rating : null;
 
       console.log(`ČSFD data for "${title}": rating=${validRating}, url=${csfdUrl}`);
 
