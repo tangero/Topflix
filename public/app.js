@@ -83,7 +83,8 @@ async function fetchData() {
         // Try to get from localStorage first (7-day cache)
         const cachedData = getCachedData();
         if (cachedData) {
-            allData = cachedData;
+            // Sanitize cached data too (in case old invalid data is cached)
+            allData = sanitizeData(cachedData);
             displayData();
             return;
         }
@@ -120,7 +121,8 @@ async function fetchData() {
             throw new Error(data.error);
         }
 
-        allData = data;
+        // Sanitize data - remove invalid ČSFD ratings (< 10%)
+        allData = sanitizeData(data);
 
         // Cache the data
         cacheData(data);
@@ -132,6 +134,63 @@ async function fetchData() {
         loading.classList.add('hidden');
         error.classList.remove('hidden');
     }
+}
+
+// Sanitize data - remove invalid ČSFD ratings
+function sanitizeData(data) {
+    const cleanData = { ...data };
+
+    // Clean movies
+    if (cleanData.movies) {
+        cleanData.movies = cleanData.movies.map(movie => {
+            const cleanMovie = { ...movie };
+
+            // Remove ČSFD rating if < 10% (invalid)
+            if (cleanMovie.csfd_rating && cleanMovie.csfd_rating < 10) {
+                console.warn(`Removing invalid ČSFD rating ${cleanMovie.csfd_rating}% for movie: ${cleanMovie.title}`);
+                delete cleanMovie.csfd_rating;
+
+                // Recalculate average rating without ČSFD
+                if (cleanMovie.tmdb_rating) {
+                    cleanMovie.avg_rating = Math.round(cleanMovie.tmdb_rating * 10);
+
+                    // Update quality
+                    if (cleanMovie.avg_rating >= 70) cleanMovie.quality = 'green';
+                    else if (cleanMovie.avg_rating < 50) cleanMovie.quality = 'red';
+                    else cleanMovie.quality = 'yellow';
+                }
+            }
+
+            return cleanMovie;
+        });
+    }
+
+    // Clean series
+    if (cleanData.series) {
+        cleanData.series = cleanData.series.map(series => {
+            const cleanSeries = { ...series };
+
+            // Remove ČSFD rating if < 10% (invalid)
+            if (cleanSeries.csfd_rating && cleanSeries.csfd_rating < 10) {
+                console.warn(`Removing invalid ČSFD rating ${cleanSeries.csfd_rating}% for series: ${cleanSeries.title}`);
+                delete cleanSeries.csfd_rating;
+
+                // Recalculate average rating without ČSFD
+                if (cleanSeries.tmdb_rating) {
+                    cleanSeries.avg_rating = Math.round(cleanSeries.tmdb_rating * 10);
+
+                    // Update quality
+                    if (cleanSeries.avg_rating >= 70) cleanSeries.quality = 'green';
+                    else if (cleanSeries.avg_rating < 50) cleanSeries.quality = 'red';
+                    else cleanSeries.quality = 'yellow';
+                }
+            }
+
+            return cleanSeries;
+        });
+    }
+
+    return cleanData;
 }
 
 // Cache management
@@ -261,8 +320,9 @@ function createTitleCard(item) {
            </div>`
         : '';
 
-    // ČSFD Rating with color coding - only show if rating exists
-    const csfdRating = item.csfd_rating
+    // ČSFD Rating with color coding - only show if rating exists AND is >= 10%
+    // Ratings below 10% are invalid (parsing errors)
+    const csfdRating = (item.csfd_rating && item.csfd_rating >= 10)
         ? `<div class="rating-item rating-${getRatingQuality(item.csfd_rating)}">
             <span class="star">⭐</span>
             <span class="label">ČSFD:</span>
