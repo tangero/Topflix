@@ -3,24 +3,28 @@ name = "topflix"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "public"
 
-# KV namespace binding
-# You can override this in Cloudflare Dashboard: Settings -> Functions -> KV namespace bindings
-# OR update the ID below after creating the namespace
-[[kv_namespaces]]
-binding = "TOPFLIX_KV"
-id = ""
-
+# ⚠️ IMPORTANT: For GitHub deployment, configure bindings in Cloudflare Dashboard
+# DO NOT add [[kv_namespaces]] here - it will cause build errors if ID is empty
+#
 # Setup instructions:
 #
-# 1. Create KV namespace:
-#    npx wrangler kv:namespace create "TOPFLIX_KV"
-#    Copy the generated ID
+# 1. Create KV namespace in Cloudflare Dashboard:
+#    Workers & Pages -> KV -> Create namespace
+#    Name: TOPFLIX_KV
 #
-# 2. Update KV binding:
-#    Option A: Update the id = "" above with your namespace ID
-#    Option B: Set in Cloudflare Dashboard -> Settings -> Functions -> KV namespace bindings
+# 2. Add KV binding to your Pages project:
+#    Workers & Pages -> topflix -> Settings -> Functions -> KV namespace bindings
+#    Click "Add binding":
+#    - Variable name: TOPFLIX_KV
+#    - KV namespace: select TOPFLIX_KV from dropdown
+#    - Click Save
 #
-# 3. Add TMDB API key in Cloudflare Dashboard:
+# 3. Add TMDB API key:
 #    Settings -> Environment variables -> Add variable
 #    - Variable name: TMDB_API_KEY
 #    - Value: your-tmdb-api-key (get from themoviedb.org/settings/api)
+#    - Environment: Production (check the box)
+#    - Click Save
+#
+# 4. Retry deployment:
+#    Deployments -> click on latest -> Retry deployment
