@@ -160,33 +160,51 @@ async function getCSFDData(title, year, type) {
 
     console.log(`ČSFD: Found ${articles.length} articles for "${title}"`);
 
-    // Try to find the correct article based on type
-    const expectedPrefix = type === 'series' ? '/serial/' : '/film/';
     let csfdUrl = null;
     let matchReason = '';
 
-    // First pass: try to find exact type match (/serial/ for series, /film/ for movies)
-    for (const articleMatch of articles) {
-      const articleHtml = articleMatch[1];
-      const urlMatch = articleHtml.match(new RegExp(`href="(${expectedPrefix.replace('/', '\\/')}[^"]+)"`, 'i'));
+    // For series: ČSFD uses /film/ for everything, detect series by /season-X/ in URL
+    if (type === 'series') {
+      // Look for URLs containing season paths (e.g., /film/987453-wednesday/987454-season-1/)
+      for (const articleMatch of articles) {
+        const articleHtml = articleMatch[1];
+        const urlMatch = articleHtml.match(/href="(\/film\/[^"]+\/[^"]*season-[^"\/]+\/)"/i);
 
-      if (urlMatch) {
-        csfdUrl = urlMatch[1];
-        matchReason = `Found ${type} with correct prefix`;
-        console.log(`ČSFD: ${matchReason}: ${csfdUrl}`);
-        break;
+        if (urlMatch) {
+          // Extract base URL (remove season part)
+          // E.g., /film/987453-wednesday/987454-season-1/ → /film/987453-wednesday/
+          csfdUrl = urlMatch[1].replace(/\/[^\/]*season-[^\/]+\/$/, '/');
+          matchReason = 'Found series via season URL pattern';
+          console.log(`ČSFD: ${matchReason}: ${csfdUrl}`);
+          break;
+        }
       }
     }
 
-    // Second pass: if no type match, take first article with any film/serial URL
-    if (!csfdUrl) {
+    // For movies: look for /film/ URLs (standard path)
+    if (!csfdUrl && type === 'movie') {
       for (const articleMatch of articles) {
         const articleHtml = articleMatch[1];
-        const urlMatch = articleHtml.match(/href="(\/film\/[^"]+|\/serial\/[^"]+)"/i);
+        const urlMatch = articleHtml.match(/href="(\/film\/[^"]+)"/i);
 
         if (urlMatch) {
           csfdUrl = urlMatch[1];
-          matchReason = 'Fallback: first article with any URL';
+          matchReason = 'Found movie with /film/ prefix';
+          console.log(`ČSFD: ${matchReason}: ${csfdUrl}`);
+          break;
+        }
+      }
+    }
+
+    // Fallback: take first /film/ URL
+    if (!csfdUrl) {
+      for (const articleMatch of articles) {
+        const articleHtml = articleMatch[1];
+        const urlMatch = articleHtml.match(/href="(\/film\/[^"]+)"/i);
+
+        if (urlMatch) {
+          csfdUrl = urlMatch[1];
+          matchReason = 'Fallback: first /film/ URL';
           console.log(`ČSFD: ${matchReason}: ${csfdUrl}`);
           break;
         }
