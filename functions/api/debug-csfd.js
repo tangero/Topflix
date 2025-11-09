@@ -233,6 +233,17 @@ export async function onRequest(context) {
       const allPercents = filmHtml.match(/(\d{1,3})%/g);
       patterns.all_percentages = allPercents ? allPercents.slice(0, 20) : []; // First 20
 
+      // Pattern 7: Fallback - first valid percentage
+      if (allPercents && allPercents.length > 0) {
+        for (const percent of allPercents.slice(0, 5)) {
+          const value = parseInt(percent);
+          if (value >= 10 && value <= 100) {
+            patterns.fallback_first_valid = value;
+            break;
+          }
+        }
+      }
+
       // Determine final rating (first valid pattern wins)
       const finalRating = patterns.film_rating_average ||
                          patterns.film_header ||
@@ -240,6 +251,7 @@ export async function onRequest(context) {
                          patterns.data_rating ||
                          patterns.rating_section ||
                          patterns.origin_section ||
+                         patterns.fallback_first_valid ||
                          null;
 
       debug.step2_film_page.rating_patterns = patterns;

@@ -294,6 +294,23 @@ async function getCSFDData(title, year, type) {
       }
     }
 
+    // Pattern 6: Fallback - take first valid percentage from all percentages
+    // This catches ratings that appear in HTML but not in specific sections
+    if (!rating) {
+      const allPercents = filmHtml.match(/(\d{2,3})%/g);
+      if (allPercents && allPercents.length > 0) {
+        // Try first few percentages, pick first valid one (10-100 range)
+        for (const percent of allPercents.slice(0, 5)) {
+          const value = parseInt(percent);
+          if (value >= 10 && value <= 100) {
+            rating = value;
+            console.log(`ČSFD: Found rating via fallback (first valid %): ${rating}%`);
+            break;
+          }
+        }
+      }
+    }
+
     // Validate rating is in reasonable range (10-100)
     // Ratings below 10% are likely parsing errors
     const validRating = rating && rating >= 10 && rating <= 100 ? rating : null;
