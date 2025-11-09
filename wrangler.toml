@@ -3,18 +3,22 @@ name = "topflix"
 compatibility_date = "2024-01-01"
 pages_build_output_dir = "public"
 
-# ⚠️ IMPORTANT: KV namespace and environment variables are configured in Cloudflare Dashboard
-# DO NOT define kv_namespaces here for Pages - it causes build errors!
-#
+# KV namespace binding
+# You can override this in Cloudflare Dashboard: Settings -> Functions -> KV namespace bindings
+# OR update the ID below after creating the namespace
+[[kv_namespaces]]
+binding = "TOPFLIX_KV"
+id = ""
+
 # Setup instructions:
 #
-# 1. Create KV namespace (one-time):
+# 1. Create KV namespace:
 #    npx wrangler kv:namespace create "TOPFLIX_KV"
+#    Copy the generated ID
 #
-# 2. Add KV binding in Cloudflare Dashboard:
-#    Workers & Pages -> Your Pages project -> Settings -> Functions -> KV namespace bindings
-#    - Variable name: TOPFLIX_KV
-#    - KV namespace: select your created namespace
+# 2. Update KV binding:
+#    Option A: Update the id = "" above with your namespace ID
+#    Option B: Set in Cloudflare Dashboard -> Settings -> Functions -> KV namespace bindings
 #
 # 3. Add TMDB API key in Cloudflare Dashboard:
 #    Settings -> Environment variables -> Add variable
