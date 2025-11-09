@@ -1,0 +1,17 @@
+{
+  "name": "topflix",
+  "version": "1.0.0",
+  "description": "Netflix Top 10 s hodnocením pro ČR",
+  "main": "workers/api.js",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "deploy:pages": "wrangler pages deploy public"
+  },
+  "keywords": ["netflix", "top10", "tmdb", "csfd", "cloudflare"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

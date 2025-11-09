@@ -1,0 +1,5 @@
+# Environment Variables for Local Development
+# Copy this file to .dev.vars and fill in your values
+
+# TMDB API Key - Get from https://www.themoviedb.org/settings/api
+TMDB_API_KEY=your_tmdb_api_key_here
