@@ -42,32 +42,61 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 20) {
     const genresResponse = await fetch(genresUrl);
     const genresData = await genresResponse.json();
 
-    // Process results and limit to specified number
-    const results = data.results.slice(0, limit).map(item => {
-      const genres = item.genre_ids
-        .map(id => genresData.genres.find(g => g.id === id)?.name)
-        .filter(Boolean)
-        .slice(0, 3)
-        .join(', ');
+    // Process results - get details for each item to get countries, runtime, etc.
+    const results = [];
 
-      const tmdbUrl = `https://www.themoviedb.org/${searchType}/${item.id}`;
+    for (const item of data.results.slice(0, limit)) {
+      try {
+        // Get detailed info for this item
+        const detailsUrl = `https://api.themoviedb.org/3/${searchType}/${item.id}?api_key=${apiKey}&language=cs-CZ`;
+        const detailsResponse = await fetch(detailsUrl);
+        const details = await detailsResponse.json();
 
-      return {
-        tmdb_id: item.id,
-        tmdb_url: tmdbUrl,
-        title: item.title || item.name,
-        title_original: item.original_title || item.original_name,
-        year: (item.release_date || item.first_air_date || '').substring(0, 4),
-        genre: genres || 'N/A',
-        tmdb_rating: item.vote_average ? parseFloat(item.vote_average.toFixed(1)) : null,
-        description: item.overview || 'Popis není k dispozici.',
-        poster_url: item.poster_path
-          ? `https://image.tmdb.org/t/p/w300${item.poster_path}`
-          : null,
-        type: type,
-        popularity: item.popularity
-      };
-    });
+        const genres = details.genres
+          ?.map(g => g.name)
+          .filter(Boolean)
+          .slice(0, 3)
+          .join(', ') || 'N/A';
+
+        const tmdbUrl = `https://www.themoviedb.org/${searchType}/${item.id}`;
+
+        // Get production countries (first 2)
+        const countries = details.production_countries
+          ?.slice(0, 2)
+          .map(c => c.name)
+          .filter(Boolean) || [];
+
+        const result = {
+          tmdb_id: item.id,
+          tmdb_url: tmdbUrl,
+          title: details.title || details.name,
+          title_original: details.original_title || details.original_name,
+          year: (details.release_date || details.first_air_date || '').substring(0, 4),
+          genre: genres,
+          tmdb_rating: details.vote_average ? parseFloat(details.vote_average.toFixed(1)) : null,
+          description: details.overview || 'Popis není k dispozici.',
+          poster_url: details.poster_path
+            ? `https://image.tmdb.org/t/p/w300${details.poster_path}`
+            : null,
+          type: type,
+          popularity: item.popularity,
+          countries: countries
+        };
+
+        // Add type-specific fields
+        if (type === 'movie') {
+          result.runtime = details.runtime || null;
+        } else if (type === 'series') {
+          result.number_of_seasons = details.number_of_seasons || null;
+          result.number_of_episodes = details.number_of_episodes || null;
+        }
+
+        results.push(result);
+      } catch (error) {
+        console.error(`Error fetching details for ${item.id}:`, error);
+        // Skip this item if details fetch fails
+      }
+    }
 
     return results;
   } catch (error) {

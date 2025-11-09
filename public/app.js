@@ -360,6 +360,16 @@ function getRatingQuality(rating) {
     return 'yellow';
 }
 
+// Helper: Format runtime (minutes to hours and minutes)
+function formatRuntime(minutes) {
+    if (!minutes) return null;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours > 0 && mins > 0) return `${hours}h ${mins}min`;
+    if (hours > 0) return `${hours}h`;
+    return `${mins}min`;
+}
+
 // Create title card element
 function createTitleCard(item) {
     const card = document.createElement('div');
@@ -370,84 +380,88 @@ function createTitleCard(item) {
         ? `<img src="${item.poster_url}" alt="${item.title}" loading="lazy">`
         : '<div class="no-poster">🎬</div>';
 
-    // Type badge
-    const typeLabel = item.type === 'movie' ? 'Film' : 'Seriál';
+    // Type badge and emoji
+    const isMovie = item.type === 'movie';
+    const typeEmoji = isMovie ? '🎬' : '📺';
+    const typeLabel = isMovie ? 'FILM' : 'SERIÁL';
+    const typeClass = isMovie ? 'type-movie' : 'type-series';
 
-    // TMDB Rating with color coding
-    const tmdbRating = item.tmdb_rating
-        ? `<div class="rating-item rating-${getRatingQuality(item.tmdb_rating * 10)}">
-            <span class="star">⭐</span>
-            <span class="label">TMDB:</span>
-            ${item.tmdb_url
-                ? `<a href="${item.tmdb_url}" target="_blank" rel="noopener noreferrer" class="rating-link" onclick="event.stopPropagation()">
-                    <span class="value">${item.tmdb_rating}/10</span>
-                   </a>`
-                : `<span class="value">${item.tmdb_rating}/10</span>`
-            }
-           </div>`
-        : '';
+    // Rank badge (only for Top 10 section where rank exists)
+    const rankBadge = item.rank ? `#${item.rank}` : '';
 
-    // ČSFD Rating with color coding - only show if rating exists AND is >= 10%
-    // Ratings below 10% are invalid (parsing errors)
-    const csfdRating = (item.csfd_rating && item.csfd_rating >= 10)
-        ? `<div class="rating-item rating-${getRatingQuality(item.csfd_rating)}">
-            <span class="star">⭐</span>
-            <span class="label">ČSFD:</span>
-            ${item.csfd_url
-                ? `<a href="${item.csfd_url}" target="_blank" rel="noopener noreferrer" class="rating-link" onclick="event.stopPropagation()">
-                    <span class="value">${item.csfd_rating}%</span>
-                   </a>`
-                : `<span class="value">${item.csfd_rating}%</span>`
-            }
-           </div>`
-        : '';
-
-    // Quality badge
-    let qualityText = 'Průměr';
+    // Rating badge with quality indicator
+    let qualityText = '⚠️';
     let qualityClass = 'yellow';
     if (item.avg_rating >= 70) {
-        qualityText = 'Doporučeno';
+        qualityText = '✅';
         qualityClass = 'green';
     } else if (item.avg_rating < 50) {
-        qualityText = 'Slabé';
+        qualityText = '❌';
         qualityClass = 'red';
     }
 
-    const qualityBadge = item.avg_rating
-        ? `<span class="quality-badge ${qualityClass}">
-            ${qualityText} (${item.avg_rating}%)
+    const ratingBadge = item.avg_rating
+        ? `<span class="rating-badge rating-${qualityClass}">
+            ⭐ ${item.avg_rating}% ${qualityText}
            </span>`
         : '';
 
-    // Rank badge (only for Top 10 section where rank exists)
-    const rankBadge = item.rank
-        ? `<span class="rank-badge">#${item.rank}</span>`
-        : '';
+    // Build metadata line
+    const metaParts = [];
+
+    // Countries
+    if (item.countries && item.countries.length > 0) {
+        metaParts.push(`🌍 ${item.countries.join(', ')}`);
+    }
+
+    // Year
+    if (item.year) {
+        metaParts.push(`📅 ${item.year}`);
+    }
+
+    // Runtime (movies) or Seasons (series)
+    if (isMovie && item.runtime) {
+        metaParts.push(`⏱️ ${formatRuntime(item.runtime)}`);
+    } else if (!isMovie) {
+        const seasonInfo = [];
+        if (item.number_of_seasons) {
+            seasonInfo.push(`${item.number_of_seasons} ${item.number_of_seasons === 1 ? 'řada' : 'řady'}`);
+        }
+        if (item.number_of_episodes) {
+            seasonInfo.push(`${item.number_of_episodes} epizod`);
+        }
+        if (seasonInfo.length > 0) {
+            metaParts.push(`📺 ${seasonInfo.join(', ')}`);
+        }
+    }
+
+    // Genre
+    if (item.genre) {
+        metaParts.push(`🎭 ${item.genre}`);
+    }
 
     card.innerHTML = `
+        <div class="card-header-bar ${typeClass}">
+            <div class="type-badge">
+                <span class="type-emoji">${typeEmoji}</span>
+                <span class="type-label">${typeLabel}</span>
+                ${rankBadge ? `<span class="rank-number">${rankBadge}</span>` : ''}
+            </div>
+            ${ratingBadge}
+        </div>
         <div class="card-content">
             <div class="card-poster">
                 ${posterHTML}
             </div>
             <div class="card-info">
-                <div class="card-header">
-                    ${rankBadge}
-                    <div class="card-title">
-                        <h2>${item.title || item.title_original}</h2>
-                        ${item.title_original && item.title !== item.title_original
-                            ? `<div class="original-title">${item.title_original}</div>`
-                            : ''}
-                    </div>
-                </div>
-                <div class="ratings">
-                    ${tmdbRating}
-                    ${csfdRating}
-                    ${qualityBadge}
+                <div class="card-title">
+                    <h2>${item.title || item.title_original}</h2>
+                    ${item.title_original && item.title !== item.title_original
+                        ? `<div class="original-title">${item.title_original}</div>`
+                        : ''}
                 </div>
                 <div class="meta">
-                    <span>📺 ${typeLabel}</span>
-                    ${item.year ? `<span>📅 ${item.year}</span>` : ''}
-                    ${item.genre ? `<span>🎭 ${item.genre}</span>` : ''}
+                    ${metaParts.join(' • ')}
                 </div>
                 ${item.description
                     ? `<div class="description">${item.description}</div>`

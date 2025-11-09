@@ -11,6 +11,8 @@
     --quality-yellow: #ffd700;
     --quality-red: #ff4444;
     --shadow: rgba(0, 0, 0, 0.5);
+    --film-color: #3b82f6;
+    --series-color: #f97316;
 }
 
 /* Light mode */
@@ -260,6 +262,90 @@ body {
     border-left: 5px solid var(--quality-red);
 }
 
+/* Card Header Bar - Type and Rating */
+.card-header-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid var(--border);
+    gap: 1rem;
+}
+
+.card-header-bar.type-movie {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0.05) 100%);
+    border-bottom-color: var(--film-color);
+}
+
+.card-header-bar.type-series {
+    background: linear-gradient(135deg, rgba(249, 115, 22, 0.15) 0%, rgba(249, 115, 22, 0.05) 100%);
+    border-bottom-color: var(--series-color);
+}
+
+.type-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 600;
+}
+
+.type-emoji {
+    font-size: 1.2rem;
+}
+
+.type-label {
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    font-weight: 700;
+}
+
+.type-movie .type-label {
+    color: var(--film-color);
+}
+
+.type-series .type-label {
+    color: var(--series-color);
+}
+
+.rank-number {
+    background: var(--accent);
+    color: white;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    margin-left: 0.25rem;
+}
+
+.rating-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.rating-badge.rating-green {
+    background: rgba(70, 211, 105, 0.2);
+    color: var(--quality-green);
+    border: 1.5px solid var(--quality-green);
+}
+
+.rating-badge.rating-yellow {
+    background: rgba(255, 215, 0, 0.2);
+    color: var(--quality-yellow);
+    border: 1.5px solid var(--quality-yellow);
+}
+
+.rating-badge.rating-red {
+    background: rgba(255, 68, 68, 0.2);
+    color: var(--quality-red);
+    border: 1.5px solid var(--quality-red);
+}
+
 .card-content {
     display: flex;
     gap: 1rem;
@@ -297,21 +383,6 @@ body {
     gap: 0.5rem;
 }
 
-.card-header {
-    display: flex;
-    align-items: start;
-    gap: 0.5rem;
-}
-
-.rank-badge {
-    background: var(--accent);
-    color: white;
-    padding: 0.25rem 0.75rem;
-    border-radius: 15px;
-    font-weight: bold;
-    font-size: 0.9rem;
-    flex-shrink: 0;
-}
 
 .card-title {
     flex: 1;
@@ -328,78 +399,13 @@ body {
     font-style: italic;
 }
 
-.ratings {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
-
-.rating-item {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
-    font-size: 0.9rem;
-    padding: 0.25rem 0.5rem;
-    border-radius: 5px;
-    transition: background-color 0.3s ease;
-}
-
-/* Color-coded rating backgrounds */
-.rating-item.rating-green {
-    background-color: rgba(70, 211, 105, 0.15);
-    border: 1px solid rgba(70, 211, 105, 0.3);
-}
-
-.rating-item.rating-yellow {
-    background-color: rgba(255, 215, 0, 0.15);
-    border: 1px solid rgba(255, 215, 0, 0.3);
-}
-
-.rating-item.rating-red {
-    background-color: rgba(255, 68, 68, 0.15);
-    border: 1px solid rgba(255, 68, 68, 0.3);
-}
-
-.rating-item .star {
-    color: #ffd700;
-}
-
-.rating-item .label {
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-}
-
-.rating-item .value {
-    font-weight: bold;
-}
-
-.rating-item .rating-link {
-    color: var(--text-primary);
-    text-decoration: none;
-    transition: color 0.3s ease;
-}
-
-.rating-item .rating-link:hover {
-    color: var(--accent);
-    text-decoration: underline;
-}
-
-.rating-item .rating-link .value {
-    font-weight: bold;
-}
-
 .meta {
     display: flex;
     gap: 0.5rem;
     flex-wrap: wrap;
     font-size: 0.9rem;
     color: var(--text-secondary);
-}
-
-.meta span {
-    display: flex;
-    align-items: center;
-    gap: 0.25rem;
+    line-height: 1.6;
 }
 
 .description {
@@ -414,31 +420,6 @@ body {
 
 .card-expanded .description {
     -webkit-line-clamp: unset;
-}
-
-.quality-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.25rem;
-    padding: 0.25rem 0.75rem;
-    border-radius: 15px;
-    font-size: 0.85rem;
-    font-weight: bold;
-}
-
-.quality-badge.green {
-    background: rgba(70, 211, 105, 0.2);
-    color: var(--quality-green);
-}
-
-.quality-badge.yellow {
-    background: rgba(255, 215, 0, 0.2);
-    color: var(--quality-yellow);
-}
-
-.quality-badge.red {
-    background: rgba(255, 68, 68, 0.2);
-    color: var(--quality-red);
 }
 
 /* Footer */
