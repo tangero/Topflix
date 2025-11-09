@@ -65,6 +65,22 @@ export async function onRequest(context) {
       // Preview first article
       debug.step1_search.first_article_preview = articles[0][1].substring(0, 500);
 
+      // Extract ALL URLs from all articles for debugging
+      const allUrls = [];
+      for (let i = 0; i < articles.length; i++) {
+        const articleHtml = articles[i][1];
+        const urlMatch = articleHtml.match(/href="(\/[^"]+)"/i);
+        if (urlMatch) {
+          allUrls.push({
+            index: i,
+            url: urlMatch[1],
+            is_film: urlMatch[1].includes('/film/'),
+            is_serial: urlMatch[1].includes('/serial/')
+          });
+        }
+      }
+      debug.step1_search.all_urls = allUrls;
+
       // Try to find the correct article based on type
       const expectedPrefix = type === 'series' ? '/serial/' : '/film/';
       let csfdUrl = null;
