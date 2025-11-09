@@ -1,22 +1,23 @@
-name = "topflix-api"
-main = "workers/api.js"
+# Cloudflare Pages configuration for Topflix
+name = "topflix"
 compatibility_date = "2024-01-01"
+pages_build_output_dir = "public"
 
 # KV namespace for storing Netflix Top 10 data
-kv_namespaces = [
-  { binding = "TOPFLIX_KV", id = "your-kv-namespace-id", preview_id = "your-preview-kv-namespace-id" }
-]
+# Run: wrangler kv:namespace create "TOPFLIX_KV"
+# Then replace the IDs below with your actual namespace IDs
+[[kv_namespaces]]
+binding = "TOPFLIX_KV"
+id = "your-kv-namespace-id"
 
-# Environment variables
-[vars]
-TMDB_API_KEY = "your-tmdb-api-key-here"
+# Preview KV namespace for development
+[[kv_namespaces]]
+binding = "TOPFLIX_KV"
+id = "your-preview-kv-namespace-id"
+preview = true
 
-# Cron trigger for weekly updates (every Tuesday at 10:00 UTC)
-[triggers]
-crons = ["0 10 * * 2"]
-
-# CORS settings
-[env.production]
-routes = [
-  { pattern = "topflix.example.com/api/*", zone_name = "example.com" }
-]
+# IMPORTANT: Set this secret in Cloudflare Dashboard or via CLI
+# Cloudflare Dashboard -> Pages -> Settings -> Environment variables
+# Or run: wrangler pages secret put TMDB_API_KEY
+# [vars]
+# TMDB_API_KEY will be set as environment variable in dashboard

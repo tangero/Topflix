@@ -1,0 +1,14 @@
+# Cloudflare Worker for Cron Triggers (Optional)
+# This worker refreshes data every Tuesday at 10:00 UTC
+
+name = "topflix-cron"
+main = "workers/cron.js"
+compatibility_date = "2024-01-01"
+
+# Cron trigger for weekly updates (every Tuesday at 10:00 UTC)
+[triggers]
+crons = ["0 10 * * 2"]
+
+# Environment variables
+[vars]
+PAGES_URL = "https://topflix.pages.dev"  # Replace with your actual Pages URL

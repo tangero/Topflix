@@ -22,13 +22,13 @@ Topflix je webová aplikace, která zobrazuje aktuální Netflix Top 10 filmy a 
 ## 🏗️ Architektura
 
 ### Backend
-- **Cloudflare Workers** - API endpoint a automatická aktualizace
+- **Cloudflare Pages Functions** - API endpoint (`/functions/api/top10.js`)
 - **Cloudflare KV** - ukládání dat s 7denním TTL
-- **Cron Triggers** - automatické updaty každé úterý v 10:00 UTC
+- **Cron Worker** (volitelný) - automatické updaty každé úterý v 10:00 UTC
 
 ### Frontend
 - **Vanilla JavaScript** - bez framework závislostí
-- **Cloudflare Pages** - hosting statických souborů
+- **Cloudflare Pages** - hosting statických souborů + API
 - **LocalStorage** - klientské cachování
 
 ### Datové zdroje
@@ -36,157 +36,94 @@ Topflix je webová aplikace, která zobrazuje aktuální Netflix Top 10 filmy a 
 - **TMDB API** - hodnocení, metadata, postery
 - **ČSFD** - české hodnocení (scraping)
 
-## 🚀 Nasazení
+## 🚀 Rychlé nasazení na Cloudflare Pages
 
-### Předpoklady
+### Způsob 1: Přes GitHub (doporučeno - automatické deploymenty)
 
-- Node.js 18+
-- npm nebo yarn
-- Cloudflare účet (free tier postačuje)
-- TMDB API klíč (zdarma na [themoviedb.org](https://www.themoviedb.org/settings/api))
+1. **Získejte TMDB API klíč** zdarma na [themoviedb.org/settings/api](https://www.themoviedb.org/settings/api)
 
-### Krok 1: Instalace závislostí
+2. **Připojte repozitář na Cloudflare:**
+   - Přejděte na [Cloudflare Dashboard](https://dash.cloudflare.com)
+   - **Workers & Pages** → **Create application** → **Pages** → **Connect to Git**
+   - Vyberte tento repozitář
+
+3. **Build nastavení:**
+   ```
+   Framework preset:       None
+   Build command:          (prázdné)
+   Build output directory: public
+   ```
+
+4. **Nastavte KV a API klíč:**
+   - V Pages projektu: **Settings** → **Functions** → **KV namespace bindings**
+     - Vytvořte KV namespace `TOPFLIX_KV` a propojte
+   - **Settings** → **Environment variables**
+     - Přidejte `TMDB_API_KEY` s vaším TMDB klíčem
+
+5. **Re-deploy** a hotovo! 🎉
+
+📖 **Podrobný krok-za-krokem návod:** [DEPLOYMENT.md](DEPLOYMENT.md)
+
+### Způsob 2: Přes Wrangler CLI
 
 ```bash
+# 1. Instalace
 npm install
-```
 
-### Krok 2: Získání TMDB API klíče
-
-1. Registrujte se na [TMDB](https://www.themoviedb.org/signup)
-2. Přejděte do Settings → API
-3. Vytvořte nový API klíč (Developer)
-4. Zkopírujte klíč
-
-### Krok 3: Vytvoření KV namespace
-
-```bash
-# Přihlášení do Cloudflare
+# 2. Přihlášení
 npx wrangler login
 
-# Vytvoření KV namespace
+# 3. Vytvoření KV namespace
 npx wrangler kv:namespace create "TOPFLIX_KV"
 
-# Pro preview (development)
-npx wrangler kv:namespace create "TOPFLIX_KV" --preview
+# 4. Deploy Pages
+npm run deploy
+
+# 5. (Volitelné) Deploy cron worker pro auto-update
+npm run deploy:cron
 ```
 
-Zkopírujte vygenerované ID a aktualizujte `wrangler.toml`:
-
-```toml
-kv_namespaces = [
-  { binding = "TOPFLIX_KV", id = "YOUR_NAMESPACE_ID", preview_id = "YOUR_PREVIEW_ID" }
-]
-```
-
-### Krok 4: Nastavení proměnných prostředí
-
-Vytvořte soubor `.dev.vars` pro lokální vývoj:
+### Lokální vývoj
 
 ```bash
-TMDB_API_KEY=your_tmdb_api_key_here
-```
+# Vytvořte .dev.vars soubor
+echo "TMDB_API_KEY=your_key_here" > .dev.vars
 
-Pro produkci nastavte tajemství:
-
-```bash
-npx wrangler secret put TMDB_API_KEY
-# Zadejte váš TMDB API klíč
-```
-
-### Krok 5: Lokální vývoj a testování
-
-```bash
-# Spuštění lokálního dev serveru
+# Spusťte dev server
 npm run dev
 ```
 
-Otevřete http://localhost:8787/api/top10 pro testování API.
-
-### Krok 6: Deploy Worker
-
-```bash
-# Deploy API Worker
-npm run deploy
-```
-
-Po deployi dostanete URL vašeho Workeru, např. `https://topflix-api.your-subdomain.workers.dev`
-
-### Krok 7: Aktualizace frontend API endpointu
-
-V souboru `public/app.js` aktualizujte API endpoint:
-
-```javascript
-const API_ENDPOINT = 'https://topflix-api.your-subdomain.workers.dev/api/top10';
-```
-
-Nebo pokud budete používat Cloudflare Pages s Worker routing, můžete nechat:
-
-```javascript
-const API_ENDPOINT = '/api/top10';
-```
-
-### Krok 8: Deploy Frontend (Cloudflare Pages)
-
-#### Manuální deployment
-
-```bash
-npm run deploy:pages
-```
-
-#### Automatický deployment (doporučeno)
-
-1. Přejděte do [Cloudflare Dashboard → Pages](https://dash.cloudflare.com/?to=/:account/pages)
-2. Klikněte na "Create a project"
-3. Připojte váš Git repozitář
-4. Nastavte build configuration:
-   - **Build command**: (ponechte prázdné)
-   - **Build output directory**: `public`
-   - **Root directory**: `/`
-5. Klikněte na "Save and Deploy"
-
-### Krok 9: Nastavení Worker Routes (volitelné)
-
-Pro propojení Pages a Worker na stejné doméně:
-
-1. V Cloudflare Pages → Settings → Functions
-2. Přidejte Worker route: `/api/*` → `topflix-api`
+Otevřete http://localhost:8788 v prohlížeči.
 
 ## 🔧 Konfigurace
 
-### wrangler.toml
+### wrangler.toml (pro Pages)
 
 ```toml
-name = "topflix-api"
-main = "workers/api.js"
+name = "topflix"
 compatibility_date = "2024-01-01"
+pages_build_output_dir = "public"
 
-# KV namespace
-kv_namespaces = [
-  { binding = "TOPFLIX_KV", id = "YOUR_KV_ID", preview_id = "YOUR_PREVIEW_ID" }
-]
+# KV namespace - vytvořte přes dashboard nebo CLI
+[[kv_namespaces]]
+binding = "TOPFLIX_KV"
+id = "your-kv-namespace-id"
+```
+
+### wrangler-cron.toml (pro automatické updaty - volitelné)
+
+```toml
+name = "topflix-cron"
+main = "workers/cron.js"
+compatibility_date = "2024-01-01"
 
 # Cron trigger (každé úterý v 10:00 UTC)
 [triggers]
 crons = ["0 10 * * 2"]
 
-# Custom domain (volitelné)
-[env.production]
-routes = [
-  { pattern = "topflix.yourdomain.com/api/*", zone_name = "yourdomain.com" }
-]
-```
-
-### Úprava frekvence aktualizace
-
-Cron trigger lze upravit v `wrangler.toml`:
-
-```toml
-# Každý den v 10:00 UTC
-crons = ["0 10 * * *"]
-
-# Každý pondělí a pátek v 08:00 UTC
-crons = ["0 8 * * 1,5"]
+# Vaše Pages URL
+[vars]
+PAGES_URL = "https://topflix.pages.dev"
 ```
 
 ## 📊 Monitoring a údržba
@@ -201,28 +138,19 @@ npx wrangler kv:key list --namespace-id=YOUR_NAMESPACE_ID
 npx wrangler kv:key get "netflix_top10_cz_2024-45" --namespace-id=YOUR_NAMESPACE_ID
 ```
 
-### Manuální trigger cron jobu
-
-```bash
-# Trigger cron job pro aktualizaci dat
-npx wrangler dev --test-scheduled
-```
-
 ### Sledování logů
 
-```bash
-# Real-time logy z Worker
-npx wrangler tail
-```
+V Cloudflare Dashboard:
+1. **Workers & Pages** → **topflix** (váš Pages projekt)
+2. **Functions** → **Real-time logs**
 
 ### Metriky a analytics
 
-1. Cloudflare Dashboard → Workers & Pages → topflix-api
-2. Sledujte:
+1. Cloudflare Dashboard → Workers & Pages → topflix
+2. **Analytics** → sledujte:
    - Request count
    - Error rate
-   - CPU time
-   - KV operations
+   - Bandwidth
 
 ## 🛠️ Vývoj
 
@@ -230,33 +158,41 @@ npx wrangler tail
 
 ```
 topflix/
+├── functions/
+│   └── api/
+│       └── top10.js        # Pages Function - API endpoint
 ├── workers/
-│   └── api.js              # Cloudflare Worker API
+│   ├── api.js              # Původní Worker (deprecated)
+│   └── cron.js             # Cron Worker (volitelný)
 ├── public/
 │   ├── index.html          # Hlavní HTML
 │   ├── style.css           # Styly
 │   └── app.js              # Frontend JavaScript
-├── wrangler.toml           # Cloudflare konfigurace
+├── wrangler.toml           # Pages konfigurace
+├── wrangler-cron.toml      # Cron Worker konfigurace (volitelné)
 ├── package.json            # NPM konfigurace
+├── DEPLOYMENT.md           # Podrobný deployment návod
 └── README.md               # Dokumentace
 ```
 
 ### Lokální testování
 
 ```bash
-# Start dev server
+# Start Pages dev server
 npm run dev
 
 # Test API endpoint
-curl http://localhost:8787/api/top10
+curl http://localhost:8788/api/top10
 
-# Test s cachováním
-curl -H "Cache-Control: no-cache" http://localhost:8787/api/top10
+# Test v prohlížeči
+open http://localhost:8788
 ```
 
 ### Debug
 
-Přidejte console.log do `workers/api.js` a sledujte pomocí `wrangler tail`.
+Sledujte logy v real-time:
+1. V Cloudflare Dashboard → Functions → Real-time logs (pro produkci)
+2. Při lokálním vývoji vidíte logy přímo v terminálu
 
 ## 🎨 Customizace
 
@@ -276,7 +212,7 @@ Upravte CSS proměnné v `public/style.css`:
 
 ### Úprava hodnocení prahů
 
-V `workers/api.js`, funkce `enrichTitle()`:
+V `functions/api/top10.js`, funkce `enrichTitle()`:
 
 ```javascript
 let quality = 'yellow';

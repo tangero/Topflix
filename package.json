@@ -2,11 +2,11 @@
   "name": "topflix",
   "version": "1.0.0",
   "description": "Netflix Top 10 s hodnocením pro ČR",
-  "main": "workers/api.js",
+  "main": "functions/api/top10.js",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
-    "deploy:pages": "wrangler pages deploy public"
+    "dev": "wrangler pages dev public --kv TOPFLIX_KV",
+    "deploy": "wrangler pages deploy",
+    "deploy:cron": "wrangler deploy --config wrangler-cron.toml"
   },
   "keywords": ["netflix", "top10", "tmdb", "csfd", "cloudflare"],
   "author": "",
