@@ -227,6 +227,13 @@ function getSortedData(data) {
     return filtered;
 }
 
+// Helper: Get quality class based on rating (0-100 scale)
+function getRatingQuality(rating) {
+    if (rating >= 70) return 'green';
+    if (rating < 50) return 'red';
+    return 'yellow';
+}
+
 // Create title card element
 function createTitleCard(item) {
     const card = document.createElement('div');
@@ -240,9 +247,9 @@ function createTitleCard(item) {
     // Type badge
     const typeLabel = item.type === 'movie' ? 'Film' : 'Seriál';
 
-    // Ratings with links
+    // TMDB Rating with color coding
     const tmdbRating = item.tmdb_rating
-        ? `<div class="rating-item">
+        ? `<div class="rating-item rating-${getRatingQuality(item.tmdb_rating * 10)}">
             <span class="star">⭐</span>
             <span class="label">TMDB:</span>
             ${item.tmdb_url
@@ -254,8 +261,9 @@ function createTitleCard(item) {
            </div>`
         : '';
 
+    // ČSFD Rating with color coding - only show if rating exists
     const csfdRating = item.csfd_rating
-        ? `<div class="rating-item">
+        ? `<div class="rating-item rating-${getRatingQuality(item.csfd_rating)}">
             <span class="star">⭐</span>
             <span class="label">ČSFD:</span>
             ${item.csfd_url

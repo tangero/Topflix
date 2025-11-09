@@ -304,6 +304,25 @@ body {
     align-items: center;
     gap: 0.25rem;
     font-size: 0.9rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+/* Color-coded rating backgrounds */
+.rating-item.rating-green {
+    background-color: rgba(70, 211, 105, 0.15);
+    border: 1px solid rgba(70, 211, 105, 0.3);
+}
+
+.rating-item.rating-yellow {
+    background-color: rgba(255, 215, 0, 0.15);
+    border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.rating-item.rating-red {
+    background-color: rgba(255, 68, 68, 0.15);
+    border: 1px solid rgba(255, 68, 68, 0.3);
 }
 
 .rating-item .star {

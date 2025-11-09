@@ -229,6 +229,7 @@ async function enrichTitle(title, rank, type, apiKey) {
   const csfdData = await getCSFDData(tmdbData.title_cz || title);
 
   // Calculate average rating and quality indicator
+  // Only use available ratings (TMDB always available, ČSFD optional)
   const ratings = [];
   if (tmdbData.tmdb_rating) ratings.push(tmdbData.tmdb_rating * 10); // Convert 0-10 to 0-100
   if (csfdData.rating) ratings.push(csfdData.rating);
@@ -241,7 +242,8 @@ async function enrichTitle(title, rank, type, apiKey) {
   if (avgRating >= 70) quality = 'green';
   else if (avgRating < 50) quality = 'red';
 
-  return {
+  // Build result object
+  const result = {
     rank,
     title: tmdbData.title_cz || title,
     title_original: tmdbData.title_original,
@@ -249,14 +251,24 @@ async function enrichTitle(title, rank, type, apiKey) {
     genre: tmdbData.genre,
     tmdb_rating: tmdbData.tmdb_rating,
     tmdb_url: tmdbData.tmdb_url,
-    csfd_rating: csfdData.rating,
-    csfd_url: csfdData.url,
     avg_rating: avgRating,
     quality,
     description: tmdbData.description,
     poster_url: tmdbData.poster_url,
     type
   };
+
+  // Only include ČSFD data if rating exists
+  if (csfdData.rating !== null) {
+    result.csfd_rating = csfdData.rating;
+  }
+
+  // Include ČSFD URL if available (even without rating)
+  if (csfdData.url) {
+    result.csfd_url = csfdData.url;
+  }
+
+  return result;
 }
 
 // Main data fetching and enrichment
