@@ -177,9 +177,11 @@ async function enrichTitle(title, rank, type, apiKey) {
     ? Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length)
     : null;
 
-  let quality = 'yellow';
-  if (avgRating >= 70) quality = 'green';
-  else if (avgRating < 50) quality = 'red';
+  let quality = 'poor';
+  if (avgRating >= 80) quality = 'excellent';
+  else if (avgRating >= 70) quality = 'good';
+  else if (avgRating >= 60) quality = 'average';
+  else if (avgRating >= 50) quality = 'below-average';
 
   return {
     rank,
