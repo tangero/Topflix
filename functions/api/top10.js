@@ -117,8 +117,12 @@ async function getTMDBData(title, type, apiKey) {
       .map(c => c.name)
       .filter(Boolean) || [];
 
-    // Get origin country codes
-    const originCountry = details.origin_country || [];
+    // Get origin country codes (different for movies vs series)
+    // Movies: extract ISO codes from production_countries
+    // Series: use origin_country directly
+    const originCountry = type === 'movie'
+      ? (details.production_countries?.map(c => c.iso_3166_1).filter(Boolean) || [])
+      : (details.origin_country || []);
 
     // Base result object
     const result = {
@@ -285,7 +289,7 @@ export async function onRequest(context) {
       });
     }
 
-    const weekKey = `netflix_top10_cz_${getWeekNumber(new Date())}_v2`;
+    const weekKey = `netflix_top10_cz_${getWeekNumber(new Date())}_v3`;
     console.log('Fetching data for week:', weekKey);
 
     // Try to get from KV cache first

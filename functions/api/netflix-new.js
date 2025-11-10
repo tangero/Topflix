@@ -66,8 +66,12 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 20) {
           .map(c => c.name)
           .filter(Boolean) || [];
 
-        // Get origin country codes
-        const originCountry = details.origin_country || [];
+        // Get origin country codes (different for movies vs series)
+        // Movies: extract ISO codes from production_countries
+        // Series: use origin_country directly
+        const originCountry = type === 'movie'
+          ? (details.production_countries?.map(c => c.iso_3166_1).filter(Boolean) || [])
+          : (details.origin_country || []);
 
         const result = {
           tmdb_id: item.id,
@@ -203,8 +207,8 @@ export async function onRequest(context) {
       });
     }
 
-    // Generate cache key based on date (v2 for new metadata)
-    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v2`;
+    // Generate cache key based on date (v3 for fixed origin_country)
+    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v3`;
     console.log('Fetching data for:', cacheKey);
 
     // Try to get from KV cache first (if available)
