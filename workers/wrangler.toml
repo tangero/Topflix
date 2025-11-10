@@ -1,0 +1,13 @@
+# Cloudflare Worker Configuration - Newsletter Cron Trigger
+# This Worker triggers the weekly newsletter broadcast
+
+name = "topflix-newsletter-cron"
+main = "newsletter-cron.js"
+compatibility_date = "2024-01-01"
+
+# Cron Trigger - Every Wednesday at 15:00 UTC (16:00 CET / 17:00 CEST)
+[triggers]
+crons = ["0 15 * * 3"]
+
+# Note: No environment variables needed - this Worker just calls the Pages endpoint
+# All the logic and credentials are in the Pages Functions

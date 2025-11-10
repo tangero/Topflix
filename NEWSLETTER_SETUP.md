@@ -59,30 +59,35 @@ TMDB_API_KEY = (už máš nastavené)
 
 ## 3. Nastavení Cron Triggeru (Automatické odesílání)
 
-**⚠️ DŮLEŽITÉ:** Pro Cloudflare **Pages** se Cron Triggers nastavují POUZE přes Dashboard, ne přes wrangler.toml!
+**✅ UŽ NASTAVENO!** Cron trigger je aktivní a běží automaticky.
 
-### Postup v Cloudflare Dashboard:
+### Co bylo provedeno:
 
-1. Otevři [Cloudflare Dashboard](https://dash.cloudflare.com)
-2. Jdi do **Workers & Pages**
-3. Vyber projekt **topflix**
-4. Klikni na **Settings** tab
-5. Klikni na **Functions** (v levém menu Settings)
-6. Scrolluj dolů na sekci **Cron Triggers**
-7. Klikni na **Add Cron Trigger**
-8. Vyplň formulář:
-   - **Cron expression**: `0 15 * * 3`
-   - **Function**: `functions/scheduled/weekly-newsletter.js`
-9. Klikni **Save**
+Cloudflare Pages nepodporují cron triggers přímo, proto byl vytvořen samostatný **Cloudflare Worker** který:
+- Běží na: `https://topflix-newsletter-cron.zandl.workers.dev`
+- Spouští se každou středu v 15:00 UTC (cron: `0 15 * * 3`)
+- Volá endpoint: `https://www.topflix.cz/api/newsletter-send`
 
-### Alternativa: Pomocí scriptu (pokud chceš automatizovat)
+**Worker je již deploynutý a aktivní!**
 
-Vytvořil jsem script `setup-cron.sh`, ale musíš ho upravit:
-1. Doplň `ACCOUNT_ID` (najdeš v URL Dashboardu)
-2. Vytvoř API Token v Dashboard → My Profile → API Tokens
-3. Spusť: `./setup-cron.sh`
+### Jak zkontrolovat, že funguje:
 
-**Poznámka:** Dashboard je MNOHEM jednodušší a rychlejší!
+1. Jdi do [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. **Workers & Pages** → **topflix-newsletter-cron**
+3. V **Metrics** uvidíš kdy Worker naposledy běžel
+4. V **Logs** (Real-time) uvidíš výstupy z posledního spuštění
+
+### Architektura:
+
+```
+Cron Trigger (každá středa 15:00 UTC)
+         ↓
+Cloudflare Worker (topflix-newsletter-cron)
+         ↓
+POST → https://www.topflix.cz/api/newsletter-send
+         ↓
+Resend Broadcast API → Email všem subscriber-ům
+```
 
 ### Cron Expression vysvětlení
 
