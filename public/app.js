@@ -256,9 +256,11 @@ function sanitizeData(data) {
                     cleanMovie.avg_rating = Math.round(cleanMovie.tmdb_rating * 10);
 
                     // Update quality
-                    if (cleanMovie.avg_rating >= 70) cleanMovie.quality = 'green';
-                    else if (cleanMovie.avg_rating < 50) cleanMovie.quality = 'red';
-                    else cleanMovie.quality = 'yellow';
+                    if (cleanMovie.avg_rating >= 80) cleanMovie.quality = 'excellent';
+                    else if (cleanMovie.avg_rating >= 70) cleanMovie.quality = 'good';
+                    else if (cleanMovie.avg_rating >= 60) cleanMovie.quality = 'average';
+                    else if (cleanMovie.avg_rating >= 50) cleanMovie.quality = 'below-average';
+                    else cleanMovie.quality = 'poor';
                 }
             }
 
@@ -281,9 +283,11 @@ function sanitizeData(data) {
                     cleanSeries.avg_rating = Math.round(cleanSeries.tmdb_rating * 10);
 
                     // Update quality
-                    if (cleanSeries.avg_rating >= 70) cleanSeries.quality = 'green';
-                    else if (cleanSeries.avg_rating < 50) cleanSeries.quality = 'red';
-                    else cleanSeries.quality = 'yellow';
+                    if (cleanSeries.avg_rating >= 80) cleanSeries.quality = 'excellent';
+                    else if (cleanSeries.avg_rating >= 70) cleanSeries.quality = 'good';
+                    else if (cleanSeries.avg_rating >= 60) cleanSeries.quality = 'average';
+                    else if (cleanSeries.avg_rating >= 50) cleanSeries.quality = 'below-average';
+                    else cleanSeries.quality = 'poor';
                 }
             }
 
@@ -390,9 +394,11 @@ function getSortedData(data) {
 
 // Helper: Get quality class based on rating (0-100 scale)
 function getRatingQuality(rating) {
-    if (rating >= 70) return 'green';
-    if (rating < 50) return 'red';
-    return 'yellow';
+    if (rating >= 80) return 'excellent';
+    if (rating >= 70) return 'good';
+    if (rating >= 60) return 'average';
+    if (rating >= 50) return 'below-average';
+    return 'poor';
 }
 
 // Helper: Format runtime (minutes to hours and minutes)
@@ -419,14 +425,20 @@ function createTitleCard(item) {
     const rankBadge = item.rank ? `<span class="rank-badge">#${item.rank}</span>` : '';
 
     // Rating badge with quality indicator
-    let qualityText = '⚠️';
-    let qualityClass = 'yellow';
-    if (item.avg_rating >= 70) {
+    let qualityText = '❌';
+    let qualityClass = 'poor';
+    if (item.avg_rating >= 80) {
+        qualityText = '💣';
+        qualityClass = 'excellent';
+    } else if (item.avg_rating >= 70) {
         qualityText = '✅';
-        qualityClass = 'green';
-    } else if (item.avg_rating < 50) {
-        qualityText = '❌';
-        qualityClass = 'red';
+        qualityClass = 'good';
+    } else if (item.avg_rating >= 60) {
+        qualityText = '👍';
+        qualityClass = 'average';
+    } else if (item.avg_rating >= 50) {
+        qualityText = '⚠️';
+        qualityClass = 'below-average';
     }
 
     const ratingBadge = item.avg_rating

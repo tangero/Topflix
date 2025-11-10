@@ -7,9 +7,11 @@
     --text-secondary: #b3b3b3;
     --accent: #e50914;
     --border: #404040;
-    --quality-green: #46d369;
-    --quality-yellow: #ffd700;
-    --quality-red: #ff4444;
+    --quality-excellent: #22c55e;
+    --quality-good: #86efac;
+    --quality-average: #f97316;
+    --quality-below-average: #fb923c;
+    --quality-poor: #ff4444;
     --shadow: rgba(0, 0, 0, 0.5);
     --film-color: #3b82f6;
     --series-color: #f97316;
@@ -294,16 +296,24 @@ body {
 }
 
 /* Quality indicator border */
-.title-card.quality-green {
-    border-left: 5px solid var(--quality-green);
+.title-card.quality-excellent {
+    border-left: 5px solid var(--quality-excellent);
 }
 
-.title-card.quality-yellow {
-    border-left: 5px solid var(--quality-yellow);
+.title-card.quality-good {
+    border-left: 5px solid var(--quality-good);
 }
 
-.title-card.quality-red {
-    border-left: 5px solid var(--quality-red);
+.title-card.quality-average {
+    border-left: 5px solid var(--quality-average);
+}
+
+.title-card.quality-below-average {
+    border-left: 5px solid var(--quality-below-average);
+}
+
+.title-card.quality-poor {
+    border-left: 5px solid var(--quality-poor);
 }
 
 .card-content {
@@ -329,24 +339,38 @@ body {
     z-index: 10;
 }
 
-.rating-badge.rating-green {
-    background: rgba(70, 211, 105, 0.95);
+.rating-badge.rating-excellent {
+    background: rgba(34, 197, 94, 0.95);
     color: white;
-    border: 2px solid var(--quality-green);
-    box-shadow: 0 2px 8px rgba(70, 211, 105, 0.4);
+    border: 2px solid var(--quality-excellent);
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.4);
 }
 
-.rating-badge.rating-yellow {
-    background: rgba(255, 215, 0, 0.95);
-    color: #333;
-    border: 2px solid var(--quality-yellow);
-    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.4);
+.rating-badge.rating-good {
+    background: rgba(134, 239, 172, 0.95);
+    color: #1a1a1a;
+    border: 2px solid var(--quality-good);
+    box-shadow: 0 2px 8px rgba(134, 239, 172, 0.4);
 }
 
-.rating-badge.rating-red {
+.rating-badge.rating-average {
+    background: rgba(249, 115, 22, 0.95);
+    color: white;
+    border: 2px solid var(--quality-average);
+    box-shadow: 0 2px 8px rgba(249, 115, 22, 0.4);
+}
+
+.rating-badge.rating-below-average {
+    background: rgba(251, 146, 60, 0.95);
+    color: white;
+    border: 2px solid var(--quality-below-average);
+    box-shadow: 0 2px 8px rgba(251, 146, 60, 0.4);
+}
+
+.rating-badge.rating-poor {
     background: rgba(255, 68, 68, 0.95);
     color: white;
-    border: 2px solid var(--quality-red);
+    border: 2px solid var(--quality-poor);
     box-shadow: 0 2px 8px rgba(255, 68, 68, 0.4);
 }
 

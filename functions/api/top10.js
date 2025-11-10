@@ -173,9 +173,11 @@ async function enrichTitle(title, rank, type, apiKey) {
     : null;
 
   // Quality indicator based on rating
-  let quality = 'yellow';
-  if (avgRating >= 70) quality = 'green';
-  else if (avgRating < 50) quality = 'red';
+  let quality = 'poor';
+  if (avgRating >= 80) quality = 'excellent';
+  else if (avgRating >= 70) quality = 'good';
+  else if (avgRating >= 60) quality = 'average';
+  else if (avgRating >= 50) quality = 'below-average';
 
   // Build result object
   const result = {

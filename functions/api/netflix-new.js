@@ -111,16 +111,20 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 20) {
 
 // Calculate quality indicator based on rating
 function getQualityIndicator(rating) {
-  if (!rating) return { quality: 'yellow', label: 'Průměr' };
+  if (!rating) return { quality: 'poor', label: 'Bez hodnocení' };
 
   const ratingPercent = rating * 10; // Convert 0-10 to 0-100
 
-  if (ratingPercent >= 70) {
-    return { quality: 'green', label: 'Doporučeno' };
-  } else if (ratingPercent < 50) {
-    return { quality: 'red', label: 'Slabé' };
+  if (ratingPercent >= 80) {
+    return { quality: 'excellent', label: 'Výjimečné' };
+  } else if (ratingPercent >= 70) {
+    return { quality: 'good', label: 'Velmi dobré' };
+  } else if (ratingPercent >= 60) {
+    return { quality: 'average', label: 'Průměrné' };
+  } else if (ratingPercent >= 50) {
+    return { quality: 'below-average', label: 'Slabé' };
   } else {
-    return { quality: 'yellow', label: 'Průměr' };
+    return { quality: 'poor', label: 'Špatné' };
   }
 }
 
