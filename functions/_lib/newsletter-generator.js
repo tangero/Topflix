@@ -254,7 +254,7 @@ export function generateNewsletterHTML(data) {
               <table width="100%" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center">
-                    <img src="https://www.topflix.cz/patrick-avatar.png" alt="Patrick" width="80" height="80" style="border-radius: 50%; display: inline-block; vertical-align: middle; margin-bottom: 10px;">
+                    <img src="https://www.topflix.cz/patrick-avatar.webp" alt="Patrick" width="80" height="80" style="border-radius: 50%; display: inline-block; vertical-align: middle; margin-bottom: 10px;">
                   </td>
                 </tr>
                 <tr>
