@@ -22,11 +22,15 @@ export async function fetchNewsletterData(apiKey) {
     const recommendedMovies = [];
     const recommendedSeries = [];
 
-    // From Top 10
+    // Use Maps to deduplicate by tmdb_id (prefer Top 10 over New)
+    const moviesMap = new Map();
+    const seriesMap = new Map();
+
+    // From Top 10 (add first - higher priority)
     if (top10Data.movies) {
       top10Data.movies.forEach(movie => {
-        if (movie.avg_rating >= 70) {
-          recommendedMovies.push({
+        if (movie.avg_rating >= 70 && movie.tmdb_id) {
+          moviesMap.set(movie.tmdb_id, {
             ...movie,
             source: 'top10'
           });
@@ -36,8 +40,8 @@ export async function fetchNewsletterData(apiKey) {
 
     if (top10Data.series) {
       top10Data.series.forEach(series => {
-        if (series.avg_rating >= 70) {
-          recommendedSeries.push({
+        if (series.avg_rating >= 70 && series.tmdb_id) {
+          seriesMap.set(series.tmdb_id, {
             ...series,
             source: 'top10'
           });
@@ -45,11 +49,11 @@ export async function fetchNewsletterData(apiKey) {
       });
     }
 
-    // From New content
+    // From New content (only if not already in Top 10)
     if (newData.movies) {
       newData.movies.forEach(movie => {
-        if (movie.avg_rating >= 70) {
-          recommendedMovies.push({
+        if (movie.avg_rating >= 70 && movie.tmdb_id && !moviesMap.has(movie.tmdb_id)) {
+          moviesMap.set(movie.tmdb_id, {
             ...movie,
             source: 'new'
           });
@@ -59,14 +63,18 @@ export async function fetchNewsletterData(apiKey) {
 
     if (newData.series) {
       newData.series.forEach(series => {
-        if (series.avg_rating >= 70) {
-          recommendedSeries.push({
+        if (series.avg_rating >= 70 && series.tmdb_id && !seriesMap.has(series.tmdb_id)) {
+          seriesMap.set(series.tmdb_id, {
             ...series,
             source: 'new'
           });
         }
       });
     }
+
+    // Convert Maps to arrays
+    recommendedMovies.push(...moviesMap.values());
+    recommendedSeries.push(...seriesMap.values());
 
     // Sort by rating (best first)
     recommendedMovies.sort((a, b) => b.avg_rating - a.avg_rating);
@@ -278,7 +286,7 @@ export function generateNewsletterHTML(data) {
                 Data z TMDB | Netflix Top 10
               </p>
               <p style="margin: 0; font-size: 12px; color: #999;">
-                {{{RESEND_UNSUBSCRIBE_URL}}}
+                <a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color: #999; text-decoration: underline;">Odhlásit z odběru newsletteru</a>
               </p>
             </td>
           </tr>
