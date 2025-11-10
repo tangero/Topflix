@@ -522,10 +522,14 @@ const newsletterEmail = document.getElementById('newsletterEmail');
 const newsletterMessage = document.getElementById('newsletterMessage');
 
 if (newsletterForm) {
+    console.log('Newsletter form found, attaching event listener');
+
     newsletterForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        console.log('Newsletter form submitted');
 
         const email = newsletterEmail.value.trim();
+        console.log('Email:', email);
 
         if (!email) {
             showNewsletterMessage('Prosím zadejte platný email', 'error');
@@ -535,8 +539,10 @@ if (newsletterForm) {
         // Disable form
         newsletterEmail.disabled = true;
         newsletterForm.querySelector('button').disabled = true;
+        showNewsletterMessage('⏳ Přihlašuji...', 'success');
 
         try {
+            console.log('Sending request to /api/newsletter-subscribe');
             const response = await fetch('/api/newsletter-subscribe', {
                 method: 'POST',
                 headers: {
@@ -545,7 +551,9 @@ if (newsletterForm) {
                 body: JSON.stringify({ email })
             });
 
+            console.log('Response status:', response.status);
             const data = await response.json();
+            console.log('Response data:', data);
 
             if (!response.ok) {
                 throw new Error(data.error || 'Nepodařilo se přihlásit k odběru');
@@ -568,6 +576,8 @@ if (newsletterForm) {
             newsletterForm.querySelector('button').disabled = false;
         }
     });
+} else {
+    console.error('Newsletter form NOT found!');
 }
 
 function showNewsletterMessage(message, type) {
