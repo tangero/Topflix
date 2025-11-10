@@ -251,8 +251,19 @@ export function generateNewsletterHTML(data) {
           <!-- Header -->
           <tr>
             <td style="padding: 30px; text-align: center; border-bottom: 2px solid #e50914;">
-              <h1 style="margin: 0; color: #e50914; font-size: 28px;">🎬 Topflix</h1>
-              <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">Co stojí za to vidět tento týden na Netflixu</p>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                <tr>
+                  <td align="center">
+                    <img src="https://www.topflix.cz/patrick-avatar.jpg" alt="Patrick" width="80" height="80" style="border-radius: 50%; display: inline-block; vertical-align: middle; margin-bottom: 10px;">
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center">
+                    <h1 style="margin: 0; color: #e50914; font-size: 28px;">Topflix</h1>
+                    <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">Co stojí za to vidět tento týden na Netflixu</p>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
