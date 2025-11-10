@@ -7,7 +7,7 @@
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // TMDB API Integration - Get Netflix new content
-async function getNetflixNewContent(apiKey, type = 'movie', limit = 20) {
+async function getNetflixNewContent(apiKey, type = 'movie', limit = 100) {
   try {
     // Calculate date range: last 180 days
     const today = new Date();
@@ -20,20 +20,42 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 20) {
     const searchType = type === 'movie' ? 'movie' : 'tv';
     const dateParam = type === 'movie' ? 'primary_release_date' : 'first_air_date';
 
-    const discoverUrl = `https://api.themoviedb.org/3/discover/${searchType}` +
-      `?api_key=${apiKey}` +
-      `&with_watch_providers=8` + // Netflix ID
-      `&watch_region=CZ` +
-      `&${dateParam}.gte=${dateFrom}` +
-      `&sort_by=popularity.desc` +
-      `&vote_count.gte=50` + // Minimum votes for quality
-      `&language=cs-CZ` +
-      `&page=1`;
+    // Calculate how many pages we need (TMDB returns 20 items per page)
+    const itemsPerPage = 20;
+    const pagesToFetch = Math.ceil(limit / itemsPerPage);
 
-    const response = await fetch(discoverUrl);
-    const data = await response.json();
+    // Fetch multiple pages to get enough items
+    let allItems = [];
+    for (let page = 1; page <= pagesToFetch && page <= 5; page++) {
+      const discoverUrl = `https://api.themoviedb.org/3/discover/${searchType}` +
+        `?api_key=${apiKey}` +
+        `&with_watch_providers=8` + // Netflix ID
+        `&watch_region=CZ` +
+        `&${dateParam}.gte=${dateFrom}` +
+        `&sort_by=popularity.desc` +
+        `&vote_count.gte=50` + // Minimum votes for quality
+        `&language=cs-CZ` +
+        `&page=${page}`;
 
-    if (!data.results || data.results.length === 0) {
+      const response = await fetch(discoverUrl);
+      const data = await response.json();
+
+      if (data.results && data.results.length > 0) {
+        allItems = allItems.concat(data.results);
+      }
+
+      // Stop if we have enough items or no more results
+      if (allItems.length >= limit || !data.results || data.results.length === 0) {
+        break;
+      }
+
+      // Rate limiting - small delay between page requests
+      if (page < pagesToFetch) {
+        await sleep(100);
+      }
+    }
+
+    if (allItems.length === 0) {
       return [];
     }
 
@@ -45,7 +67,7 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 20) {
     // Process results - get details for each item to get countries, runtime, etc.
     const results = [];
 
-    for (const item of data.results.slice(0, limit)) {
+    for (const item of allItems.slice(0, limit)) {
       try {
         // Get detailed info for this item
         const detailsUrl = `https://api.themoviedb.org/3/${searchType}/${item.id}?api_key=${apiKey}&language=cs-CZ`;
@@ -136,8 +158,8 @@ function getQualityIndicator(rating) {
 export async function fetchNetflixNew(apiKey) {
   // Fetch both movies and series in parallel
   const [movies, series] = await Promise.all([
-    getNetflixNewContent(apiKey, 'movie', 20),
-    getNetflixNewContent(apiKey, 'series', 20)
+    getNetflixNewContent(apiKey, 'movie', 100),
+    getNetflixNewContent(apiKey, 'series', 100)
   ]);
 
   // Add quality indicators
