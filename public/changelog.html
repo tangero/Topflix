@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Historie změn a aktualizací webu Topflix">
+    <title>Changelog - Topflix</title>
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Clicky Analytics -->
+    <script async data-id="101496124" src="//static.getclicky.com/js"></script>
+
+    <style>
+        .changelog-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem 1rem;
+        }
+
+        .changelog-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .changelog-header h1 {
+            font-size: 2.5rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .changelog-header p {
+            color: var(--text-secondary);
+            font-size: 1.1rem;
+        }
+
+        .version-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .version-header {
+            display: flex;
+            align-items: baseline;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--accent);
+            padding-bottom: 0.75rem;
+        }
+
+        .version-number {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--accent);
+        }
+
+        .version-date {
+            font-size: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .change-category {
+            margin-bottom: 1.5rem;
+        }
+
+        .change-category h3 {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .change-category.added h3::before {
+            content: "✨ ";
+        }
+
+        .change-category.changed h3::before {
+            content: "🔄 ";
+        }
+
+        .change-category.fixed h3::before {
+            content: "🐛 ";
+        }
+
+        .change-category.removed h3::before {
+            content: "🗑️ ";
+        }
+
+        .change-category.technical h3::before {
+            content: "⚙️ ";
+        }
+
+        .change-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .change-list li {
+            padding: 0.5rem 0 0.5rem 1.5rem;
+            position: relative;
+            line-height: 1.6;
+            color: var(--text-secondary);
+        }
+
+        .change-list li::before {
+            content: "•";
+            position: absolute;
+            left: 0.5rem;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-left: 0.5rem;
+        }
+
+        .badge.latest {
+            background: var(--accent);
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .changelog-header h1 {
+                font-size: 2rem;
+            }
+
+            .version-section {
+                padding: 1.5rem;
+            }
+
+            .version-header {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <h1>🎬 Topflix</h1>
+                <p class="tagline">Na co koukat na Netflixu</p>
+            </div>
+
+            <div class="theme-toggle">
+                <button id="themeToggle" aria-label="Přepnout světlý/tmavý režim">
+                    <span class="theme-icon">☀️</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-links">
+            <a href="index.html" class="nav-link">🎬 Filmy</a>
+            <a href="serials.html" class="nav-link">📺 Seriály</a>
+            <a href="newsletter.html" class="nav-link">📧 Newsletter</a>
+        </nav>
+
+        <!-- Changelog Content -->
+        <div class="changelog-container">
+            <div class="changelog-header">
+                <h1>📜 Changelog</h1>
+                <p>Historie všech změn a aktualizací</p>
+            </div>
+
+            <!-- Version 1.1.0 -->
+            <div class="version-section">
+                <div class="version-header">
+                    <span class="version-number">v1.1.0</span>
+                    <span class="version-date">10. listopadu 2025</span>
+                    <span class="badge latest">Aktuální</span>
+                </div>
+
+                <div class="change-category added">
+                    <h3>Přidáno</h3>
+                    <ul class="change-list">
+                        <li>Navýšení limitu TMDB Discover ze 20 na 100 položek na kategorii</li>
+                        <li>Netflix New nyní zobrazuje ~200 titulů (100 filmů + 100 seriálů)</li>
+                        <li>Vícestránkové načítání z TMDB API (až 5 stránek)</li>
+                        <li>Double Opt-In systém pro newsletter (zatím neaktivní)</li>
+                        <li>Automatický režim tématu podle východu/západu slunce v Praze</li>
+                        <li>Cyklování témat: tmavé → světlé → auto → tmavé</li>
+                        <li>Newsletter stránka s formuláři pro přihlášení a odhlášení</li>
+                        <li>Šablona potvrzovacího emailu pro Double Opt-In</li>
+                        <li>Crypto utility pro šifrování/dešifrování tokenů</li>
+                        <li>Stránka s potvrzením přihlášení k newsletteru</li>
+                    </ul>
+                </div>
+
+                <div class="change-category changed">
+                    <h3>Změněno</h3>
+                    <ul class="change-list">
+                        <li>Rating badge přesunut z karty na poster (vlevo nahoře)</li>
+                        <li>Rating badge umístěn nad horní hranu posteru (top: -0.8rem)</li>
+                        <li>Výchozí téma změněno na 'auto' režim</li>
+                        <li>Cache verze zvýšena na v4 pro Netflix New data</li>
+                    </ul>
+                </div>
+
+                <div class="change-category removed">
+                    <h3>Odstraněno</h3>
+                    <ul class="change-list">
+                        <li>Rank badge (#1, #2, #3...) odstraněn ze všech karet</li>
+                        <li>Ikona hvězdičky (⭐) odstraněna z hodnocení</li>
+                        <li>Hodnocení nyní zobrazeno jako "70% ✅" místo "⭐ 70% ✅"</li>
+                    </ul>
+                </div>
+
+                <div class="change-category fixed">
+                    <h3>Opraveno</h3>
+                    <ul class="change-list">
+                        <li>Newsletter subscribe formulář - problém s načítáním DOM</li>
+                        <li>Přesnost TMDB vyhledávání s filtrováním podle roku</li>
+                        <li>Duplikátní tituly v newsletteru (deduplikace podle tmdb_id)</li>
+                        <li>Oddělení regionálního obsahu (asijská a jihoamerická tvorba)</li>
+                        <li>CSS proměnné na newsletter stránce pro správné témata</li>
+                        <li>DMARC DNS záznam - odstraněno "TTL: Auto" z hodnoty</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Version 1.0.0 -->
+            <div class="version-section">
+                <div class="version-header">
+                    <span class="version-number">v1.0.0</span>
+                    <span class="version-date">3. listopadu 2025</span>
+                </div>
+
+                <div class="change-category added">
+                    <h3>Přidáno</h3>
+                    <ul class="change-list">
+                        <li>Úvodní vydání Topflix</li>
+                        <li>Integrace Netflix Top 10 ČR (filmy + seriály)</li>
+                        <li>Netflix New obsah z TMDB API (posledních 6 měsíců)</li>
+                        <li>Zobrazení hodnocení z TMDB a ČSFD</li>
+                        <li>Indikátory kvality (💣 výborné, ✅ dobré, 👍 průměrné, ⚠️ podprůměrné, ❌ špatné)</li>
+                        <li>Přepínání tmavého/světlého tématu</li>
+                        <li>Filtr regionu (skrýt/zobrazit asijský a latinskoamerický obsah)</li>
+                        <li>Možnosti řazení (pořadí, hodnocení, doporučené)</li>
+                        <li>Responzivní design pro mobily a desktop</li>
+                        <li>KV namespace caching (7denní TTL)</li>
+                        <li>Týdenní newsletter systém s Resend API</li>
+                        <li>Cron trigger pro newsletter (středy 15:00 UTC)</li>
+                        <li>Dynamické generování předmětu emailu</li>
+                        <li>List-ID a deliverability hlavičky</li>
+                    </ul>
+                </div>
+
+                <div class="change-category technical">
+                    <h3>Technické</h3>
+                    <ul class="change-list">
+                        <li>Nasazení na Cloudflare Pages</li>
+                        <li>Cloudflare Workers pro cron triggery</li>
+                        <li>Integrace TMDB API</li>
+                        <li>Resend API pro doručování emailů</li>
+                        <li>Scraping Netflix Top 10 TSV dat</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="napoveda.html">Nápověda</a>
+                <span>•</span>
+                <a href="https://www.themoviedb.org" target="_blank" rel="noopener">Data z TMDB</a>
+                <span>•</span>
+                <a href="https://www.csfd.cz" target="_blank" rel="noopener">Hodnocení z ČSFD</a>
+                <span>•</span>
+                <a href="https://top10.netflix.com" target="_blank" rel="noopener">Netflix Top 10</a>
+            </div>
+            <p class="footer-note">
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.1.0</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="newsletter.js"></script>
+</body>
+</html>
