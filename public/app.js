@@ -232,7 +232,6 @@ async function fetchData(section = 'top10') {
         displayData();
     } catch (err) {
         console.error('Error fetching data:', err);
-        console.error('API Endpoint:', endpoint);
         loading.classList.add('hidden');
         error.classList.remove('hidden');
     }
