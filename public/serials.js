@@ -531,9 +531,6 @@ function createTitleCard(item) {
         ? `<img src="${item.poster_url}" alt="${item.title}" loading="lazy">`
         : '<div class="no-poster">🎬</div>';
 
-    // Rank badge (only for Top 10 section where rank exists)
-    const rankBadge = item.rank ? `<span class="rank-badge">#${item.rank}</span>` : '';
-
     // Rating badge with quality indicator
     let qualityText = '❌';
     let qualityClass = 'poor';
@@ -553,7 +550,7 @@ function createTitleCard(item) {
 
     const ratingBadge = item.avg_rating
         ? `<div class="rating-badge rating-${qualityClass}">
-            ⭐ ${item.avg_rating}% ${qualityText}
+            ${item.avg_rating}% ${qualityText}
            </div>`
         : '';
 
@@ -595,7 +592,6 @@ function createTitleCard(item) {
         <div class="card-content">
             <div class="card-poster">
                 ${posterHTML}
-                ${rankBadge}
                 ${ratingBadge}
             </div>
             <div class="card-info">
