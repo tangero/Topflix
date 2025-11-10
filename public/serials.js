@@ -525,6 +525,66 @@ function formatDate(dateString) {
     return `${day}.${month}.${year}`;
 }
 
+// Newsletter subscription
+const newsletterForm = document.getElementById('newsletterForm');
+const newsletterEmail = document.getElementById('newsletterEmail');
+const newsletterMessage = document.getElementById('newsletterMessage');
+
+if (newsletterForm) {
+    newsletterForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const email = newsletterEmail.value.trim();
+
+        if (!email) {
+            showNewsletterMessage('Prosím zadejte platný email', 'error');
+            return;
+        }
+
+        // Disable form
+        newsletterEmail.disabled = true;
+        newsletterForm.querySelector('button').disabled = true;
+
+        try {
+            const response = await fetch('/api/newsletter-subscribe', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ email })
+            });
+
+            const data = await response.json();
+
+            if (!response.ok) {
+                throw new Error(data.error || 'Nepodařilo se přihlásit k odběru');
+            }
+
+            // Success
+            showNewsletterMessage('✅ Úspěšně přihlášeno! Newsletter budete dostávat každou středu.', 'success');
+            newsletterEmail.value = '';
+
+            // Keep form disabled after successful subscription
+            setTimeout(() => {
+                newsletterMessage.classList.add('hidden');
+            }, 5000);
+        } catch (error) {
+            console.error('Newsletter subscription error:', error);
+            showNewsletterMessage('❌ ' + error.message, 'error');
+
+            // Re-enable form on error
+            newsletterEmail.disabled = false;
+            newsletterForm.querySelector('button').disabled = false;
+        }
+    });
+}
+
+function showNewsletterMessage(message, type) {
+    newsletterMessage.textContent = message;
+    newsletterMessage.className = `newsletter-message ${type}`;
+    newsletterMessage.classList.remove('hidden');
+}
+
 // Refresh data (for manual refresh button if needed)
 function refreshData() {
     localStorage.removeItem('topflix_data_top10');

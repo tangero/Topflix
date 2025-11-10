@@ -1,0 +1,15 @@
+# Cloudflare Pages Configuration for Topflix
+name = "topflix"
+compatibility_date = "2024-01-01"
+pages_build_output_dir = "public"
+
+# Cron Triggers for scheduled functions
+# Weekly newsletter - Every Wednesday at 15:00 UTC (16:00 CET)
+[triggers]
+crons = ["0 15 * * 3"]
+
+# Note: KV Namespace (TOPFLIX_KV) is already configured in Cloudflare Dashboard
+# Note: Environment variables are configured in Cloudflare Dashboard:
+# - RESEND_API_KEY
+# - RESEND_AUDIENCE_ID
+# - TMDB_API_KEY
