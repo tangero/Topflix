@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Přihlaste se k týdennímu výběru nejlepších filmů a seriálů na Netflixu. Dostávejte jen to, co opravdu stojí za zhlédnutí.">
+    <title>Newsletter - Topflix</title>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.topflix.cz/newsletter">
+    <meta property="og:title" content="Newsletter - Topflix">
+    <meta property="og:description" content="Týdenní výběr nejlepších filmů a seriálů na Netflixu. Dostávejte jen to, co opravdu stojí za zhlédnutí.">
+    <meta property="og:locale" content="cs_CZ">
+    <meta property="og:site_name" content="Topflix">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://www.topflix.cz/newsletter">
+    <meta name="twitter:title" content="Newsletter - Topflix">
+    <meta name="twitter:description" content="Týdenní výběr nejlepších filmů a seriálů na Netflixu.">
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Clicky Analytics -->
+    <script async data-id="101496124" src="//static.getclicky.com/js"></script>
+
+    <style>
+        .newsletter-hero {
+            background: linear-gradient(135deg, var(--netflix-red) 0%, #b20710 100%);
+            padding: 3rem 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            text-align: center;
+            color: white;
+        }
+
+        .newsletter-hero h1 {
+            margin: 0 0 1rem 0;
+            font-size: 2.5rem;
+        }
+
+        .newsletter-hero p {
+            font-size: 1.2rem;
+            opacity: 0.95;
+            margin: 0;
+        }
+
+        .newsletter-content {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .info-section {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .info-section h2 {
+            margin-top: 0;
+            color: var(--netflix-red);
+            font-size: 1.5rem;
+        }
+
+        .info-section ul {
+            margin: 1rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .info-section li {
+            margin: 0.75rem 0;
+            line-height: 1.6;
+        }
+
+        .form-section {
+            background: var(--card-bg);
+            padding: 2rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .form-section h2 {
+            margin-top: 0;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+        }
+
+        .form-section p {
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+
+        .form-group input[type="email"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+            background: var(--bg-color);
+            color: var(--text-primary);
+            transition: border-color 0.2s;
+        }
+
+        .form-group input[type="email"]:focus {
+            outline: none;
+            border-color: var(--netflix-red);
+        }
+
+        .form-button {
+            background: var(--netflix-red);
+            color: white;
+            border: none;
+            padding: 0.75rem 2rem;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            width: 100%;
+        }
+
+        .form-button:hover {
+            background: #b20710;
+        }
+
+        .form-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .form-message {
+            margin-top: 1rem;
+            padding: 1rem;
+            border-radius: 6px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .form-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+
+        .form-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+
+        .divider {
+            height: 1px;
+            background: var(--border-color);
+            margin: 3rem 0;
+        }
+
+        .privacy-note {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-top: 1rem;
+            line-height: 1.6;
+        }
+
+        @media (max-width: 768px) {
+            .newsletter-hero h1 {
+                font-size: 2rem;
+            }
+
+            .newsletter-hero p {
+                font-size: 1rem;
+            }
+
+            .info-section, .form-section {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <h1>🎬 Topflix</h1>
+                <p class="tagline">Na co koukat na Netflixu</p>
+            </div>
+
+            <div class="theme-toggle">
+                <button id="themeToggle" aria-label="Přepnout světlý/tmavý režim">
+                    <span class="theme-icon">☀️</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-links">
+            <a href="index.html" class="nav-link">🎬 Filmy</a>
+            <a href="serials.html" class="nav-link">📺 Seriály</a>
+            <a href="newsletter.html" class="nav-link active">📧 Newsletter</a>
+        </nav>
+
+        <!-- Hero Section -->
+        <div class="newsletter-hero">
+            <h1>📧 Týdenní Newsletter</h1>
+            <p>Co stojí za to vidět tento týden na Netflixu</p>
+        </div>
+
+        <!-- Content -->
+        <div class="newsletter-content">
+            <!-- Info Section -->
+            <div class="info-section">
+                <h2>Co dostanete v newsletteru?</h2>
+                <ul>
+                    <li><strong>Týdenní výběr nejlepších filmů a seriálů</strong> z Netflix Top 10 a nových přírůstků</li>
+                    <li><strong>Jen tituly s hodnocením 70 % a výše</strong> – žádné ztráty času s průměrnými tituly</li>
+                    <li><strong>Kompletní informace:</strong> žánr, rok, hodnocení, krátký popis</li>
+                    <li><strong>Jeden email týdně</strong> každou středu ráno</li>
+                    <li><strong>Bez reklam a spamu</strong> – jen čistý obsah</li>
+                </ul>
+            </div>
+
+            <!-- Subscribe Form -->
+            <div class="form-section">
+                <h2>Přihlásit se k odběru</h2>
+                <p>Zadejte svůj email a začněte dostávat týdenní výběr nejlepšího obsahu na Netflixu.</p>
+
+                <form id="subscribeForm">
+                    <div class="form-group">
+                        <label for="subscribeEmail">Váš email</label>
+                        <input
+                            type="email"
+                            id="subscribeEmail"
+                            name="email"
+                            placeholder="vas@email.cz"
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+                    <button type="submit" class="form-button" id="subscribeButton">
+                        Odebírat newsletter
+                    </button>
+                    <div id="subscribeMessage" class="form-message"></div>
+                </form>
+
+                <p class="privacy-note">
+                    Vaše emailová adresa bude použita pouze pro zasílání newsletteru Topflix.
+                    Nikdy ji neprodáme třetím stranám. Odhlásit se můžete kdykoliv níže nebo v každém emailu.
+                </p>
+            </div>
+
+            <div class="divider"></div>
+
+            <!-- Unsubscribe Form -->
+            <div class="form-section">
+                <h2>Odhlásit se z odběru</h2>
+                <p>Pokud již nechcete dostávat newsletter, zadejte svůj email níže.</p>
+
+                <form id="unsubscribeForm">
+                    <div class="form-group">
+                        <label for="unsubscribeEmail">Váš email</label>
+                        <input
+                            type="email"
+                            id="unsubscribeEmail"
+                            name="email"
+                            placeholder="vas@email.cz"
+                            required
+                            autocomplete="email"
+                        >
+                    </div>
+                    <button type="submit" class="form-button" id="unsubscribeButton">
+                        Odhlásit z newsletteru
+                    </button>
+                    <div id="unsubscribeMessage" class="form-message"></div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="napoveda.html">Nápověda</a>
+                <span>•</span>
+                <a href="https://www.themoviedb.org" target="_blank" rel="noopener">Data z TMDB</a>
+                <span>•</span>
+                <a href="https://www.csfd.cz" target="_blank" rel="noopener">Hodnocení z ČSFD</a>
+                <span>•</span>
+                <a href="https://top10.netflix.com" target="_blank" rel="noopener">Netflix Top 10</a>
+            </div>
+            <p class="footer-note">
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů
+            </p>
+        </footer>
+    </div>
+
+    <script src="newsletter.js"></script>
+</body>
+</html>
