@@ -229,8 +229,8 @@ export async function onRequest(context) {
       });
     }
 
-    // Generate cache key based on date (v3 for fixed origin_country)
-    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v3`;
+    // Generate cache key based on date (v4 for increased limits to 100)
+    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v4`;
     console.log('Fetching data for:', cacheKey);
 
     // Try to get from KV cache first (if available)
