@@ -260,21 +260,12 @@ export async function onRequest(context) {
 
   // API endpoint
   try {
-    // Check if required bindings exist
+    // Warn if KV is missing (optional - used for caching)
     if (!env.TOPFLIX_KV) {
-      console.error('TOPFLIX_KV binding is missing!');
-      return new Response(JSON.stringify({
-        error: 'KV namespace not configured',
-        details: 'TOPFLIX_KV binding is missing. Please configure it in Cloudflare Dashboard: Settings -> Functions -> KV namespace bindings'
-      }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders()
-        }
-      });
+      console.warn('TOPFLIX_KV binding is missing - caching will be disabled');
     }
 
+    // Check for required API key
     if (!env.TMDB_API_KEY) {
       console.error('TMDB_API_KEY is missing!');
       return new Response(JSON.stringify({
@@ -292,10 +283,14 @@ export async function onRequest(context) {
     const weekKey = `netflix_top10_cz_${getWeekNumber(new Date())}_v3`;
     console.log('Fetching data for week:', weekKey);
 
-    // Try to get from KV cache first
-    let cachedData = await env.TOPFLIX_KV.get(weekKey);
+    // Try to get from KV cache first (if available)
+    let cachedData = null;
+    if (env.TOPFLIX_KV) {
+      cachedData = await env.TOPFLIX_KV.get(weekKey);
+    }
 
     if (cachedData) {
+      console.log('Returning cached data from KV');
       return new Response(cachedData, {
         headers: {
           'Content-Type': 'application/json',
@@ -305,13 +300,17 @@ export async function onRequest(context) {
     }
 
     // If not in cache, fetch fresh data
+    console.log('Fetching fresh data from APIs');
     const data = await fetchAndEnrichData(env.TMDB_API_KEY);
     const jsonData = JSON.stringify(data);
 
-    // Store in KV with 7 day TTL
-    await env.TOPFLIX_KV.put(weekKey, jsonData, {
-      expirationTtl: 604800 // 7 days
-    });
+    // Store in KV with 7 day TTL (if available)
+    if (env.TOPFLIX_KV) {
+      await env.TOPFLIX_KV.put(weekKey, jsonData, {
+        expirationTtl: 604800 // 7 days
+      });
+      console.log('Data cached in KV');
+    }
 
     return new Response(jsonData, {
       headers: {
