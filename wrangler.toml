@@ -6,7 +6,11 @@ pages_build_output_dir = "public"
 # Note: Cron Triggers are NOT supported for Pages Functions
 # Newsletter cron trigger is handled by a separate Worker in workers/newsletter-cron.js
 
-# Note: KV Namespace (TOPFLIX_KV) is configured in Cloudflare Dashboard
+# KV Namespace for caching Netflix Top 10 and Netflix New data
+[[kv_namespaces]]
+binding = "TOPFLIX_KV"
+id = "1844bf2efc7d41b89ddb224d7eab20d4"
+
 # Note: Environment variables are configured in Cloudflare Dashboard:
 # - RESEND_API_KEY
 # - RESEND_AUDIENCE_ID
