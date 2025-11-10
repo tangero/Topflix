@@ -593,10 +593,10 @@ function createTitleCard(item) {
 
     card.innerHTML = `
         <div class="card-content">
-            ${ratingBadge}
             <div class="card-poster">
                 ${posterHTML}
                 ${rankBadge}
+                ${ratingBadge}
             </div>
             <div class="card-info">
                 <div class="card-title">
