@@ -80,9 +80,31 @@ export async function fetchNewsletterData(apiKey) {
     recommendedMovies.sort((a, b) => b.avg_rating - a.avg_rating);
     recommendedSeries.sort((a, b) => b.avg_rating - a.avg_rating);
 
+    // Helper: Check if content is Asian or Latin American
+    function isAsianOrLatinAmerican(item) {
+      if (!item.origin_country || item.origin_country.length === 0) return false;
+
+      const asianCountries = ['JP', 'KR', 'CN', 'TW', 'HK', 'TH', 'ID', 'IN', 'PH', 'VN', 'MY', 'SG'];
+      const latinAmericanCountries = ['BR', 'MX', 'AR', 'CO', 'CL', 'PE', 'VE', 'EC', 'BO', 'PY', 'UY'];
+
+      return item.origin_country.some(country =>
+        asianCountries.includes(country) || latinAmericanCountries.includes(country)
+      );
+    }
+
+    // Split movies into main and regional
+    const mainMovies = recommendedMovies.filter(m => !isAsianOrLatinAmerican(m));
+    const regionalMovies = recommendedMovies.filter(m => isAsianOrLatinAmerican(m));
+
+    // Split series into main and regional
+    const mainSeries = recommendedSeries.filter(s => !isAsianOrLatinAmerican(s));
+    const regionalSeries = recommendedSeries.filter(s => isAsianOrLatinAmerican(s));
+
     return {
-      movies: recommendedMovies,
-      series: recommendedSeries,
+      movies: mainMovies,
+      series: mainSeries,
+      regionalMovies: regionalMovies,
+      regionalSeries: regionalSeries,
       top10Data,
       newData
     };
@@ -96,7 +118,7 @@ export async function fetchNewsletterData(apiKey) {
  * Generate HTML email template
  */
 export function generateNewsletterHTML(data) {
-  const { movies, series } = data;
+  const { movies, series, regionalMovies, regionalSeries } = data;
 
   // Helper: Get quality emoji
   function getQualityEmoji(rating) {
@@ -270,6 +292,37 @@ export function generateNewsletterHTML(data) {
           </tr>
           ` : ''}
 
+          <!-- Regional Content Section (Asian & Latin American) -->
+          ${(regionalMovies.length > 0 || regionalSeries.length > 0) ? `
+          <tr>
+            <td style="padding: 30px 30px 10px 30px; background-color: #f9f9f9;">
+              <h2 style="margin: 0 0 20px 0; color: #141414; font-size: 22px; border-bottom: 2px solid #e50914; padding-bottom: 10px;">
+                🌏 Jihoamerická a asijská tvorba
+              </h2>
+            </td>
+          </tr>
+          ` : ''}
+
+          ${regionalMovies.length > 0 ? `
+          <tr>
+            <td style="padding: 0 30px; background-color: #f9f9f9;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                ${regionalMovies.slice(0, 6).map(movie => formatMovieCard(movie)).join('')}
+              </table>
+            </td>
+          </tr>
+          ` : ''}
+
+          ${regionalSeries.length > 0 ? `
+          <tr>
+            <td style="padding: 0 30px 30px 30px; background-color: #f9f9f9;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                ${regionalSeries.slice(0, 6).map(series => formatSeriesCard(series)).join('')}
+              </table>
+            </td>
+          </tr>
+          ` : ''}
+
           <!-- CTA Button -->
           <tr>
             <td style="padding: 30px; text-align: center; background-color: #f9f9f9; border-top: 1px solid #e0e0e0;">
@@ -306,7 +359,7 @@ export function generateNewsletterHTML(data) {
  * Generate plain text version
  */
 export function generateNewsletterText(data) {
-  const { movies, series } = data;
+  const { movies, series, regionalMovies, regionalSeries } = data;
 
   let text = `TOPFLIX - TÝDENNÍ VÝBĚR\n`;
   text += `Co stojí za to vidět tento týden\n\n`;
@@ -336,6 +389,42 @@ export function generateNewsletterText(data) {
     text += `${'='.repeat(50)}\n\n`;
 
     series.slice(0, 8).forEach(s => {
+      const sourceLabel = s.source === 'top10' ? 'Top 10' : 'Nově na Netflix';
+      const rankInfo = s.rank ? `#${s.rank} v Top 10` : sourceLabel;
+
+      text += `${s.title || s.title_original}\n`;
+      if (s.title_original && s.title !== s.title_original) {
+        text += `${s.title_original}\n`;
+      }
+      text += `⭐ ${s.avg_rating}% • ${rankInfo}\n`;
+      if (s.year) text += `📅 ${s.year}\n`;
+      if (s.genre) text += `🎭 ${s.genre}\n`;
+      if (s.description) text += `\n${s.description.substring(0, 150)}${s.description.length > 150 ? '...' : ''}\n`;
+      text += `\n`;
+    });
+  }
+
+  // Regional content section
+  if (regionalMovies.length > 0 || regionalSeries.length > 0) {
+    text += `\n🌏 JIHOAMERICKÁ A ASIJSKÁ TVORBA\n`;
+    text += `${'='.repeat(50)}\n\n`;
+
+    regionalMovies.slice(0, 6).forEach(movie => {
+      const sourceLabel = movie.source === 'top10' ? 'Top 10' : 'Nově na Netflix';
+      const rankInfo = movie.rank ? `#${movie.rank} v Top 10` : sourceLabel;
+
+      text += `${movie.title || movie.title_original}\n`;
+      if (movie.title_original && movie.title !== movie.title_original) {
+        text += `${movie.title_original}\n`;
+      }
+      text += `⭐ ${movie.avg_rating}% • ${rankInfo}\n`;
+      if (movie.year) text += `📅 ${movie.year}\n`;
+      if (movie.genre) text += `🎭 ${movie.genre}\n`;
+      if (movie.description) text += `\n${movie.description.substring(0, 150)}${movie.description.length > 150 ? '...' : ''}\n`;
+      text += `\n`;
+    });
+
+    regionalSeries.slice(0, 6).forEach(s => {
       const sourceLabel = s.source === 'top10' ? 'Top 10' : 'Nově na Netflix';
       const rankInfo = s.rank ? `#${s.rank} v Top 10` : sourceLabel;
 
