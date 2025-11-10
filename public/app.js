@@ -53,20 +53,130 @@ document.addEventListener('DOMContentLoaded', () => {
     setupNewsletterForm();
 });
 
-// Theme management
-function initTheme() {
-    const savedTheme = localStorage.getItem('theme') || 'dark';
-    if (savedTheme === 'light') {
+// Theme management with auto mode based on sunrise/sunset in Prague
+function getSunriseSunset() {
+    // Prague coordinates
+    const latitude = 50.0755;
+    const longitude = 14.4378;
+
+    const now = new Date();
+    const day = now.getDate();
+    const month = now.getMonth() + 1;
+    const year = now.getFullYear();
+
+    // Calculate day of year
+    const dayOfYear = Math.floor((now - new Date(year, 0, 0)) / 86400000);
+
+    // Solar declination (simplified)
+    const declination = -23.45 * Math.cos((360 / 365) * (dayOfYear + 10) * Math.PI / 180);
+
+    // Hour angle for sunrise/sunset
+    const hourAngle = Math.acos(
+        -Math.tan(latitude * Math.PI / 180) * Math.tan(declination * Math.PI / 180)
+    ) * 180 / Math.PI;
+
+    // Calculate sunrise and sunset in UTC
+    const solarNoon = 12 - (longitude / 15);
+    const sunriseUTC = solarNoon - (hourAngle / 15);
+    const sunsetUTC = solarNoon + (hourAngle / 15);
+
+    // Convert to Prague time (UTC+1 in winter, UTC+2 in summer)
+    const isDST = isDaylightSavingTime(now);
+    const offset = isDST ? 2 : 1;
+
+    const sunrise = sunriseUTC + offset;
+    const sunset = sunsetUTC + offset;
+
+    return { sunrise, sunset };
+}
+
+function isDaylightSavingTime(date) {
+    // DST in EU: last Sunday in March to last Sunday in October
+    const year = date.getFullYear();
+
+    // Last Sunday in March
+    const marchLastSunday = new Date(year, 2, 31);
+    marchLastSunday.setDate(31 - marchLastSunday.getDay());
+
+    // Last Sunday in October
+    const octoberLastSunday = new Date(year, 9, 31);
+    octoberLastSunday.setDate(31 - octoberLastSunday.getDay());
+
+    return date >= marchLastSunday && date < octoberLastSunday;
+}
+
+function shouldUseDarkMode() {
+    const now = new Date();
+    const hours = now.getHours();
+    const minutes = now.getMinutes();
+    const currentTime = hours + minutes / 60;
+
+    const { sunrise, sunset } = getSunriseSunset();
+
+    // Dark mode between sunset and sunrise
+    return currentTime < sunrise || currentTime >= sunset;
+}
+
+function applyTheme(theme) {
+    let actualTheme = theme;
+
+    // If auto mode, determine actual theme based on sun position
+    if (theme === 'auto') {
+        actualTheme = shouldUseDarkMode() ? 'dark' : 'light';
+    }
+
+    // Apply theme
+    if (actualTheme === 'light') {
         document.body.classList.add('light-mode');
-        themeToggle.querySelector('.theme-icon').textContent = '🌙';
+    } else {
+        document.body.classList.remove('light-mode');
+    }
+
+    // Update icon
+    const icons = {
+        'light': '☀️',
+        'dark': '🌙',
+        'auto': '🌓'
+    };
+    themeToggle.querySelector('.theme-icon').textContent = icons[theme];
+}
+
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'auto';
+    applyTheme(savedTheme);
+
+    // If auto mode, update every minute
+    if (savedTheme === 'auto') {
+        setInterval(() => {
+            applyTheme('auto');
+        }, 60000); // Check every minute
     }
 }
 
 function toggleTheme() {
-    document.body.classList.toggle('light-mode');
-    const isLight = document.body.classList.contains('light-mode');
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
-    themeToggle.querySelector('.theme-icon').textContent = isLight ? '🌙' : '☀️';
+    const currentTheme = localStorage.getItem('theme') || 'auto';
+
+    // Cycle through: dark → light → auto → dark
+    let nextTheme;
+    if (currentTheme === 'dark') {
+        nextTheme = 'light';
+    } else if (currentTheme === 'light') {
+        nextTheme = 'auto';
+    } else {
+        nextTheme = 'dark';
+    }
+
+    localStorage.setItem('theme', nextTheme);
+    applyTheme(nextTheme);
+
+    // If switching to auto, start interval
+    if (nextTheme === 'auto') {
+        setInterval(() => {
+            if (localStorage.getItem('theme') === 'auto') {
+                applyTheme('auto');
+            }
+        }, 60000);
+    }
 }
 
 // Region filter management
