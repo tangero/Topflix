@@ -85,15 +85,45 @@ async function getTMDBData(title, type, apiKey) {
     const searchType = type === 'movie' ? 'movie' : 'tv';
 
     // Step 1: Search to get ID
-    const searchUrl = `https://api.themoviedb.org/3/search/${searchType}?api_key=${apiKey}&query=${encodeURIComponent(title)}&language=cs-CZ`;
-    const searchResponse = await fetch(searchUrl);
-    const searchData = await searchResponse.json();
+    // Try searching with current year first (most Netflix Top 10 content is recent)
+    const currentYear = new Date().getFullYear();
+    const yearParam = type === 'movie' ? 'primary_release_year' : 'first_air_date_year';
+
+    let searchUrl = `https://api.themoviedb.org/3/search/${searchType}?api_key=${apiKey}&query=${encodeURIComponent(title)}&${yearParam}=${currentYear}&language=cs-CZ`;
+    let searchResponse = await fetch(searchUrl);
+    let searchData = await searchResponse.json();
+
+    // If no results with current year, try without year filter
+    if (!searchData.results || searchData.results.length === 0) {
+      searchUrl = `https://api.themoviedb.org/3/search/${searchType}?api_key=${apiKey}&query=${encodeURIComponent(title)}&language=cs-CZ`;
+      searchResponse = await fetch(searchUrl);
+      searchData = await searchResponse.json();
+    }
+
+    // If still no results and title starts with "The ", try without it
+    if ((!searchData.results || searchData.results.length === 0) && title.startsWith('The ')) {
+      const titleWithoutThe = title.substring(4);
+      searchUrl = `https://api.themoviedb.org/3/search/${searchType}?api_key=${apiKey}&query=${encodeURIComponent(titleWithoutThe)}&${yearParam}=${currentYear}&language=cs-CZ`;
+      searchResponse = await fetch(searchUrl);
+      searchData = await searchResponse.json();
+    }
 
     if (!searchData.results || searchData.results.length === 0) {
       return null;
     }
 
-    const searchItem = searchData.results[0];
+    // Prefer recent results (within last 3 years)
+    let searchItem = searchData.results[0];
+    const recentYearThreshold = currentYear - 3;
+
+    for (const result of searchData.results.slice(0, 5)) {
+      const releaseYear = parseInt((result.release_date || result.first_air_date || '').substring(0, 4));
+      if (releaseYear >= recentYearThreshold) {
+        searchItem = result;
+        break;
+      }
+    }
+
     const tmdbId = searchItem.id;
 
     // Step 2: Get detailed info
