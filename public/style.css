@@ -323,10 +323,10 @@ body {
     padding: 1rem;
 }
 
-/* Rating badge - positioned top left on poster */
+/* Rating badge - positioned above poster (half overlapping) */
 .rating-badge {
     position: absolute;
-    top: 0.5rem;
+    top: -0.8rem;
     left: 0.5rem;
     display: flex;
     align-items: center;
