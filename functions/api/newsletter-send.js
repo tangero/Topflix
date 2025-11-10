@@ -120,9 +120,13 @@ export async function onRequest(context) {
       body: JSON.stringify({
         audience_id: env.RESEND_AUDIENCE_ID,
         from: 'Topflix <newsletter@topflix.cz>',
-        subject: 'Topflix - Týdenní výběr: Co stojí za to vidět',
+        subject: 'Topflix - Týdenní výběr na Netflix',
         html: htmlContent,
-        text: textContent
+        text: textContent,
+        headers: {
+          'List-Unsubscribe': '<https://www.topflix.cz/unsubscribe>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        }
       })
     });
 

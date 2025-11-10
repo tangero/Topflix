@@ -104,9 +104,13 @@ export async function onRequest(context) {
       body: JSON.stringify({
         from: 'Topflix <newsletter@topflix.cz>',
         to: [email],
-        subject: 'TEST: Topflix - Týdenní výběr',
+        subject: 'Topflix - Týdenní výběr na Netflix',
         html: htmlContent,
-        text: textContent
+        text: textContent,
+        headers: {
+          'List-Unsubscribe': '<https://www.topflix.cz/unsubscribe>',
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        }
       })
     });
 
