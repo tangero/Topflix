@@ -252,7 +252,7 @@ export function generateNewsletterHTML(data) {
           <tr>
             <td style="padding: 30px; text-align: center; border-bottom: 2px solid #e50914;">
               <h1 style="margin: 0; color: #e50914; font-size: 28px;">🎬 Topflix</h1>
-              <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">Co stojí za to vidět tento týden</p>
+              <p style="margin: 10px 0 0 0; color: #666; font-size: 14px;">Co stojí za to vidět tento týden na Netflixu</p>
             </td>
           </tr>
 
@@ -445,4 +445,28 @@ export function generateNewsletterText(data) {
   text += `Data z TMDB | Netflix Top 10\n`;
 
   return text;
+}
+
+/**
+ * Generate dynamic subject line with top-rated titles
+ */
+export function generateNewsletterSubject(data) {
+  const { movies, series } = data;
+
+  // Get top movie (highest rated, non-regional)
+  const topMovie = movies.length > 0 ? movies[0] : null;
+
+  // Get top series (highest rated, non-regional)
+  const topSeries = series.length > 0 ? series[0] : null;
+
+  // Build subject line
+  if (topMovie && topSeries) {
+    return `Stojí za vidění: ${topMovie.title} a ${topSeries.title}`;
+  } else if (topMovie) {
+    return `Stojí za vidění: ${topMovie.title}`;
+  } else if (topSeries) {
+    return `Stojí za vidění: ${topSeries.title}`;
+  } else {
+    return 'Topflix - Týdenní výběr na Netflix';
+  }
 }

@@ -3,7 +3,7 @@
  * Sends newsletter broadcast to all subscribers via Resend
  */
 
-import { fetchNewsletterData, generateNewsletterHTML, generateNewsletterText } from '../_lib/newsletter-generator.js';
+import { fetchNewsletterData, generateNewsletterHTML, generateNewsletterText, generateNewsletterSubject } from '../_lib/newsletter-generator.js';
 
 // CORS headers
 function getCorsHeaders() {
@@ -104,9 +104,10 @@ export async function onRequest(context) {
       });
     }
 
-    // Generate HTML and text versions
+    // Generate HTML, text, and subject
     const htmlContent = generateNewsletterHTML(data);
     const textContent = generateNewsletterText(data);
+    const subjectLine = generateNewsletterSubject(data);
 
     // Send broadcast via Resend Broadcast API
     const resendUrl = 'https://api.resend.com/broadcasts';
@@ -121,7 +122,7 @@ export async function onRequest(context) {
         audience_id: env.RESEND_AUDIENCE_ID,
         from: 'Topflix <newsletter@topflix.cz>',
         reply_to: 'noreply@topflix.cz',
-        subject: 'Topflix - Týdenní výběr na Netflix',
+        subject: subjectLine,
         html: htmlContent,
         text: textContent,
         headers: {

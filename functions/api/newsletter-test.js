@@ -3,7 +3,7 @@
  * Sends a test newsletter email to specified address
  */
 
-import { fetchNewsletterData, generateNewsletterHTML, generateNewsletterText } from '../_lib/newsletter-generator.js';
+import { fetchNewsletterData, generateNewsletterHTML, generateNewsletterText, generateNewsletterSubject } from '../_lib/newsletter-generator.js';
 
 // CORS headers
 function getCorsHeaders() {
@@ -88,9 +88,10 @@ export async function onRequest(context) {
 
     console.log(`Test: Found ${data.movies.length} movies and ${data.series.length} series with ≥70% rating`);
 
-    // Generate HTML and text versions
+    // Generate HTML, text, and subject
     const htmlContent = generateNewsletterHTML(data);
     const textContent = generateNewsletterText(data);
+    const subjectLine = generateNewsletterSubject(data);
 
     // Send email via Resend
     const resendUrl = 'https://api.resend.com/emails';
@@ -105,7 +106,7 @@ export async function onRequest(context) {
         from: 'Topflix <newsletter@topflix.cz>',
         to: [email],
         reply_to: 'noreply@topflix.cz',
-        subject: 'Topflix - Týdenní výběr na Netflix',
+        subject: subjectLine,
         html: htmlContent,
         text: textContent,
         headers: {
