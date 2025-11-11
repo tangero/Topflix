@@ -177,12 +177,61 @@
                 <p>Historie všech změn a aktualizací</p>
             </div>
 
+            <!-- Version 1.2.0 -->
+            <div class="version-section">
+                <div class="version-header">
+                    <span class="version-number">v1.2.0</span>
+                    <span class="version-date">11. listopadu 2025</span>
+                    <span class="badge latest">Aktuální</span>
+                </div>
+
+                <div class="change-category added">
+                    <h3>Přidáno</h3>
+                    <ul class="change-list">
+                        <li>Cloudflare D1 databáze pro persistentní ukládání obsahu</li>
+                        <li>Archivní stránka (📦 Archiv) s kvalitním obsahem z historie</li>
+                        <li>API endpoint /api/archive pro zobrazení archivu</li>
+                        <li>API endpoint /api/best pro nejlepší obsah všech dob</li>
+                        <li>API endpoint /api/stats pro statistiky databáze</li>
+                        <li>Data Access Layer s optimalizovaným cachingem (KV + D1)</li>
+                        <li>Automatické ukládání Top 10 a Netflix New dat do databáze</li>
+                        <li>Sledování historie výskytů (appearances) pro každý titul</li>
+                        <li>Filtrování archivu podle typu, hodnocení a řazení</li>
+                        <li>Pagination na archivní stránce (50 položek, "Načíst další")</li>
+                        <li>Zobrazení statistik databáze na archivní stránce</li>
+                        <li>Quality tiers (excellent, good, average, below-average, poor)</li>
+                    </ul>
+                </div>
+
+                <div class="change-category changed">
+                    <h3>Změněno</h3>
+                    <ul class="change-list">
+                        <li>Navigace rozšířena o odkaz na Archiv na všech stránkách</li>
+                        <li>API Top 10 a Netflix New nyní ukládají data do D1</li>
+                        <li>Denormalizovaná databázová struktura pro rychlé čtení</li>
+                    </ul>
+                </div>
+
+                <div class="change-category technical">
+                    <h3>Technické</h3>
+                    <ul class="change-list">
+                        <li>Cloudflare D1 SQLite databáze s 2 tabulkami (content, appearance_history)</li>
+                        <li>7 optimalizovaných indexů včetně partial indexů pro kvalitní obsah</li>
+                        <li>3 SQL views pro časté dotazy (v_quality_content, v_recent_quality, v_top10_frequent)</li>
+                        <li>Hybridní caching strategie: KV (1-5ms) + D1 (10-30ms) + APIs (500-2000ms)</li>
+                        <li>Batch operations pro efektivní ukládání dat</li>
+                        <li>Automatická detekce regionálního obsahu (asijský a latinskoamerický)</li>
+                        <li>Non-blocking DB operace - chyby neblokují API odpovědi</li>
+                        <li>Migrace 0001_initial_schema.sql</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- Version 1.1.0 -->
             <div class="version-section">
                 <div class="version-header">
                     <span class="version-number">v1.1.0</span>
                     <span class="version-date">10. listopadu 2025</span>
-                    <span class="badge latest">Aktuální</span>
                 </div>
 
                 <div class="change-category added">
@@ -285,7 +334,7 @@
                 <a href="https://top10.netflix.com" target="_blank" rel="noopener">Netflix Top 10</a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.1.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.2.0</a>
             </p>
         </footer>
     </div>
