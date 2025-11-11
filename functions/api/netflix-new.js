@@ -3,6 +3,8 @@
  * Fetches newly added movies and series on Netflix CZ with TMDB ratings
  */
 
+import { createDatabase } from '../_lib/database.js';
+
 // Helper: Sleep for rate limiting
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -169,7 +171,8 @@ export async function fetchNetflixNew(apiKey) {
       ...movie,
       quality,
       quality_label: label,
-      avg_rating: movie.tmdb_rating ? Math.round(movie.tmdb_rating * 10) : null
+      avg_rating: movie.tmdb_rating ? Math.round(movie.tmdb_rating * 10) : null,
+      source: 'netflix_new' // Mark as coming from Netflix New
     };
   });
 
@@ -179,7 +182,8 @@ export async function fetchNetflixNew(apiKey) {
       ...show,
       quality,
       quality_label: label,
-      avg_rating: show.tmdb_rating ? Math.round(show.tmdb_rating * 10) : null
+      avg_rating: show.tmdb_rating ? Math.round(show.tmdb_rating * 10) : null,
+      source: 'netflix_new' // Mark as coming from Netflix New
     };
   });
 
@@ -252,6 +256,19 @@ export async function onRequest(context) {
     // If not in cache, fetch fresh data
     const data = await fetchNetflixNew(env.TMDB_API_KEY);
     const jsonData = JSON.stringify(data);
+
+    // Store in D1 database (if available)
+    if (env.DB) {
+      try {
+        const db = createDatabase(env);
+        const allContent = [...data.movies, ...data.series];
+        const dbResult = await db.upsertContentBatch(allContent);
+        console.log('D1 database updated:', dbResult);
+      } catch (dbError) {
+        console.error('D1 database error (non-fatal):', dbError);
+        // Continue even if DB fails - don't block API response
+      }
+    }
 
     // Store in KV with 24 hour TTL (if available)
     if (env.TOPFLIX_KV) {

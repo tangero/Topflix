@@ -11,6 +11,12 @@ pages_build_output_dir = "public"
 binding = "TOPFLIX_KV"
 id = "1844bf2efc7d41b89ddb224d7eab20d4"
 
+# D1 Database for persistent content storage
+[[d1_databases]]
+binding = "DB"
+database_name = "topflix-db"
+database_id = "17471071-02aa-44d7-ac84-705ea562e2ac"
+
 # Note: Environment variables are configured in Cloudflare Dashboard:
 # - RESEND_API_KEY
 # - RESEND_AUDIENCE_ID

@@ -3,6 +3,8 @@
  * Fetches Netflix Top 10 data and enriches with TMDB and ČSFD ratings
  */
 
+import { createDatabase } from '../_lib/database.js';
+
 // Helper: Get week number
 function getWeekNumber(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
@@ -216,6 +218,7 @@ async function enrichTitle(title, rank, type, apiKey) {
   // Build result object
   const result = {
     rank,
+    tmdb_id: tmdbData.tmdb_id,
     title: tmdbData.title_cz || title,
     title_original: tmdbData.title_original,
     year: tmdbData.year,
@@ -226,8 +229,19 @@ async function enrichTitle(title, rank, type, apiKey) {
     quality,
     description: tmdbData.description,
     poster_url: tmdbData.poster_url,
-    type
+    origin_country: tmdbData.origin_country,
+    countries: tmdbData.countries,
+    type,
+    source: 'top10' // Mark as coming from Top 10
   };
+
+  // Add type-specific fields
+  if (type === 'movie') {
+    result.runtime = tmdbData.runtime;
+  } else if (type === 'series') {
+    result.number_of_seasons = tmdbData.number_of_seasons;
+    result.number_of_episodes = tmdbData.number_of_episodes;
+  }
 
   return result;
 }
@@ -333,6 +347,19 @@ export async function onRequest(context) {
     console.log('Fetching fresh data from APIs');
     const data = await fetchAndEnrichData(env.TMDB_API_KEY);
     const jsonData = JSON.stringify(data);
+
+    // Store in D1 database (if available)
+    if (env.DB) {
+      try {
+        const db = createDatabase(env);
+        const allContent = [...data.movies, ...data.series];
+        const dbResult = await db.upsertContentBatch(allContent);
+        console.log('D1 database updated:', dbResult);
+      } catch (dbError) {
+        console.error('D1 database error (non-fatal):', dbError);
+        // Continue even if DB fails - don't block API response
+      }
+    }
 
     // Store in KV with 7 day TTL (if available)
     if (env.TOPFLIX_KV) {
