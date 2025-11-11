@@ -350,15 +350,8 @@ function createTitleCard(item) {
     metaParts.push(item.type === 'movie' ? '🎬 Film' : '📺 Seriál');
 
     // Origin country
-    if (item.origin_country) {
-        try {
-            const countries = JSON.parse(item.origin_country);
-            if (countries && countries.length > 0) {
-                metaParts.push(`🌍 ${countries.join(', ')}`);
-            }
-        } catch (e) {
-            // Ignore parse errors
-        }
+    if (item.origin_country && Array.isArray(item.origin_country) && item.origin_country.length > 0) {
+        metaParts.push(`🌍 ${item.origin_country.join(', ')}`);
     }
 
     // Year
