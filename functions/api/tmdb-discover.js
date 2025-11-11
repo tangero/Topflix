@@ -95,7 +95,7 @@ async function getDetailedInfo(tmdbId, type, apiKey) {
     // Base result
     const result = {
       tmdb_id: tmdbId,
-      type: type,
+      type: type === 'tv' ? 'series' : type, // Convert 'tv' to 'series' for DB constraint
       tmdb_url: tmdbUrl,
       title: details.title || details.name,
       title_original: details.original_title || details.original_name,
