@@ -28,14 +28,14 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 100) {
 
     // Fetch multiple pages to get enough items
     let allItems = [];
-    for (let page = 1; page <= pagesToFetch && page <= 5; page++) {
+    for (let page = 1; page <= pagesToFetch && page <= 10; page++) {
       const discoverUrl = `https://api.themoviedb.org/3/discover/${searchType}` +
         `?api_key=${apiKey}` +
         `&with_watch_providers=8` + // Netflix ID
         `&watch_region=CZ` +
         `&${dateParam}.gte=${dateFrom}` +
         `&sort_by=popularity.desc` +
-        `&vote_count.gte=50` + // Minimum votes for quality
+        `&vote_count.gte=30` + // Minimum votes for quality (lowered to get more content)
         `&language=cs-CZ` +
         `&page=${page}`;
 
@@ -160,8 +160,8 @@ function getQualityIndicator(rating) {
 export async function fetchNetflixNew(apiKey) {
   // Fetch both movies and series in parallel
   const [movies, series] = await Promise.all([
-    getNetflixNewContent(apiKey, 'movie', 100),
-    getNetflixNewContent(apiKey, 'series', 100)
+    getNetflixNewContent(apiKey, 'movie', 150),
+    getNetflixNewContent(apiKey, 'series', 150)
   ]);
 
   // Add quality indicators
@@ -233,8 +233,8 @@ export async function onRequest(context) {
       });
     }
 
-    // Generate cache key based on date (v4 for increased limits to 100)
-    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v4`;
+    // Generate cache key based on date (v5 for increased limits to 150)
+    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v5`;
     console.log('Fetching data for:', cacheKey);
 
     // Try to get from KV cache first (if available)
