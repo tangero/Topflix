@@ -109,7 +109,7 @@ async function getDetailedInfo(tmdbId, type, apiKey) {
         : null,
       countries: countries,
       origin_country: originCountry,
-      source: 'tmdb_discovery'
+      source: 'netflix_new' // Use allowed source value for DB constraint
     };
 
     // Add type-specific fields
