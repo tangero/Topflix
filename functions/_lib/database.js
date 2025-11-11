@@ -180,7 +180,7 @@ export class TopflixDatabase {
     // Order by
     switch (orderBy) {
       case 'recent':
-        query += ' ORDER BY last_seen DESC, avg_rating DESC';
+        query += ' ORDER BY first_seen DESC, avg_rating DESC';
         break;
       case 'popular':
         query += ' ORDER BY appearances DESC, avg_rating DESC';
