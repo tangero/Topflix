@@ -120,7 +120,12 @@ export class TopflixDatabase {
     }
 
     try {
-      const result = await this.db.batch(batch);
+      // Convert batch to prepared statements
+      const statements = batch.map(item =>
+        this.db.prepare(item.stmt).bind(...item.params)
+      );
+
+      const result = await this.db.batch(statements);
 
       // Invalidate relevant caches
       await this._invalidateListCaches();
