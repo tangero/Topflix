@@ -122,7 +122,7 @@ function initRegionFilter() {
 function toggleInternational() {
     includeInternational = includeInternationalCheckbox.checked;
     localStorage.setItem(INCLUDE_INTERNATIONAL_KEY, includeInternational);
-    renderContent();
+    resetAndFetch(); // Reload data from API with new excludeRegional parameter
 }
 
 // Filter by region
@@ -310,6 +310,27 @@ function formatRuntime(minutes) {
     return `${mins}min`;
 }
 
+// Helper: Convert country code to Czech name
+function getCountryName(code) {
+    const countryNames = {
+        'US': 'USA', 'GB': 'Velká Británie', 'FR': 'Francie', 'DE': 'Německo',
+        'IT': 'Itálie', 'ES': 'Španělsko', 'CA': 'Kanada', 'AU': 'Austrálie',
+        'JP': 'Japonsko', 'KR': 'Jižní Korea', 'CN': 'Čína', 'TW': 'Tchaj-wan',
+        'TH': 'Thajsko', 'IN': 'Indie', 'ID': 'Indonésie', 'VN': 'Vietnam',
+        'PH': 'Filipíny', 'MX': 'Mexiko', 'BR': 'Brazílie', 'AR': 'Argentina',
+        'CO': 'Kolumbie', 'CL': 'Chile', 'PE': 'Peru', 'VE': 'Venezuela',
+        'EC': 'Ekvádor', 'PL': 'Polsko', 'CZ': 'Česko', 'SK': 'Slovensko',
+        'AT': 'Rakousko', 'CH': 'Švýcarsko', 'NL': 'Nizozemsko', 'BE': 'Belgie',
+        'SE': 'Švédsko', 'NO': 'Norsko', 'DK': 'Dánsko', 'FI': 'Finsko',
+        'RU': 'Rusko', 'UA': 'Ukrajina', 'TR': 'Turecko', 'GR': 'Řecko',
+        'PT': 'Portugalsko', 'IE': 'Irsko', 'NZ': 'Nový Zéland', 'ZA': 'JAR',
+        'IL': 'Izrael', 'AE': 'SAE', 'SA': 'Saúdská Arábie', 'EG': 'Egypt',
+        'NG': 'Nigérie', 'KE': 'Keňa', 'MA': 'Maroko', 'HK': 'Hongkong',
+        'SG': 'Singapur', 'MY': 'Malajsie', 'PK': 'Pákistán', 'BD': 'Bangladéš'
+    };
+    return countryNames[code] || code;
+}
+
 // Create title card element
 function createTitleCard(item) {
     const card = document.createElement('div');
@@ -351,7 +372,8 @@ function createTitleCard(item) {
 
     // Origin country
     if (item.origin_country && Array.isArray(item.origin_country) && item.origin_country.length > 0) {
-        metaParts.push(`🌍 ${item.origin_country.join(', ')}`);
+        const countryNames = item.origin_country.map(code => getCountryName(code)).join(', ');
+        metaParts.push(`🌍 ${countryNames}`);
     }
 
     // Year
