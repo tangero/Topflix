@@ -177,12 +177,84 @@
                 <p>Historie všech změn a aktualizací</p>
             </div>
 
+            <!-- Version 1.3.0 -->
+            <div class="version-section">
+                <div class="version-header">
+                    <span class="version-number">v1.3.0</span>
+                    <span class="version-date">12. listopadu 2025</span>
+                    <span class="badge latest">Aktuální</span>
+                </div>
+
+                <div class="change-category added">
+                    <h3>Přidáno</h3>
+                    <ul class="change-list">
+                        <li>Health check endpoint (/api/health) pro monitoring systému</li>
+                        <li>Monitorování systémového zdraví (D1, KV, TMDB API)</li>
+                        <li>Monitorování sběru dat (stáří dat, počet záznamů)</li>
+                        <li>Monitorování newsletteru (poslední odeslání, počet odběratelů)</li>
+                        <li>Support pro UptimeRobot monitoring s query parametry (?check=system/data/newsletter)</li>
+                        <li>TMDB Discovery API pro bulk loading Netflix obsahu</li>
+                        <li>Rozšíření databáze na 432+ kvalitních titulů</li>
+                        <li>Emoji vlaječky pro zobrazení země původu obsahu (🇺🇸 🇰🇷 🇯🇵)</li>
+                        <li>Tooltips na vlaječkách s plným názvem země</li>
+                        <li>České názvy zemí (50+ zemí)</li>
+                    </ul>
+                </div>
+
+                <div class="change-category changed">
+                    <h3>Změněno</h3>
+                    <ul class="change-list">
+                        <li>Kompletní mobilní UX optimalizace pro telefony 320px - 640px</li>
+                        <li>Horizontal scroll navigace s scroll-snap efektem</li>
+                        <li>Section tabs flex-wrap (2 tlačítka na řádek)</li>
+                        <li>Vertical stack pro controls dropdowny na mobilu</li>
+                        <li>Všechny touch targets zvětšeny na min 44px (Apple HIG)</li>
+                        <li>Font-size: 16px na inputech pro prevenci iOS auto-zoom</li>
+                        <li>Full-width newsletter form na mobilu</li>
+                        <li>Menší typography a spacing na mobilech</li>
+                        <li>Responzivní breakpointy: 640px, 768px, 1024px</li>
+                        <li>Archiv řazení změněno z "Nedávno přidané" na "Nové v archivu"</li>
+                        <li>Region filter nyní reload data z API (místo jen frontend filtru)</li>
+                        <li>Zobrazení ISO kódů zemí nahrazeno emoji vlajkami</li>
+                    </ul>
+                </div>
+
+                <div class="change-category fixed">
+                    <h3>Opraveno</h3>
+                    <ul class="change-list">
+                        <li>Navigační tlačítka přetékající viewport na mobilu</li>
+                        <li>Section tabs částečně mimo obrazovku (červený prvek)</li>
+                        <li>Controls dropdowny se nevešly na úzké telefony</li>
+                        <li>Touch targets příliš malé pro pohodlné ovládání</li>
+                        <li>Region filter checkbox nefungoval správně</li>
+                        <li>Origin country nezobrazovalo informace o zemi původu</li>
+                        <li>D1 batch API format error - opravena struktura prepared statements</li>
+                        <li>Zastaralá KV cache způsobující nesprávné statistiky</li>
+                    </ul>
+                </div>
+
+                <div class="change-category technical">
+                    <h3>Technické</h3>
+                    <ul class="change-list">
+                        <li>Health check API s multi-level status (healthy/degraded/unhealthy)</li>
+                        <li>HTTP 200 pro healthy/degraded, 503 pro unhealthy</li>
+                        <li>Cache age monitoring s varováním při data >48h</li>
+                        <li>Newsletter monitoring s varováním při >7 dnů od odeslání</li>
+                        <li>TMDB Discovery API endpoint s filtry (provider=Netflix, region=CZ)</li>
+                        <li>Bulk content loading (až 20 stránek, rate limiting 200-250ms)</li>
+                        <li>CSS media queries optimalizované pro mobile-first approach</li>
+                        <li>Scroll-snap-type: x mandatory pro navigation</li>
+                        <li>Hidden scrollbars (scrollbar-width: none, ::-webkit-scrollbar)</li>
+                        <li>-webkit-overflow-scrolling: touch pro iOS momentum scrolling</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- Version 1.2.0 -->
             <div class="version-section">
                 <div class="version-header">
                     <span class="version-number">v1.2.0</span>
                     <span class="version-date">11. listopadu 2025</span>
-                    <span class="badge latest">Aktuální</span>
                 </div>
 
                 <div class="change-category added">
@@ -339,7 +411,7 @@
                 <a href="https://top10.netflix.com" target="_blank" rel="noopener">Netflix Top 10</a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.2.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.3.0</a>
             </p>
         </footer>
     </div>
