@@ -14,7 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cloudflare Pages Function for secure token generation (/api/scribe-token)
 - Responsive transcription UI with dark/light mode support
 - Comprehensive documentation (PREPIS_README.md) for the transcription service
-- New navigation link to transcription service on all pages
 
 ### Technical
 - Web Audio API integration for microphone capture
