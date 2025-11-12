@@ -5,6 +5,31 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2025-11-12
+
+### Added
+- Real-time speech-to-text transcription service for hearing impaired at /prepis
+- ElevenLabs ScribeRealtime v2 integration with Czech language support
+- WebSocket-based audio streaming with ultra-low latency (~150ms)
+- Cloudflare Pages Function for secure token generation (/api/scribe-token)
+- Responsive transcription UI with dark/light mode support
+- Comprehensive documentation (PREPIS_README.md) for the transcription service
+- New navigation link to transcription service on all pages
+
+### Technical
+- Web Audio API integration for microphone capture
+- PCM 16-bit mono audio encoding at 16kHz sample rate
+- Single-use token authentication system for secure API access
+- ELEVENLABS_API_KEY environment variable support
+
+## [1.2.0] - 2025-11-11
+
+### Added
+- Cloudflare D1 database for persistent content storage
+- Archive page with historical quality content
+- TMDB Discovery API endpoint for bulk Netflix content loading
+- Statistics and data tracking for all titles
+
 ## [1.1.0] - 2025-11-10
 
 ### Added
