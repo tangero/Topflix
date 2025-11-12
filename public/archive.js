@@ -331,6 +331,17 @@ function getCountryName(code) {
     return countryNames[code] || code;
 }
 
+// Helper: Convert country code to emoji flag
+function getCountryFlag(code) {
+    // Convert ISO 3166-1 alpha-2 code to emoji flag
+    // Each letter becomes a regional indicator symbol (🇦-🇿)
+    return code
+        .toUpperCase()
+        .split('')
+        .map(char => String.fromCodePoint(0x1F1E6 - 65 + char.charCodeAt(0)))
+        .join('');
+}
+
 // Create title card element
 function createTitleCard(item) {
     const card = document.createElement('div');
@@ -372,8 +383,10 @@ function createTitleCard(item) {
 
     // Origin country
     if (item.origin_country && Array.isArray(item.origin_country) && item.origin_country.length > 0) {
-        const countryNames = item.origin_country.map(code => getCountryName(code)).join(', ');
-        metaParts.push(`🌍 ${countryNames}`);
+        const flags = item.origin_country
+            .map(code => `<span title="${getCountryName(code)}" style="cursor: help;">${getCountryFlag(code)}</span>`)
+            .join(' ');
+        metaParts.push(flags);
     }
 
     // Year
