@@ -3,3 +3,7 @@
 
 # TMDB API Key - Get from https://www.themoviedb.org/settings/api
 TMDB_API_KEY=your_tmdb_api_key_here
+
+# ElevenLabs API Key - Get from https://elevenlabs.io/app/settings/api-keys
+# Required for real-time speech-to-text transcription service
+ELEVENLABS_API_KEY=your_elevenlabs_api_key_here

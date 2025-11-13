@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Real-time přepis mluvené řeči pro neslyšící - Topflix Speech to Text">
+    <title>Topflix - Přepis řeči | Real-time transkripce pro neslyšící</title>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.topflix.cz/prepis">
+    <meta property="og:title" content="Topflix - Přepis řeči | Real-time transkripce">
+    <meta property="og:description" content="Real-time přepis mluvené řeči v češtině pro neslyšící. Ultra nízká latence, vysoká přesnost.">
+    <meta property="og:locale" content="cs_CZ">
+    <meta property="og:site_name" content="Topflix">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://www.topflix.cz/prepis">
+    <meta name="twitter:title" content="Topflix - Přepis řeči | Real-time transkripce">
+    <meta name="twitter:description" content="Real-time přepis mluvené řeči v češtině pro neslyšící.">
+
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="prepis-style.css">
+
+    <!-- Clicky Analytics -->
+    <script async data-id="101496124" src="//static.getclicky.com/js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-header">
+                    <img src="patrick-avatar.webp" alt="Patrick" class="logo-avatar">
+                    <h1>Topflix - Přepis řeči</h1>
+                </div>
+                <p class="tagline">Real-time transkripce pro neslyšící</p>
+            </div>
+
+            <div class="theme-toggle">
+                <button id="themeToggle" aria-label="Přepnout světlý/tmavý režim">
+                    <span class="theme-icon">☀️</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-links">
+            <a href="index.html" class="nav-link">🎬 Filmy</a>
+            <a href="serials.html" class="nav-link">📺 Seriály</a>
+            <a href="archive.html" class="nav-link">📦 Archiv</a>
+            <a href="newsletter.html" class="nav-link">📧 Newsletter</a>
+            <a href="prepis.html" class="nav-link active">🎤 Přepis řeči</a>
+        </nav>
+
+        <!-- Info Section -->
+        <div class="info-card">
+            <h2>📝 O službě</h2>
+            <p>
+                Tato služba poskytuje real-time přepis mluvené řeči v češtině s využitím pokročilé AI technologie.
+                Ideální pro neslyšící, přednášky, konference nebo kdykoli potřebujete textový záznam mluveného slova.
+            </p>
+            <ul>
+                <li>🇨🇿 <strong>Podpora češtiny</strong> s přesností >95%</li>
+                <li>⚡ <strong>Ultra nízká latence</strong> (~150ms)</li>
+                <li>📱 <strong>Funguje na všech zařízeních</strong> s mikrofonem</li>
+                <li>🔒 <strong>Bezpečné</strong> - audio se nezaznamenává</li>
+            </ul>
+        </div>
+
+        <!-- Transcription Controls -->
+        <div class="transcription-controls">
+            <button id="startButton" class="control-button start-button">
+                <span class="button-icon">🎤</span>
+                <span class="button-text">Spustit nahrávání</span>
+            </button>
+
+            <button id="stopButton" class="control-button stop-button" disabled>
+                <span class="button-icon">⏹️</span>
+                <span class="button-text">Zastavit</span>
+            </button>
+
+            <button id="clearButton" class="control-button clear-button">
+                <span class="button-icon">🗑️</span>
+                <span class="button-text">Vymazat text</span>
+            </button>
+        </div>
+
+        <!-- Status Indicator -->
+        <div id="statusIndicator" class="status-indicator">
+            <span class="status-dot"></span>
+            <span id="statusText">Připraveno</span>
+        </div>
+
+        <!-- Transcription Display -->
+        <div id="transcriptionContainer" class="transcription-container">
+            <div id="transcriptionText" class="transcription-text">
+                <p class="placeholder">Transkripce se zobrazí zde...</p>
+            </div>
+        </div>
+
+        <!-- Error Display -->
+        <div id="errorDisplay" class="error-display hidden">
+            <span class="error-icon">⚠️</span>
+            <span id="errorText"></span>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-content">
+                <p>&copy; 2025 Topflix.cz | Vytvořil <a href="https://github.com/tangero" target="_blank" rel="noopener">Tangero</a></p>
+                <p>
+                    <a href="napoveda.html">Nápověda</a> |
+                    <a href="changelog.html">Changelog</a> |
+                    <a href="https://github.com/tangero/topflix" target="_blank" rel="noopener">GitHub</a>
+                </p>
+                <p class="version">v1.3.0</p>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Scripts -->
+    <script src="theme.js"></script>
+    <script src="prepis.js"></script>
+</body>
+</html>
