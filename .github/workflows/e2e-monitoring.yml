@@ -1,0 +1,223 @@
+name: E2E Monitoring
+
+on:
+  schedule:
+    # Každou hodinu
+    - cron: '0 * * * *'
+
+    # Post-cron verification (Úterý 10:30 UTC)
+    - cron: '30 10 * * 2'
+
+  workflow_dispatch:
+    inputs:
+      alert_level:
+        description: 'Alert level (info, warning, critical)'
+        required: false
+        default: 'info'
+
+jobs:
+  health-check:
+    name: Production Health Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run E2E health tests
+        id: health_test
+        run: npm run test:e2e
+        continue-on-error: true
+        env:
+          TEST_BASE_URL: https://www.topflix.cz
+
+      - name: Check test results
+        if: steps.health_test.outcome == 'failure'
+        run: |
+          echo "::error::E2E health tests failed"
+          echo "Health check detected issues in production"
+          exit 1
+
+      - name: Send alert on failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.resend.com
+          server_port: 587
+          username: resend
+          password: ${{ secrets.RESEND_API_KEY }}
+          subject: '🚨 Topflix.cz - Health Check Failed'
+          to: ${{ secrets.ALERT_EMAIL }}
+          from: alerts@topflix.cz
+          body: |
+            E2E Health Check Failed
+
+            Workflow: ${{ github.workflow }}
+            Run: ${{ github.run_id }}
+            Time: ${{ github.event.head_commit.timestamp }}
+
+            Check the logs: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+
+      - name: Create GitHub issue on critical failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 Production Health Check Failed',
+              body: `E2E monitoring detected issues in production.\n\nWorkflow run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\nPlease investigate immediately.`,
+              labels: ['bug', 'critical', 'monitoring']
+            });
+
+  data-freshness:
+    name: Data Freshness Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check data age via API
+        id: check_age
+        run: |
+          RESPONSE=$(curl -s https://www.topflix.cz/api/health?check=data)
+          echo "Health response: $RESPONSE"
+
+          AGE_HOURS=$(echo $RESPONSE | jq -r '.checks.data_collection.age_hours')
+          STATUS=$(echo $RESPONSE | jq -r '.checks.data_collection.status')
+
+          echo "age_hours=$AGE_HOURS" >> $GITHUB_OUTPUT
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+          echo "Data age: $AGE_HOURS hours"
+          echo "Status: $STATUS"
+
+      - name: Verify data freshness
+        run: |
+          AGE_HOURS=${{ steps.check_age.outputs.age_hours }}
+          STATUS=${{ steps.check_age.outputs.status }}
+
+          if [ "$AGE_HOURS" = "null" ]; then
+            echo "::error::Could not determine data age"
+            exit 1
+          fi
+
+          # Critical: >72h
+          if (( $(echo "$AGE_HOURS > 72" | bc -l) )); then
+            echo "::error::CRITICAL: Data is $AGE_HOURS hours old (>72h threshold)"
+            exit 1
+          fi
+
+          # Warning: >48h
+          if (( $(echo "$AGE_HOURS > 48" | bc -l) )); then
+            echo "::warning::WARNING: Data is $AGE_HOURS hours old (>48h threshold)"
+          fi
+
+          echo "✅ Data age OK: $AGE_HOURS hours"
+
+      - name: Send alert if data too old
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.resend.com
+          server_port: 587
+          username: resend
+          password: ${{ secrets.RESEND_API_KEY }}
+          subject: '🚨 Topflix.cz - Data Too Old'
+          to: ${{ secrets.ALERT_EMAIL }}
+          from: alerts@topflix.cz
+          body: |
+            Data Freshness Alert
+
+            Data age: ${{ steps.check_age.outputs.age_hours }} hours
+            Status: ${{ steps.check_age.outputs.status }}
+            Threshold: 72 hours (critical)
+
+            This indicates the cron job has not run successfully.
+
+            Action required:
+            1. Check Cloudflare Workers dashboard for topflix-cron
+            2. Verify cron schedule: wrangler deployments list topflix-cron
+            3. Check worker logs: wrangler tail topflix-cron
+            4. Manual refresh: curl -H "Cache-Control: no-cache" https://www.topflix.cz/api/top10
+
+  post-cron-verification:
+    name: Post-Cron Verification (Tuesday Only)
+    runs-on: ubuntu-latest
+    # Běží jen v úterý
+    if: github.event.schedule == '30 10 * * 2'
+
+    steps:
+      - name: Wait for cron to complete
+        run: sleep 30
+
+      - name: Check if data was refreshed
+        id: verify_cron
+        run: |
+          RESPONSE=$(curl -s https://www.topflix.cz/api/health?check=data)
+          AGE_HOURS=$(echo $RESPONSE | jq -r '.checks.data_collection.age_hours')
+
+          echo "age_hours=$AGE_HOURS" >> $GITHUB_OUTPUT
+          echo "Post-cron data age: $AGE_HOURS hours"
+
+      - name: Verify fresh data
+        run: |
+          AGE_HOURS=${{ steps.verify_cron.outputs.age_hours }}
+
+          # Data by měla být <2h stará po cron běhu
+          if (( $(echo "$AGE_HOURS > 2" | bc -l) )); then
+            echo "::error::CRON FAILURE: Data not refreshed (age: $AGE_HOURS hours)"
+            exit 1
+          fi
+
+          echo "✅ Cron executed successfully - data age: $AGE_HOURS hours"
+
+      - name: Alert on cron failure
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.resend.com
+          server_port: 587
+          username: resend
+          password: ${{ secrets.RESEND_API_KEY }}
+          subject: '🚨 Topflix.cz - Cron Failed to Run'
+          to: ${{ secrets.ALERT_EMAIL }}
+          from: alerts@topflix.cz
+          body: |
+            Cron Verification Failed
+
+            Expected: Data refreshed on Tuesday 10:00 UTC
+            Actual: Data age ${{ steps.verify_cron.outputs.age_hours }} hours (should be <2h)
+
+            The scheduled cron job did not execute or failed.
+
+            Immediate actions:
+            1. Check Cloudflare Workers dashboard
+            2. Verify cron schedule: 0 10 * * 2
+            3. Check worker logs for errors
+            4. Manually trigger refresh if needed
+
+      - name: Create critical issue on cron failure
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: '🚨 CRITICAL: Cron Job Failed',
+              body: `Post-cron verification failed. Data was not refreshed.\n\nData age: ${{ steps.verify_cron.outputs.age_hours }} hours\nExpected: <2 hours\n\nThe scheduled Tuesday 10:00 UTC cron did not execute or failed.\n\nWorkflow: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              labels: ['bug', 'critical', 'cron', 'monitoring'],
+              assignees: ['patrickzandl']
+            });

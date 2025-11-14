@@ -1,0 +1,64 @@
+name: Daily Data Refresh
+
+# Runs daily at 06:00 UTC (08:00 CET) to refresh Netflix data
+on:
+  schedule:
+    # Every day at 06:00 UTC
+    - cron: '0 6 * * *'
+
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  refresh-data:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Refresh TOP10 Data
+        run: |
+          echo "📊 Refreshing Netflix TOP10 data..."
+          curl -s -o /tmp/top10.json \
+            -H "Cache-Control: no-cache" \
+            -H "X-GitHub-Actions: true" \
+            "https://www.topflix.cz/api/top10"
+
+          MOVIES=$(cat /tmp/top10.json | jq '.movies | length')
+          SERIES=$(cat /tmp/top10.json | jq '.series | length')
+          echo "✅ TOP10: $MOVIES movies, $SERIES series"
+
+      - name: Refresh Netflix New Data
+        run: |
+          echo "🆕 Refreshing Netflix New data..."
+          curl -s -o /tmp/netflix-new.json \
+            -H "Cache-Control: no-cache" \
+            -H "X-GitHub-Actions: true" \
+            "https://www.topflix.cz/api/netflix-new"
+
+          MOVIES=$(cat /tmp/netflix-new.json | jq '.movies | length')
+          SERIES=$(cat /tmp/netflix-new.json | jq '.series | length')
+          echo "✅ Netflix New: $MOVIES movies, $SERIES series"
+
+      - name: Verify Health Check
+        run: |
+          echo "🔍 Verifying data health..."
+          curl -s "https://www.topflix.cz/api/health?check=data" | jq '.'
+
+          STATUS=$(curl -s "https://www.topflix.cz/api/health?check=data" | jq -r '.checks.data_collection.status')
+          echo "Status: $STATUS"
+
+          if [ "$STATUS" = "unhealthy" ]; then
+            echo "❌ Health check failed!"
+            exit 1
+          else
+            echo "✅ Health check passed"
+          fi
+
+      - name: Send notification on failure
+        if: failure()
+        run: |
+          echo "❌ Daily data refresh failed!"
+          echo "Check the workflow logs for details."
+          # Here you can add notification to Slack, Discord, Email, etc.

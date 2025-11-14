@@ -1,0 +1,7 @@
+# Monitoring logs
+logs/
+*.log
+
+# Environment variables
+.env
+.env.local
