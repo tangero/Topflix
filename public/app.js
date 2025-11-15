@@ -290,7 +290,7 @@ async function fetchData(section = 'top10') {
         const endpoint = API_ENDPOINTS[section];
         const cacheKey = `topflix_data_${section}`;
 
-        // Try to get from localStorage first (7-day cache)
+        // Try to get from localStorage first (2-hour cache)
         const cachedData = getCachedData(cacheKey);
         if (cachedData) {
             // Sanitize cached data too (in case old invalid data is cached)
@@ -424,9 +424,9 @@ function getCachedData(key) {
     try {
         const { data, timestamp } = JSON.parse(cached);
         const age = Date.now() - timestamp;
-        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        const twoHours = 2 * 60 * 60 * 1000;
 
-        if (age < sevenDays) {
+        if (age < twoHours) {
             return data;
         }
     } catch (err) {
