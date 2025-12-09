@@ -446,8 +446,10 @@ function displayData() {
 
     // Update info based on section
     if (currentSection === 'top10') {
-        lastUpdate.textContent = `Data k: ${formatDate(sectionData.updated)}`;
-        nextUpdate.textContent = `Další update: ${formatDate(sectionData.next_update)}`;
+        lastUpdate.textContent = `Aktualizováno: ${formatDate(sectionData.updated)}`;
+        // Show Netflix week info if available
+        const weekInfo = sectionData.week ? ` (Netflix týden: ${formatDate(sectionData.week)})` : '';
+        nextUpdate.textContent = `Další update: ${formatDate(sectionData.next_update)}${weekInfo}`;
     } else if (currentSection === 'new') {
         lastUpdate.textContent = `Aktualizováno: ${formatDate(sectionData.updated)}`;
         nextUpdate.textContent = sectionData.period || 'Posledních 6 měsíců';
