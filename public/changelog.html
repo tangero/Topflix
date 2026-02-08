@@ -177,12 +177,49 @@
                 <p>Historie všech změn a aktualizací</p>
             </div>
 
+            <!-- Version 1.6.0 -->
+            <div class="version-section">
+                <div class="version-header">
+                    <span class="version-number">v1.6.0</span>
+                    <span class="version-date">8. února 2026</span>
+                    <span class="badge latest">Aktuální</span>
+                </div>
+
+                <div class="change-category added">
+                    <h3>Přidáno</h3>
+                    <ul class="change-list">
+                        <li>Multi-platform streaming: podpora 6 platforem v CZ (Netflix, Disney+, Apple TV+, Prime Video, Max, SkyShowtime)</li>
+                        <li>OMDb API integrace: hodnocení IMDb, Rotten Tomatoes a Metacritic</li>
+                        <li>Platform filter: barevné chip tlačítka pro filtrování podle platformy</li>
+                        <li>Provider badges: barevné štítky dostupnosti na kartách obsahu</li>
+                        <li>Multi-source rating zobrazení (TMDB | IMDb | RT | MC)</li>
+                    </ul>
+                </div>
+
+                <div class="change-category changed">
+                    <h3>Změněno</h3>
+                    <ul class="change-list">
+                        <li>Discover API hledá přes všech 6 CZ streaming platforem</li>
+                        <li>TMDB detail requesty optimalizovány s append_to_response</li>
+                        <li>Stránky přejmenovány z "Na co koukat na Netflixu" na "Na co koukat na streamovacích platformách"</li>
+                    </ul>
+                </div>
+
+                <div class="change-category technical">
+                    <h3>Technické</h3>
+                    <ul class="change-list">
+                        <li>Migrace 0003: nové sloupce pro IMDb, RT, MC hodnocení a streaming providers</li>
+                        <li>Nový modul functions/_lib/omdb.js pro OMDb API batch enrichment</li>
+                        <li>OMDB_API_KEY env proměnná (volitelná, graceful degradation)</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- Version 1.5.0 -->
             <div class="version-section">
                 <div class="version-header">
                     <span class="version-number">v1.5.0</span>
                     <span class="version-date">8. února 2026</span>
-                    <span class="badge latest">Aktuální</span>
                 </div>
 
                 <div class="change-category changed">
@@ -492,7 +529,7 @@
                 <a href="https://top10.netflix.com" target="_blank" rel="noopener">Netflix Top 10</a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.5.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.6.0</a>
             </p>
         </footer>
     </div>

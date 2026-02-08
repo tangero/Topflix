@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Na co koukat na Netflixu? Objevte nejlepší filmy z Netflix Top 10 ČR a nové přírůstky s hodnocením z TMDB.">
-    <title>Topflix - Filmy | Na co koukat na Netflixu</title>
+    <meta name="description" content="Na co koukat? Nejlepší filmy na streamovacích platformách v ČR - Netflix, Disney+, Max, Apple TV+, Prime Video s hodnocením TMDB, IMDb a Rotten Tomatoes.">
+    <title>Topflix - Filmy | Na co koukat na streamovacích platformách</title>
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.topflix.cz/">
-    <meta property="og:title" content="Topflix - Filmy | Na co koukat na Netflixu">
-    <meta property="og:description" content="Objevte nejlepší filmy z Netflix Top 10 ČR a nové přírůstky s hodnocením z TMDB. Filtrujte podle kvality a regionu.">
+    <meta property="og:title" content="Topflix - Filmy | Na co koukat na streamovacích platformách">
+    <meta property="og:description" content="Objevte nejlepší filmy na Netflix, Disney+, Max, Apple TV+ a dalších. Hodnocení z TMDB, IMDb a Rotten Tomatoes.">
     <meta property="og:locale" content="cs_CZ">
     <meta property="og:site_name" content="Topflix">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://www.topflix.cz/">
-    <meta name="twitter:title" content="Topflix - Filmy | Na co koukat na Netflixu">
-    <meta name="twitter:description" content="Objevte nejlepší filmy z Netflix Top 10 ČR a nové přírůstky s hodnocením z TMDB.">
+    <meta name="twitter:title" content="Topflix - Filmy | Na co koukat na streamovacích platformách">
+    <meta name="twitter:description" content="Objevte nejlepší filmy na Netflix, Disney+, Max, Apple TV+ a dalších. Hodnocení z TMDB, IMDb a Rotten Tomatoes.">
 
     <link rel="stylesheet" href="style.css">
 
@@ -34,7 +34,7 @@
                     <img src="patrick-avatar.webp" alt="Patrick" class="logo-avatar">
                     <h1>Topflix - Filmy</h1>
                 </div>
-                <p class="tagline">Na co koukat na Netflixu</p>
+                <p class="tagline">Na co koukat na streamovacích platformách</p>
             </div>
 
             <div class="theme-toggle">
@@ -54,8 +54,19 @@
 
         <!-- Section Tabs -->
         <div class="section-tabs">
-            <button class="tab-btn active" data-section="top10">📊 Top 10</button>
-            <button class="tab-btn" data-section="new">🆕 Nově na Netflix</button>
+            <button class="tab-btn active" data-section="top10">📊 Top 10 Netflix</button>
+            <button class="tab-btn" data-section="new">🆕 Nově na streamech</button>
+        </div>
+
+        <!-- Platform Filter -->
+        <div class="platform-filter">
+            <button class="platform-chip active" data-provider="all">Vše</button>
+            <button class="platform-chip" data-provider="netflix">Netflix</button>
+            <button class="platform-chip" data-provider="disney">Disney+</button>
+            <button class="platform-chip" data-provider="max">Max</button>
+            <button class="platform-chip" data-provider="apple">Apple TV+</button>
+            <button class="platform-chip" data-provider="prime">Prime</button>
+            <button class="platform-chip" data-provider="skyshowtime">SkyShowtime</button>
         </div>
 
         <!-- Controls -->
@@ -128,8 +139,8 @@
                     Data z TMDB
                 </a>
                 <span>•</span>
-                <a href="https://www.csfd.cz" target="_blank" rel="noopener">
-                    Hodnocení z ČSFD
+                <a href="https://www.omdbapi.com" target="_blank" rel="noopener">
+                    Hodnocení z OMDb
                 </a>
                 <span>•</span>
                 <a href="https://top10.netflix.com" target="_blank" rel="noopener">
@@ -137,7 +148,7 @@
                 </a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.5.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.6.0</a>
             </p>
         </footer>
     </div>

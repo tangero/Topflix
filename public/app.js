@@ -36,6 +36,20 @@ let currentSort = 'rank'; // rank, rating, recommended, popularity
 const INCLUDE_INTERNATIONAL_KEY = 'topflix_include_international';
 let includeInternational = false;
 
+// Platform filter
+const PLATFORM_FILTER_KEY = 'topflix_platform_filter';
+let activePlatform = 'all'; // all, netflix, disney, apple, prime, max, skyshowtime
+
+// Provider display names
+const PROVIDER_NAMES = {
+    netflix: 'Netflix',
+    disney: 'Disney+',
+    apple: 'Apple TV+',
+    prime: 'Prime Video',
+    max: 'Max',
+    skyshowtime: 'SkyShowtime'
+};
+
 // API endpoints
 const API_ENDPOINTS = {
     top10: '/api/top10',
@@ -59,10 +73,37 @@ const hiddenCountFeedback = document.getElementById('hiddenCountFeedback');
 document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initRegionFilter();
+    initPlatformFilter();
     fetchData();
     setupEventListeners();
     setupNewsletterForm();
 });
+
+// Platform filter management
+function initPlatformFilter() {
+    const saved = localStorage.getItem(PLATFORM_FILTER_KEY);
+    activePlatform = saved || 'all';
+    updatePlatformChips();
+}
+
+function updatePlatformChips() {
+    const chips = document.querySelectorAll('.platform-chip');
+    chips.forEach(chip => {
+        if (chip.dataset.provider === activePlatform) {
+            chip.classList.add('active');
+        } else {
+            chip.classList.remove('active');
+        }
+    });
+}
+
+function filterByPlatform(items) {
+    if (activePlatform === 'all') return items;
+    return items.filter(item => {
+        const providers = item.providers || [];
+        return providers.includes(activePlatform);
+    });
+}
 
 // Theme management with auto mode based on sunrise/sunset in Prague
 function getSunriseSunset() {
@@ -267,6 +308,16 @@ function setupEventListeners() {
     sortSelect.addEventListener('change', (e) => {
         currentSort = e.target.value;
         renderContent();
+    });
+
+    // Platform filter chips
+    document.querySelectorAll('.platform-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            activePlatform = chip.dataset.provider;
+            localStorage.setItem(PLATFORM_FILTER_KEY, activePlatform);
+            updatePlatformChips();
+            renderContent();
+        });
     });
 }
 
@@ -479,7 +530,8 @@ function displayData() {
 // Render content based on filters and sort
 function renderContent() {
     const filteredData = getFilteredData();
-    const regionFiltered = filterByRegion(filteredData);
+    const platformFiltered = filterByPlatform(filteredData);
+    const regionFiltered = filterByRegion(platformFiltered);
     const sortedData = getSortedData(regionFiltered);
 
     content.innerHTML = '';
@@ -598,6 +650,12 @@ function createTitleCard(item) {
         metaParts.push(`🎭 ${escapeHtml(item.genre)}`);
     }
 
+    // Provider badges
+    const providerBadgesHTML = buildProviderBadges(item.providers);
+
+    // Multi-source ratings
+    const multiRatingsHTML = buildMultiRatings(item);
+
     card.innerHTML = `
         <div class="card-content">
             <div class="card-poster">
@@ -611,6 +669,8 @@ function createTitleCard(item) {
                         ? `<div class="original-title">${escapeHtml(item.title_original)}</div>`
                         : ''}
                 </div>
+                ${providerBadgesHTML}
+                ${multiRatingsHTML}
                 <div class="meta">
                     ${metaParts.join(' • ')}
                 </div>
@@ -627,6 +687,37 @@ function createTitleCard(item) {
     });
 
     return card;
+}
+
+// Build provider badge HTML
+function buildProviderBadges(providers) {
+    if (!providers || providers.length === 0) return '';
+    const badges = providers.map(p => {
+        const name = PROVIDER_NAMES[p] || p;
+        return `<span class="provider-badge provider-${escapeHtml(p)}">${escapeHtml(name)}</span>`;
+    }).join('');
+    return `<div class="provider-badges">${badges}</div>`;
+}
+
+// Build multi-source rating HTML
+function buildMultiRatings(item) {
+    const parts = [];
+
+    if (item.tmdb_rating) {
+        parts.push(`<span class="rating-source"><span class="rating-label">TMDB</span> <span class="rating-value">${item.tmdb_rating}</span></span>`);
+    }
+    if (item.imdb_rating) {
+        parts.push(`<span class="rating-source"><span class="rating-label">IMDb</span> <span class="rating-value">${item.imdb_rating}</span></span>`);
+    }
+    if (item.rotten_tomatoes_rating) {
+        parts.push(`<span class="rating-source"><span class="rating-label">RT</span> <span class="rating-value">${item.rotten_tomatoes_rating}%</span></span>`);
+    }
+    if (item.metacritic_rating) {
+        parts.push(`<span class="rating-source"><span class="rating-label">MC</span> <span class="rating-value">${item.metacritic_rating}</span></span>`);
+    }
+
+    if (parts.length <= 1) return ''; // Don't show if only TMDB (already in badge)
+    return `<div class="multi-ratings">${parts.join('<span class="rating-divider">|</span>')}</div>`;
 }
 
 // Format date

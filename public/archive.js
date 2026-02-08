@@ -27,6 +27,16 @@ let includeInternational = false;
 // Region filter key
 const INCLUDE_INTERNATIONAL_KEY = 'topflix_include_international';
 
+// Provider display names
+const PROVIDER_NAMES = {
+    netflix: 'Netflix',
+    disney: 'Disney+',
+    apple: 'Apple TV+',
+    prime: 'Prime Video',
+    max: 'Max',
+    skyshowtime: 'SkyShowtime'
+};
+
 // DOM elements
 const loading = document.getElementById('loading');
 const error = document.getElementById('error');
@@ -425,6 +435,12 @@ function createTitleCard(item) {
         metaParts.push(`🔄 ${item.appearances}× v Top 10`);
     }
 
+    // Provider badges
+    const providerBadgesHTML = buildProviderBadges(item.streaming_providers);
+
+    // Multi-source ratings
+    const multiRatingsHTML = buildMultiRatings(item);
+
     card.innerHTML = `
         <div class="card-content">
             <div class="card-poster">
@@ -438,6 +454,8 @@ function createTitleCard(item) {
                         ? `<div class="original-title">${escapeHtml(item.title_original)}</div>`
                         : ''}
                 </div>
+                ${providerBadgesHTML}
+                ${multiRatingsHTML}
                 <div class="meta">
                     ${metaParts.join(' • ')}
                 </div>
@@ -454,4 +472,35 @@ function createTitleCard(item) {
     `;
 
     return card;
+}
+
+// Build provider badge HTML
+function buildProviderBadges(providers) {
+    if (!providers || providers.length === 0) return '';
+    const badges = providers.map(p => {
+        const name = PROVIDER_NAMES[p] || p;
+        return `<span class="provider-badge provider-${escapeHtml(p)}">${escapeHtml(name)}</span>`;
+    }).join('');
+    return `<div class="provider-badges">${badges}</div>`;
+}
+
+// Build multi-source rating HTML
+function buildMultiRatings(item) {
+    const parts = [];
+
+    if (item.tmdb_rating) {
+        parts.push(`<span class="rating-source"><span class="rating-label">TMDB</span> <span class="rating-value">${item.tmdb_rating}</span></span>`);
+    }
+    if (item.imdb_rating) {
+        parts.push(`<span class="rating-source"><span class="rating-label">IMDb</span> <span class="rating-value">${item.imdb_rating}</span></span>`);
+    }
+    if (item.rotten_tomatoes_rating) {
+        parts.push(`<span class="rating-source"><span class="rating-label">RT</span> <span class="rating-value">${item.rotten_tomatoes_rating}%</span></span>`);
+    }
+    if (item.metacritic_rating) {
+        parts.push(`<span class="rating-source"><span class="rating-label">MC</span> <span class="rating-value">${item.metacritic_rating}</span></span>`);
+    }
+
+    if (parts.length <= 1) return '';
+    return `<div class="multi-ratings">${parts.join('<span class="rating-divider">|</span>')}</div>`;
 }

@@ -4,6 +4,27 @@
  */
 
 import { createDatabase } from '../_lib/database.js';
+import { enrichWithOMDbRatings } from '../_lib/omdb.js';
+
+// Streaming provider IDs and slugs for CZ market
+const PROVIDERS = {
+  8:    'netflix',
+  337:  'disney',
+  350:  'apple',
+  119:  'prime',
+  1899: 'max',
+  1773: 'skyshowtime'
+};
+
+// Extract provider slugs from TMDB watch/providers response for CZ
+function extractProviders(watchProviders) {
+  if (!watchProviders?.results?.CZ) return [];
+  const cz = watchProviders.results.CZ;
+  const flatrate = cz.flatrate || [];
+  return flatrate
+    .map(p => PROVIDERS[p.provider_id])
+    .filter(Boolean);
+}
 
 // Helper: Get week number
 function getWeekNumber(date) {
@@ -126,8 +147,8 @@ async function getTMDBData(title, type, apiKey) {
 
     const tmdbId = searchItem.id;
 
-    // Step 2: Get detailed info
-    const detailsUrl = `https://api.themoviedb.org/3/${searchType}/${tmdbId}?api_key=${apiKey}&language=cs-CZ`;
+    // Step 2: Get detailed info with external_ids and watch providers in one request
+    const detailsUrl = `https://api.themoviedb.org/3/${searchType}/${tmdbId}?api_key=${apiKey}&language=cs-CZ&append_to_response=external_ids,watch/providers`;
     const detailsResponse = await fetch(detailsUrl);
     const details = await detailsResponse.json();
 
@@ -154,6 +175,12 @@ async function getTMDBData(title, type, apiKey) {
       ? (details.production_countries?.map(c => c.iso_3166_1).filter(Boolean) || [])
       : (details.origin_country || []);
 
+    // Extract IMDb ID from external_ids
+    const imdbId = details.external_ids?.imdb_id || null;
+
+    // Extract streaming providers from watch/providers
+    const providers = extractProviders(details['watch/providers']);
+
     // Base result object
     const result = {
       tmdb_id: tmdbId,
@@ -168,7 +195,9 @@ async function getTMDBData(title, type, apiKey) {
         ? `https://image.tmdb.org/t/p/w300${details.poster_path}`
         : null,
       countries: countries,
-      origin_country: originCountry
+      origin_country: originCountry,
+      imdb_id: imdbId,
+      providers: providers
     };
 
     // Add type-specific fields
@@ -229,6 +258,8 @@ async function enrichTitle(title, rank, type, apiKey) {
     poster_url: tmdbData.poster_url,
     origin_country: tmdbData.origin_country,
     countries: tmdbData.countries,
+    imdb_id: tmdbData.imdb_id,
+    providers: tmdbData.providers,
     type,
     source: 'top10' // Mark as coming from Top 10
   };
@@ -245,7 +276,7 @@ async function enrichTitle(title, rank, type, apiKey) {
 }
 
 // Main data fetching and enrichment
-export async function fetchAndEnrichData(apiKey) {
+export async function fetchAndEnrichData(apiKey, omdbApiKey) {
   const netflixData = await scrapeNetflixTop10();
 
   if (!netflixData) {
@@ -253,7 +284,7 @@ export async function fetchAndEnrichData(apiKey) {
   }
 
   // Enrich all titles in parallel (max 20 items = 10 movies + 10 series)
-  const [enrichedMovies, enrichedSeries] = await Promise.all([
+  let [enrichedMovies, enrichedSeries] = await Promise.all([
     Promise.all(netflixData.movies.map(movie =>
       enrichTitle(movie.title, movie.rank, 'movie', apiKey)
     )),
@@ -261,6 +292,14 @@ export async function fetchAndEnrichData(apiKey) {
       enrichTitle(series.title, series.rank, 'series', apiKey)
     ))
   ]);
+
+  // Enrich with OMDb ratings (IMDb, RT, Metacritic) if API key available
+  if (omdbApiKey) {
+    [enrichedMovies, enrichedSeries] = await Promise.all([
+      enrichWithOMDbRatings(enrichedMovies, omdbApiKey),
+      enrichWithOMDbRatings(enrichedSeries, omdbApiKey)
+    ]);
+  }
 
   const today = new Date();
   const nextTuesday = new Date(today);
@@ -316,7 +355,7 @@ export async function onRequest(context) {
       });
     }
 
-    const weekKey = `netflix_top10_cz_${getWeekNumber(new Date())}_v3`;
+    const weekKey = `netflix_top10_cz_${getWeekNumber(new Date())}_v4`;
     console.log('Fetching data for week:', weekKey);
 
     // Try to get from KV cache first (if available)
@@ -337,7 +376,7 @@ export async function onRequest(context) {
 
     // If not in cache, fetch fresh data
     console.log('Fetching fresh data from APIs');
-    const data = await fetchAndEnrichData(env.TMDB_API_KEY);
+    const data = await fetchAndEnrichData(env.TMDB_API_KEY, env.OMDB_API_KEY);
     const jsonData = JSON.stringify(data);
 
     // Store in D1 database (if available)

@@ -1,12 +1,34 @@
 /**
- * Netflix New - API Function (Cloudflare Pages)
- * Fetches newly added movies and series on Netflix CZ with TMDB ratings
+ * Streaming New - API Function (Cloudflare Pages)
+ * Fetches newly added movies and series on CZ streaming platforms with TMDB ratings
  */
 
 import { createDatabase } from '../_lib/database.js';
+import { enrichWithOMDbRatings } from '../_lib/omdb.js';
 
-// TMDB API Integration - Get Netflix new content
-async function getNetflixNewContent(apiKey, type = 'movie', limit = 100) {
+// Streaming provider IDs and slugs for CZ market
+const PROVIDERS = {
+  8:    'netflix',
+  337:  'disney',
+  350:  'apple',
+  119:  'prime',
+  1899: 'max',
+  1773: 'skyshowtime'
+};
+const PROVIDER_IDS = Object.keys(PROVIDERS).join('|'); // "8|337|350|119|1899|1773"
+
+// Extract provider slugs from TMDB watch/providers response for CZ
+function extractProviders(watchProviders) {
+  if (!watchProviders?.results?.CZ) return [];
+  const cz = watchProviders.results.CZ;
+  const flatrate = cz.flatrate || [];
+  return flatrate
+    .map(p => PROVIDERS[p.provider_id])
+    .filter(Boolean);
+}
+
+// TMDB API Integration - Get streaming new content
+async function getStreamingNewContent(apiKey, type = 'movie', limit = 100) {
   try {
     // Calculate date range: last 180 days
     const today = new Date();
@@ -29,7 +51,7 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 100) {
       pageNumbers.map(page => {
         const discoverUrl = `https://api.themoviedb.org/3/discover/${searchType}` +
           `?api_key=${apiKey}` +
-          `&with_watch_providers=8` +
+          `&with_watch_providers=${PROVIDER_IDS}` +
           `&watch_region=CZ` +
           `&${dateParam}.gte=${dateFrom}` +
           `&sort_by=popularity.desc` +
@@ -55,7 +77,7 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 100) {
       const batchResults = await Promise.all(
         batch.map(async (item) => {
           try {
-            const detailsUrl = `https://api.themoviedb.org/3/${searchType}/${item.id}?api_key=${apiKey}&language=cs-CZ`;
+            const detailsUrl = `https://api.themoviedb.org/3/${searchType}/${item.id}?api_key=${apiKey}&language=cs-CZ&append_to_response=external_ids,watch/providers`;
             const detailsResponse = await fetch(detailsUrl);
             const details = await detailsResponse.json();
 
@@ -74,6 +96,12 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 100) {
               ? (details.production_countries?.map(c => c.iso_3166_1).filter(Boolean) || [])
               : (details.origin_country || []);
 
+            // Extract IMDb ID from external_ids
+            const imdbId = details.external_ids?.imdb_id || null;
+
+            // Extract streaming providers from watch/providers
+            const providers = extractProviders(details['watch/providers']);
+
             const result = {
               tmdb_id: item.id,
               tmdb_url: `https://www.themoviedb.org/${searchType}/${item.id}`,
@@ -89,7 +117,9 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 100) {
               type: type,
               popularity: item.popularity,
               countries: countries,
-              origin_country: originCountry
+              origin_country: originCountry,
+              imdb_id: imdbId,
+              providers: providers
             };
 
             if (type === 'movie') {
@@ -136,12 +166,20 @@ function getQualityIndicator(rating) {
 }
 
 // Main data fetching
-export async function fetchNetflixNew(apiKey) {
-  // Fetch both movies and series in parallel
-  const [movies, series] = await Promise.all([
-    getNetflixNewContent(apiKey, 'movie', 150),
-    getNetflixNewContent(apiKey, 'series', 150)
+export async function fetchNetflixNew(apiKey, omdbApiKey) {
+  // Fetch both movies and series in parallel from all CZ streaming platforms
+  let [movies, series] = await Promise.all([
+    getStreamingNewContent(apiKey, 'movie', 150),
+    getStreamingNewContent(apiKey, 'series', 150)
   ]);
+
+  // Enrich with OMDb ratings (IMDb, RT, Metacritic) if API key available
+  if (omdbApiKey) {
+    [movies, series] = await Promise.all([
+      enrichWithOMDbRatings(movies, omdbApiKey),
+      enrichWithOMDbRatings(series, omdbApiKey)
+    ]);
+  }
 
   // Add quality indicators
   const processedMovies = movies.map(movie => {
@@ -213,7 +251,7 @@ export async function onRequest(context) {
     }
 
     // Generate cache key based on date (v5 for increased limits to 150)
-    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v5`;
+    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v6`;
     console.log('Fetching data for:', cacheKey);
 
     // Try to get from KV cache first (if available)
@@ -233,7 +271,7 @@ export async function onRequest(context) {
     }
 
     // If not in cache, fetch fresh data
-    const data = await fetchNetflixNew(env.TMDB_API_KEY);
+    const data = await fetchNetflixNew(env.TMDB_API_KEY, env.OMDB_API_KEY);
     const jsonData = JSON.stringify(data);
 
     // Store in D1 database (if available)

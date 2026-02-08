@@ -44,10 +44,12 @@ export class TopflixDatabase {
             number_of_seasons, number_of_episodes,
             origin_country, is_regional,
             first_seen, last_seen, appearances, last_rank, last_source,
-            tmdb_url, updated_at
+            tmdb_url, imdb_id, imdb_rating, rotten_tomatoes_rating,
+            metacritic_rating, streaming_providers, updated_at
           ) VALUES (
             ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10,
-            ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, 1, ?20, ?21, ?22, unixepoch()
+            ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, 1, ?20, ?21, ?22,
+            ?23, ?24, ?25, ?26, ?27, unixepoch()
           )
           ON CONFLICT(tmdb_id, type) DO UPDATE SET
             title = excluded.title,
@@ -73,6 +75,11 @@ export class TopflixDatabase {
             last_rank = excluded.last_rank,
             last_source = excluded.last_source,
             tmdb_url = excluded.tmdb_url,
+            imdb_id = COALESCE(excluded.imdb_id, imdb_id),
+            imdb_rating = COALESCE(excluded.imdb_rating, imdb_rating),
+            rotten_tomatoes_rating = COALESCE(excluded.rotten_tomatoes_rating, rotten_tomatoes_rating),
+            metacritic_rating = COALESCE(excluded.metacritic_rating, metacritic_rating),
+            streaming_providers = COALESCE(excluded.streaming_providers, streaming_providers),
             updated_at = unixepoch()
         `,
         params: [
@@ -97,7 +104,12 @@ export class TopflixDatabase {
           currentDate,                     // ?19 last_seen
           item.rank || null,               // ?20
           item.source || 'top10',          // ?21
-          item.tmdb_url || null            // ?22
+          item.tmdb_url || null,           // ?22
+          item.imdb_id || null,            // ?23
+          item.imdb_rating || null,        // ?24
+          item.rotten_tomatoes_rating || null, // ?25
+          item.metacritic_rating || null,  // ?26
+          JSON.stringify(item.providers || []) // ?27
         ]
       });
 
@@ -167,7 +179,9 @@ export class TopflixDatabase {
              avg_rating, tmdb_rating, quality_tier, poster_url, description,
              runtime, number_of_seasons, number_of_episodes,
              origin_country, is_regional, first_seen, last_seen,
-             appearances, last_rank, last_source, tmdb_url
+             appearances, last_rank, last_source, tmdb_url,
+             imdb_id, imdb_rating, rotten_tomatoes_rating,
+             metacritic_rating, streaming_providers
       FROM content
       WHERE avg_rating >= ?1
     `;
@@ -235,7 +249,9 @@ export class TopflixDatabase {
              avg_rating, tmdb_rating, quality_tier, poster_url, description,
              runtime, number_of_seasons, number_of_episodes,
              origin_country, is_regional, first_seen, last_seen,
-             appearances, last_rank, last_source, tmdb_url
+             appearances, last_rank, last_source, tmdb_url,
+             imdb_id, imdb_rating, rotten_tomatoes_rating,
+             metacritic_rating, streaming_providers
       FROM content
       WHERE avg_rating >= ?1 AND appearances >= ?2
     `;
@@ -291,7 +307,9 @@ export class TopflixDatabase {
              avg_rating, tmdb_rating, quality_tier, poster_url, description,
              runtime, number_of_seasons, number_of_episodes,
              origin_country, is_regional, first_seen, last_seen,
-             appearances, last_rank, last_source, tmdb_url
+             appearances, last_rank, last_source, tmdb_url,
+             imdb_id, imdb_rating, rotten_tomatoes_rating,
+             metacritic_rating, streaming_providers
       FROM content
       WHERE avg_rating >= ?1
         AND first_seen >= date('now', '-' || ?2 || ' days')
@@ -480,6 +498,7 @@ export class TopflixDatabase {
     return {
       ...item,
       origin_country: item.origin_country ? JSON.parse(item.origin_country) : [],
+      streaming_providers: item.streaming_providers ? JSON.parse(item.streaming_providers) : [],
       is_regional: item.is_regional === 1
     };
   }

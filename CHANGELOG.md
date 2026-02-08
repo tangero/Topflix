@@ -5,6 +5,31 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-02-08
+
+### Added
+- Multi-platform streaming: podpora 6 streamovacích služeb v CZ (Netflix, Disney+, Apple TV+, Prime Video, Max, SkyShowtime)
+- OMDb API integrace: hodnocení IMDb, Rotten Tomatoes a Metacritic u každého titulu
+- Platform filter: barevné chip tlačítka pro filtrování podle streamovací platformy (s localStorage persistencí)
+- Provider badges: barevné štítky u každé karty ukazující dostupnost na platformách
+- Multi-source rating zobrazení: TMDB | IMDb | RT | MC inline pod názvem titulu
+- Nová sdílená knihovna functions/_lib/omdb.js pro OMDb API volání s batch enrichmentem
+- Migrace 0003: nové sloupce imdb_id, imdb_rating, rotten_tomatoes_rating, metacritic_rating, streaming_providers
+
+### Changed
+- Discover API nyní hledá přes všech 6 CZ streaming platforem (dříve jen Netflix)
+- TMDB detail requesty používají append_to_response=external_ids,watch/providers (1 request místo 3)
+- Meta popisy a titulky stránek aktualizovány z "Na co koukat na Netflixu" na "Na co koukat na streamovacích platformách"
+- Tab "Nově na Netflix" přejmenován na "Nově na streamech"
+- Footer atribuce aktualizována: ČSFD nahrazeno OMDb
+- Cache klíče zvýšeny (top10 v4, netflix-new v6) pro invalidaci starých dat
+
+### Technical
+- database.js rozšířen o nové sloupce s COALESCE pro zachování existujících hodnot
+- Provider extrakce z TMDB watch/providers response pro CZ region (flatrate monetization)
+- OMDb enrichment běží paralelně v batch po 5 requestech
+- Env proměnná OMDB_API_KEY (volitelná, graceful degradation pokud chybí)
+
 ## [1.5.0] - 2026-02-08
 
 ### Changed
