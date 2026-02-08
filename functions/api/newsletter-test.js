@@ -1,68 +1,43 @@
 /**
  * Newsletter Test Send - API Function (Cloudflare Pages)
  * Sends a test newsletter email to specified address
+ * PROTECTED: Requires ADMIN_API_KEY Bearer token
  */
 
 import { fetchNewsletterData, generateNewsletterHTML, generateNewsletterText, generateNewsletterSubject } from '../_lib/newsletter-generator.js';
-
-// CORS headers
-function getCorsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-}
+import { requireAdminAuth, getRestrictedCorsHeaders, safeErrorResponse } from '../_lib/auth.js';
 
 // Pages Function handler - exports onRequest for /api/newsletter-test
 export async function onRequest(context) {
   const { request, env } = context;
+  const corsHeaders = getRestrictedCorsHeaders(request);
 
   // Handle CORS preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: getCorsHeaders()
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   // Only allow POST
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({
-      error: 'Method not allowed'
-    }), {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        ...getCorsHeaders()
-      }
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   }
 
+  // Require admin authentication
+  const authError = requireAdminAuth(request, env);
+  if (authError) return authError;
+
   try {
     // Check for required environment variables
-    if (!env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY is missing!');
+    if (!env.RESEND_API_KEY || !env.TMDB_API_KEY) {
+      console.error('Missing required env vars for newsletter-test');
       return new Response(JSON.stringify({
-        error: 'Resend API key not configured'
+        error: 'Server configuration error'
       }), {
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders()
-        }
-      });
-    }
-
-    if (!env.TMDB_API_KEY) {
-      console.error('TMDB_API_KEY is missing!');
-      return new Response(JSON.stringify({
-        error: 'TMDB API key not configured'
-      }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders()
-        }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
@@ -71,14 +46,18 @@ export async function onRequest(context) {
     const { email } = body;
 
     if (!email) {
-      return new Response(JSON.stringify({
-        error: 'Email is required'
-      }), {
+      return new Response(JSON.stringify({ error: 'Email is required' }), {
         status: 400,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders()
-        }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(JSON.stringify({ error: 'Invalid email format' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
@@ -86,7 +65,7 @@ export async function onRequest(context) {
     console.log('Fetching newsletter data for test send...');
     const data = await fetchNewsletterData(env.TMDB_API_KEY);
 
-    console.log(`Test: Found ${data.movies.length} movies and ${data.series.length} series with ≥70% rating`);
+    console.log(`Test: Found ${data.movies.length} movies and ${data.series.length} series with >=70% rating`);
 
     // Generate HTML, text, and subject
     const htmlContent = generateNewsletterHTML(data);
@@ -94,9 +73,7 @@ export async function onRequest(context) {
     const subjectLine = generateNewsletterSubject(data);
 
     // Send email via Resend
-    const resendUrl = 'https://api.resend.com/emails';
-
-    const resendResponse = await fetch(resendUrl, {
+    const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${env.RESEND_API_KEY}`,
@@ -127,10 +104,7 @@ export async function onRequest(context) {
         error: resendData.message || 'Failed to send test email'
       }), {
         status: resendResponse.status,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders()
-        }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
@@ -147,22 +121,9 @@ export async function onRequest(context) {
       }
     }), {
       status: 200,
-      headers: {
-        'Content-Type': 'application/json',
-        ...getCorsHeaders()
-      }
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   } catch (error) {
-    console.error('Error in newsletter-test function:', error);
-    return new Response(JSON.stringify({
-      error: error.message,
-      stack: error.stack
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        ...getCorsHeaders()
-      }
-    });
+    return safeErrorResponse(error, corsHeaders);
   }
 }

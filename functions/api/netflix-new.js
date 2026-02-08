@@ -284,10 +284,9 @@ export async function onRequest(context) {
       }
     });
   } catch (error) {
-    console.error('Error in netflix-new function:', error);
+    console.error('Error in netflix-new function:', error.message, error.stack);
     return new Response(JSON.stringify({
-      error: error.message,
-      stack: error.stack
+      error: 'Internal server error'
     }), {
       status: 500,
       headers: {

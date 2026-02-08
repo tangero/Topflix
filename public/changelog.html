@@ -177,12 +177,58 @@
                 <p>Historie všech změn a aktualizací</p>
             </div>
 
+            <!-- Version 1.4.0 -->
+            <div class="version-section">
+                <div class="version-header">
+                    <span class="version-number">v1.4.0</span>
+                    <span class="version-date">8. února 2026</span>
+                    <span class="badge latest">Aktuální</span>
+                </div>
+
+                <div class="change-category added">
+                    <h3>Přidáno</h3>
+                    <ul class="change-list">
+                        <li>Autentizační systém pro admin API endpointy (Bearer token via ADMIN_API_KEY)</li>
+                        <li>Sdílený auth modul s centralizovanou CORS konfigurací a rate limitingem</li>
+                        <li>Rate limiting na newsletter přihlášení (5 pokusů/hodinu/IP)</li>
+                        <li>Content Security Policy a bezpečnostní HTTP hlavičky</li>
+                        <li>XSS sanitizace na všech frontend stránkách</li>
+                    </ul>
+                </div>
+
+                <div class="change-category changed">
+                    <h3>Změněno</h3>
+                    <ul class="change-list">
+                        <li>Admin endpointy nyní vyžadují autorizaci Bearer tokenem</li>
+                        <li>CORS na citlivých endpointech omezen na doménu topflix.cz</li>
+                        <li>Error responses již neobsahují stack traces ani interní detaily</li>
+                    </ul>
+                </div>
+
+                <div class="change-category fixed">
+                    <h3>Opraveno</h3>
+                    <ul class="change-list">
+                        <li>test-db endpoint odstraněn únik env proměnných</li>
+                        <li>newsletter-test endpoint zabezpečen proti neoprávněnému odesílání</li>
+                        <li>Odstraněny stack traces ze všech API error responses</li>
+                    </ul>
+                </div>
+
+                <div class="change-category technical">
+                    <h3>Technické</h3>
+                    <ul class="change-list">
+                        <li>Nový modul functions/_lib/auth.js centralizuje bezpečnostní logiku</li>
+                        <li>Rate limiting implementován přes Cloudflare KV</li>
+                        <li>CSP: img-src image.tmdb.org, connect-src api.themoviedb.org</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- Version 1.3.0 -->
             <div class="version-section">
                 <div class="version-header">
                     <span class="version-number">v1.3.0</span>
                     <span class="version-date">12. listopadu 2025</span>
-                    <span class="badge latest">Aktuální</span>
                 </div>
 
                 <div class="change-category added">
@@ -411,7 +457,7 @@
                 <a href="https://top10.netflix.com" target="_blank" rel="noopener">Netflix Top 10</a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.3.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.4.0</a>
             </p>
         </footer>
     </div>

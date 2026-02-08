@@ -313,8 +313,7 @@ export async function onRequest(context) {
     if (!env.TMDB_API_KEY) {
       console.error('TMDB_API_KEY is missing!');
       return new Response(JSON.stringify({
-        error: 'TMDB API key not configured',
-        details: 'TMDB_API_KEY environment variable is missing. Please add it in Cloudflare Dashboard: Settings -> Environment variables'
+        error: 'Server configuration error'
       }), {
         status: 500,
         headers: {
@@ -376,11 +375,9 @@ export async function onRequest(context) {
       }
     });
   } catch (error) {
-    console.error('Error in top10 function:', error);
+    console.error('Error in top10 function:', error.message, error.stack);
     return new Response(JSON.stringify({
-      error: error.message,
-      stack: error.stack,
-      details: 'Check Cloudflare Dashboard -> Functions -> Real-time logs for more details'
+      error: 'Internal server error'
     }), {
       status: 500,
       headers: {

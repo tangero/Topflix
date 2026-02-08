@@ -275,12 +275,11 @@ export async function onRequest(context) {
     });
 
   } catch (error) {
-    console.error('Health check error:', error);
+    console.error('Health check error:', error.message, error.stack);
     return new Response(JSON.stringify({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      error: error.message,
-      stack: error.stack
+      error: 'Internal server error'
     }, null, 2), {
       status: 503,
       headers: {

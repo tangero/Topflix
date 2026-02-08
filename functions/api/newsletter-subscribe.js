@@ -3,64 +3,43 @@
  * Adds email to Resend Audience for weekly newsletter
  */
 
-// CORS headers
-function getCorsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-}
+import { checkRateLimit, getRestrictedCorsHeaders, safeErrorResponse } from '../_lib/auth.js';
 
 // Pages Function handler - exports onRequest for /api/newsletter-subscribe
 export async function onRequest(context) {
   const { request, env } = context;
+  const corsHeaders = getRestrictedCorsHeaders(request);
 
   // Handle CORS preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: getCorsHeaders()
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   // Only allow POST
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({
-      error: 'Method not allowed'
-    }), {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        ...getCorsHeaders()
-      }
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   }
 
   try {
-    // Check for required environment variables
-    if (!env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY is missing!');
-      return new Response(JSON.stringify({
-        error: 'Resend API key not configured'
-      }), {
-        status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders()
-        }
+    // Rate limiting: max 5 subscribe attempts per IP per hour
+    const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const { limited } = await checkRateLimit(env.TOPFLIX_KV, `subscribe:${clientIP}`, 5, 3600);
+    if (limited) {
+      return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
-    if (!env.RESEND_AUDIENCE_ID) {
-      console.error('RESEND_AUDIENCE_ID is missing!');
-      return new Response(JSON.stringify({
-        error: 'Resend Audience ID not configured'
-      }), {
+    // Check for required environment variables
+    if (!env.RESEND_API_KEY || !env.RESEND_AUDIENCE_ID) {
+      console.error('Missing required env vars for newsletter-subscribe');
+      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders()
-        }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
@@ -75,7 +54,7 @@ export async function onRequest(context) {
         status: 400,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -89,7 +68,7 @@ export async function onRequest(context) {
         status: 400,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -124,7 +103,7 @@ export async function onRequest(context) {
           status: 200,
           headers: {
             'Content-Type': 'application/json',
-            ...getCorsHeaders()
+            ...corsHeaders
           }
         });
       }
@@ -135,7 +114,7 @@ export async function onRequest(context) {
         status: resendResponse.status,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -151,7 +130,7 @@ export async function onRequest(context) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders()
+        ...corsHeaders
       }
     });
   } catch (error) {
@@ -162,7 +141,7 @@ export async function onRequest(context) {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders()
+        ...corsHeaders
       }
     });
   }

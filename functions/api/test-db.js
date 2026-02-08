@@ -1,18 +1,23 @@
 /**
  * Test DB endpoint - for debugging D1 database issues
+ * PROTECTED: Requires ADMIN_API_KEY Bearer token
  */
 
 import { createDatabase } from '../_lib/database.js';
+import { requireAdminAuth, safeErrorResponse } from '../_lib/auth.js';
 
 export async function onRequest(context) {
-  const { env } = context;
+  const { request, env } = context;
+
+  // Require admin authentication
+  const authError = requireAdminAuth(request, env);
+  if (authError) return authError;
 
   try {
     // Check if DB binding exists
     if (!env.DB) {
       return new Response(JSON.stringify({
-        error: 'DB binding not found',
-        env_keys: Object.keys(env)
+        error: 'DB binding not found'
       }), {
         status: 500,
         headers: { 'Content-Type': 'application/json' }
@@ -59,13 +64,6 @@ export async function onRequest(context) {
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({
-      error: error.message,
-      stack: error.stack,
-      name: error.name
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return safeErrorResponse(error);
   }
 }

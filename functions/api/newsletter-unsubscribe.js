@@ -3,24 +3,16 @@
  * Removes email from Resend Audience
  */
 
-// CORS headers
-function getCorsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-}
+import { getRestrictedCorsHeaders } from '../_lib/auth.js';
 
 // Pages Function handler - exports onRequest for /api/newsletter-unsubscribe
 export async function onRequest(context) {
   const { request, env } = context;
+  const corsHeaders = getRestrictedCorsHeaders(request);
 
   // Handle CORS preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: getCorsHeaders()
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   // Only allow POST
@@ -31,7 +23,7 @@ export async function onRequest(context) {
       status: 405,
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders()
+        ...corsHeaders
       }
     });
   }
@@ -46,7 +38,7 @@ export async function onRequest(context) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -59,7 +51,7 @@ export async function onRequest(context) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -75,7 +67,7 @@ export async function onRequest(context) {
         status: 400,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -89,7 +81,7 @@ export async function onRequest(context) {
         status: 400,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -117,7 +109,7 @@ export async function onRequest(context) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -131,7 +123,7 @@ export async function onRequest(context) {
         status: 200,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -152,7 +144,7 @@ export async function onRequest(context) {
       status: resendResponse.status,
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders()
+        ...corsHeaders
       }
     });
   } catch (error) {
@@ -163,7 +155,7 @@ export async function onRequest(context) {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders()
+        ...corsHeaders
       }
     });
   }

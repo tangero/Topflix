@@ -8,41 +8,36 @@
 
 import { encrypt } from '../_lib/crypto.js';
 import { generateConfirmationHTML, generateConfirmationText } from '../_lib/confirmation-email-template.js';
-
-// CORS headers
-function getCorsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-}
+import { checkRateLimit, getRestrictedCorsHeaders } from '../_lib/auth.js';
 
 // Pages Function handler - exports onRequest for /api/newsletter-subscribe-v2
 export async function onRequest(context) {
   const { request, env } = context;
+  const corsHeaders = getRestrictedCorsHeaders(request);
 
   // Handle CORS preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: getCorsHeaders()
-    });
+    return new Response(null, { headers: corsHeaders });
   }
 
   // Only allow POST
   if (request.method !== 'POST') {
-    return new Response(JSON.stringify({
-      error: 'Method not allowed'
-    }), {
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
       status: 405,
-      headers: {
-        'Content-Type': 'application/json',
-        ...getCorsHeaders()
-      }
+      headers: { 'Content-Type': 'application/json', ...corsHeaders }
     });
   }
 
   try {
+    // Rate limiting: max 5 subscribe attempts per IP per hour
+    const clientIP = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const { limited } = await checkRateLimit(env.TOPFLIX_KV, `subscribe:${clientIP}`, 5, 3600);
+    if (limited) {
+      return new Response(JSON.stringify({ error: 'Too many requests. Please try again later.' }), {
+        status: 429,
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
+      });
+    }
     // Check for required environment variables
     if (!env.RESEND_API_KEY) {
       console.error('RESEND_API_KEY is missing!');
@@ -52,7 +47,7 @@ export async function onRequest(context) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -65,7 +60,7 @@ export async function onRequest(context) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -78,7 +73,7 @@ export async function onRequest(context) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -94,7 +89,7 @@ export async function onRequest(context) {
         status: 400,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -108,7 +103,7 @@ export async function onRequest(context) {
         status: 400,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -144,7 +139,7 @@ export async function onRequest(context) {
           status: resendResponse.status,
           headers: {
             'Content-Type': 'application/json',
-            ...getCorsHeaders()
+            ...corsHeaders
           }
         });
       }
@@ -186,7 +181,7 @@ export async function onRequest(context) {
         status: 500,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -202,19 +197,18 @@ export async function onRequest(context) {
       status: 200,
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders()
+        ...corsHeaders
       }
     });
   } catch (error) {
-    console.error('Error in newsletter-subscribe-v2 function:', error);
+    console.error('Error in newsletter-subscribe-v2 function:', error.message, error.stack);
     return new Response(JSON.stringify({
-      error: error.message || 'Internal server error',
-      stack: error.stack
+      error: 'Internal server error'
     }), {
       status: 500,
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders()
+        ...corsHeaders
       }
     });
   }

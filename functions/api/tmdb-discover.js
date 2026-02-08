@@ -4,15 +4,7 @@
  */
 
 import { createDatabase } from '../_lib/database.js';
-
-// CORS headers
-function getCorsHeaders() {
-  return {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type',
-  };
-}
+import { requireAdminAuth, getRestrictedCorsHeaders, safeErrorResponse } from '../_lib/auth.js';
 
 // Sleep for rate limiting
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
@@ -204,25 +196,25 @@ async function discoverNetflixContent(apiKey, options = {}) {
  */
 export async function onRequest(context) {
   const { request, env } = context;
+  const corsHeaders = getRestrictedCorsHeaders(request);
 
   // Handle CORS preflight
   if (request.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: getCorsHeaders()
-    });
+    return new Response(null, { headers: corsHeaders });
   }
+
+  // Require admin authentication
+  const authError = requireAdminAuth(request, env);
+  if (authError) return authError;
 
   try {
     // Check for required API key
     if (!env.TMDB_API_KEY) {
       return new Response(JSON.stringify({
-        error: 'TMDB API key not configured'
+        error: 'Server configuration error'
       }), {
         status: 500,
-        headers: {
-          'Content-Type': 'application/json',
-          ...getCorsHeaders()
-        }
+        headers: { 'Content-Type': 'application/json', ...corsHeaders }
       });
     }
 
@@ -242,7 +234,7 @@ export async function onRequest(context) {
         status: 400,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -255,7 +247,7 @@ export async function onRequest(context) {
         status: 400,
         headers: {
           'Content-Type': 'application/json',
-          ...getCorsHeaders()
+          ...corsHeaders
         }
       });
     }
@@ -290,20 +282,10 @@ export async function onRequest(context) {
     return new Response(JSON.stringify(data), {
       headers: {
         'Content-Type': 'application/json',
-        ...getCorsHeaders()
+        ...corsHeaders
       }
     });
   } catch (error) {
-    console.error('Error in tmdb-discover function:', error);
-    return new Response(JSON.stringify({
-      error: error.message,
-      stack: error.stack
-    }), {
-      status: 500,
-      headers: {
-        'Content-Type': 'application/json',
-        ...getCorsHeaders()
-      }
-    });
+    return safeErrorResponse(error, corsHeaders);
   }
 }

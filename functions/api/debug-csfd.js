@@ -1,22 +1,30 @@
 /**
- * Debug endpoint for ČSFD scraping
- * Usage: /api/debug-csfd?title=Název filmu
+ * Debug endpoint for CSFD scraping
+ * PROTECTED: Requires ADMIN_API_KEY Bearer token
+ * Usage: /api/debug-csfd?title=Nazev+filmu (with Authorization header)
  */
+
+import { requireAdminAuth, safeErrorResponse } from '../_lib/auth.js';
 
 // Helper: Sleep for rate limiting
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export async function onRequest(context) {
   const { request } = context;
+
+  // Require admin authentication
+  const authError = requireAdminAuth(request, context.env);
+  if (authError) return authError;
+
   const url = new URL(request.url);
   const title = url.searchParams.get('title');
   const year = url.searchParams.get('year') || null;
-  const type = url.searchParams.get('type') || 'movie'; // default to movie
+  const type = url.searchParams.get('type') || 'movie';
 
   if (!title) {
     return new Response(JSON.stringify({
       error: 'Missing title parameter',
-      usage: '/api/debug-csfd?title=Název filmu&year=2022&type=series'
+      usage: '/api/debug-csfd?title=Nazev+filmu&year=2022&type=series'
     }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' }
@@ -33,8 +41,6 @@ export async function onRequest(context) {
     // STEP 1: Search
     await sleep(2000);
 
-    // For series: search WITHOUT year (series names are unique, year confuses ČSFD)
-    // For movies: search WITH year (many movies share names)
     const searchQuery = (type === 'series') ? title : (year ? `${title} ${year}` : title);
     debug.step1_search.search_strategy = type === 'series'
       ? 'Series: searching WITHOUT year'
@@ -53,7 +59,6 @@ export async function onRequest(context) {
     debug.step1_search.url = searchUrl;
     debug.step1_search.html_length = searchHtml.length;
 
-    // Extract ALL articles from search results
     const articleMatches = searchHtml.matchAll(/<article[^>]*class="[^"]*article[^"]*"[^>]*>([\s\S]*?)<\/article>/gi);
     const articles = Array.from(articleMatches);
 
@@ -62,10 +67,8 @@ export async function onRequest(context) {
     if (articles.length === 0) {
       debug.step1_search.error = 'No articles found in search results';
     } else {
-      // Preview first article
       debug.step1_search.first_article_preview = articles[0][1].substring(0, 500);
 
-      // Extract ALL URLs from all articles for debugging
       const allUrls = [];
       for (let i = 0; i < articles.length; i++) {
         const articleHtml = articles[i][1];
@@ -87,18 +90,15 @@ export async function onRequest(context) {
 
       debug.step1_search.expected_type = type;
 
-      // For series: ČSFD uses /film/ for everything, detect series by /season-X/ in URL
       if (type === 'series') {
         debug.step1_search.detection_method = 'Looking for /season-X/ pattern in URLs';
 
-        // Look for URLs containing season paths
         for (let i = 0; i < articles.length; i++) {
           const articleHtml = articles[i][1];
           const urlMatch = articleHtml.match(/href="(\/film\/[^"]+\/[^"]*season-[^"\/]+\/)"/i);
 
           if (urlMatch) {
             const seasonUrl = urlMatch[1];
-            // Extract base URL (remove season part)
             csfdUrl = seasonUrl.replace(/\/[^\/]*season-[^\/]+\/$/, '/');
             matchReason = 'Found series via season URL pattern';
             matchedArticleIndex = i;
@@ -109,7 +109,6 @@ export async function onRequest(context) {
         }
       }
 
-      // For movies: look for /film/ URLs (standard path)
       if (!csfdUrl && type === 'movie') {
         debug.step1_search.detection_method = 'Looking for /film/ URLs';
 
@@ -126,7 +125,6 @@ export async function onRequest(context) {
         }
       }
 
-      // Fallback: take first /film/ URL
       if (!csfdUrl) {
         debug.step1_search.detection_method = 'Fallback: first /film/ URL';
 
@@ -149,18 +147,11 @@ export async function onRequest(context) {
         debug.step1_search.match_reason = matchReason;
         debug.step1_search.matched_article_index = matchedArticleIndex;
 
-        // Ensure it's absolute URL
         if (!csfdUrl.startsWith('http')) {
           csfdUrl = `https://www.csfd.cz${csfdUrl}`;
         }
 
-        // Remove trailing paths like /galerie/, /videa/, etc.
-        const beforeCleanup = csfdUrl;
         csfdUrl = csfdUrl.replace(/(\/film\/\d+-[^\/]+|\/serial\/\d+-[^\/]+)\/.*$/, '$1/');
-
-        if (beforeCleanup !== csfdUrl) {
-          debug.step1_search.url_cleanup = `Removed: ${beforeCleanup.replace(csfdUrl, '')}`;
-        }
 
         debug.step1_search.extracted_url = csfdUrl;
       } else {
@@ -171,7 +162,7 @@ export async function onRequest(context) {
 
     // STEP 2: Film page (only if URL found)
     if (debug.step1_search.extracted_url) {
-      await sleep(2000); // Rate limit
+      await sleep(2000);
 
       const filmResponse = await fetch(debug.step1_search.extracted_url, {
         headers: {
@@ -186,26 +177,20 @@ export async function onRequest(context) {
       debug.step2_film_page.html_length = filmHtml.length;
       debug.step2_film_page.html_preview = filmHtml.substring(0, 1000);
 
-      // Extract title from page to verify correct film
       const titleMatch = filmHtml.match(/<title>([^<]+)<\/title>/i);
       debug.step2_film_page.page_title = titleMatch ? titleMatch[1] : 'Title not found';
 
-      // Try all rating patterns on film page
       const patterns = {};
 
-      // Pattern 1: film-rating-average
       const pattern1 = filmHtml.match(/<div[^>]*class="[^"]*film-rating-average[^"]*"[^>]*>(\d+)%<\/div>/i);
       patterns.film_rating_average = pattern1 ? pattern1[1] : null;
 
-      // Pattern 2: any rating>XX%
       const pattern2 = filmHtml.match(/rating[^>]*>(\d+)%/i);
       patterns.rating_generic = pattern2 ? pattern2[1] : null;
 
-      // Pattern 3: data-rating
       const pattern3 = filmHtml.match(/data-rating="(\d+)"/i);
       patterns.data_rating = pattern3 ? pattern3[1] : null;
 
-      // Pattern 4: rating section
       const ratingSection = filmHtml.match(/<section[^>]*class="[^"]*rating[^"]*"[^>]*>([\s\S]*?)<\/section>/i);
       if (ratingSection) {
         const sectionMatch = ratingSection[1].match(/(\d{1,3})%/);
@@ -213,7 +198,6 @@ export async function onRequest(context) {
         patterns.rating_section_preview = ratingSection[1].substring(0, 300);
       }
 
-      // Pattern 5: film-header section
       const headerMatch = filmHtml.match(/<header[^>]*class="[^"]*film-header[^"]*"[^>]*>([\s\S]*?)<\/header>/i);
       if (headerMatch) {
         const percentMatch = headerMatch[1].match(/(\d{2,3})%/);
@@ -221,7 +205,6 @@ export async function onRequest(context) {
         patterns.film_header_preview = headerMatch[1].substring(0, 300);
       }
 
-      // Pattern 6: origin section
       const originMatch = filmHtml.match(/<div[^>]*class="[^"]*origin[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
       if (originMatch) {
         const percentMatch = originMatch[1].match(/(\d{2,3})%/);
@@ -229,11 +212,9 @@ export async function onRequest(context) {
         patterns.origin_section_preview = originMatch[1].substring(0, 300);
       }
 
-      // Find all percentages
       const allPercents = filmHtml.match(/(\d{1,3})%/g);
-      patterns.all_percentages = allPercents ? allPercents.slice(0, 20) : []; // First 20
+      patterns.all_percentages = allPercents ? allPercents.slice(0, 20) : [];
 
-      // Pattern 7: Fallback - first valid percentage
       if (allPercents && allPercents.length > 0) {
         for (const percent of allPercents.slice(0, 5)) {
           const value = parseInt(percent);
@@ -244,7 +225,6 @@ export async function onRequest(context) {
         }
       }
 
-      // Determine final rating (first valid pattern wins)
       const finalRating = patterns.film_rating_average ||
                          patterns.film_header ||
                          patterns.rating_generic ||
@@ -259,21 +239,11 @@ export async function onRequest(context) {
       debug.step2_film_page.is_valid = finalRating && parseInt(finalRating) >= 10 && parseInt(finalRating) <= 100;
     }
 
-    // Return debug info
     return new Response(JSON.stringify(debug, null, 2), {
-      headers: {
-        'Content-Type': 'application/json',
-        'Access-Control-Allow-Origin': '*'
-      }
+      headers: { 'Content-Type': 'application/json' }
     });
 
   } catch (error) {
-    return new Response(JSON.stringify({
-      error: error.message,
-      stack: error.stack
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' }
-    });
+    return safeErrorResponse(error);
   }
 }

@@ -2,6 +2,17 @@
  * Topflix - Archive Page
  */
 
+// HTML sanitization to prevent XSS
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
 // State management
 let allContent = [];
 let currentOffset = 0;
@@ -349,7 +360,7 @@ function createTitleCard(item) {
 
     // Poster
     const posterHTML = item.poster_url
-        ? `<img src="${item.poster_url}" alt="${item.title}" loading="lazy">`
+        ? `<img src="${escapeHtml(item.poster_url)}" alt="${escapeHtml(item.title)}" loading="lazy">`
         : '<div class="no-poster">🎬</div>';
 
     // Rating badge with quality indicator
@@ -406,7 +417,7 @@ function createTitleCard(item) {
 
     // Genre
     if (item.genre) {
-        metaParts.push(`🎭 ${item.genre}`);
+        metaParts.push(`🎭 ${escapeHtml(item.genre)}`);
     }
 
     // Appearances count
@@ -422,20 +433,20 @@ function createTitleCard(item) {
             </div>
             <div class="card-info">
                 <div class="card-title">
-                    <h2>${item.title || item.title_original}</h2>
+                    <h2>${escapeHtml(item.title || item.title_original)}</h2>
                     ${item.title_original && item.title !== item.title_original
-                        ? `<div class="original-title">${item.title_original}</div>`
+                        ? `<div class="original-title">${escapeHtml(item.title_original)}</div>`
                         : ''}
                 </div>
                 <div class="meta">
                     ${metaParts.join(' • ')}
                 </div>
                 ${item.description
-                    ? `<div class="description">${item.description}</div>`
+                    ? `<div class="description">${escapeHtml(item.description)}</div>`
                     : ''}
                 <div class="links">
                     ${item.tmdb_url
-                        ? `<a href="${item.tmdb_url}" target="_blank" rel="noopener" class="tmdb-link">TMDB</a>`
+                        ? `<a href="${escapeHtml(item.tmdb_url)}" target="_blank" rel="noopener" class="tmdb-link">TMDB</a>`
                         : ''}
                 </div>
             </div>
