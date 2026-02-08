@@ -101,10 +101,10 @@ export class TopflixDatabase {
         ]
       });
 
-      // Also insert into appearance_history
+      // Also insert into appearance_history (ignore duplicates for same day+source)
       batch.push({
         stmt: `
-          INSERT INTO appearance_history (
+          INSERT OR IGNORE INTO appearance_history (
             tmdb_id, type, date, source, rank, rating
           ) VALUES (?1, ?2, ?3, ?4, ?5, ?6)
         `,
@@ -161,9 +161,14 @@ export class TopflixDatabase {
     const cached = await this._getFromCache(cacheKey);
     if (cached) return cached;
 
-    // Build query
+    // Build query with explicit columns (avoid SELECT *)
     let query = `
-      SELECT * FROM content
+      SELECT tmdb_id, type, title, title_original, year, genre,
+             avg_rating, tmdb_rating, quality_tier, poster_url, description,
+             runtime, number_of_seasons, number_of_episodes,
+             origin_country, is_regional, first_seen, last_seen,
+             appearances, last_rank, last_source, tmdb_url
+      FROM content
       WHERE avg_rating >= ?1
     `;
     const params = [minRating];
@@ -226,7 +231,12 @@ export class TopflixDatabase {
     if (cached) return cached;
 
     let query = `
-      SELECT * FROM content
+      SELECT tmdb_id, type, title, title_original, year, genre,
+             avg_rating, tmdb_rating, quality_tier, poster_url, description,
+             runtime, number_of_seasons, number_of_episodes,
+             origin_country, is_regional, first_seen, last_seen,
+             appearances, last_rank, last_source, tmdb_url
+      FROM content
       WHERE avg_rating >= ?1 AND appearances >= ?2
     `;
     const params = [minRating, minAppearances];
@@ -277,7 +287,12 @@ export class TopflixDatabase {
     if (cached) return cached;
 
     let query = `
-      SELECT * FROM content
+      SELECT tmdb_id, type, title, title_original, year, genre,
+             avg_rating, tmdb_rating, quality_tier, poster_url, description,
+             runtime, number_of_seasons, number_of_episodes,
+             origin_country, is_regional, first_seen, last_seen,
+             appearances, last_rank, last_source, tmdb_url
+      FROM content
       WHERE avg_rating >= ?1
         AND first_seen >= date('now', '-' || ?2 || ' days')
     `;
@@ -323,7 +338,12 @@ export class TopflixDatabase {
 
     try {
       const result = await this.db
-        .prepare('SELECT * FROM content WHERE tmdb_id = ?1 AND type = ?2')
+        .prepare(`SELECT tmdb_id, type, title, title_original, year, genre,
+             avg_rating, tmdb_rating, quality_tier, poster_url, description,
+             runtime, number_of_seasons, number_of_episodes,
+             origin_country, is_regional, first_seen, last_seen,
+             appearances, last_rank, last_source, tmdb_url
+      FROM content WHERE tmdb_id = ?1 AND type = ?2`)
         .bind(tmdbId, type)
         .first();
 
@@ -352,7 +372,7 @@ export class TopflixDatabase {
     try {
       const result = await this.db
         .prepare(`
-          SELECT * FROM appearance_history
+          SELECT tmdb_id, type, date, source, rank, rating FROM appearance_history
           WHERE tmdb_id = ?1 AND type = ?2
           ORDER BY date DESC
           LIMIT ?3
@@ -465,14 +485,30 @@ export class TopflixDatabase {
   }
 
   /**
-   * Get from KV cache
+   * Get current cache version (lazy-loaded, cached per request)
+   * @private
+   */
+  async _getCacheVersion() {
+    if (this._cacheVersion !== undefined) return this._cacheVersion;
+
+    try {
+      this._cacheVersion = parseInt(await this.kv.get('db:cache_version') || '0');
+    } catch {
+      this._cacheVersion = 0;
+    }
+    return this._cacheVersion;
+  }
+
+  /**
+   * Get from KV cache (versioned)
    * @private
    */
   async _getFromCache(key) {
     if (!this.kv) return null;
 
     try {
-      const cached = await this.kv.get(`db:${key}`, 'json');
+      const version = await this._getCacheVersion();
+      const cached = await this.kv.get(`db:v${version}:${key}`, 'json');
       return cached;
     } catch (error) {
       console.error('Cache read error:', error);
@@ -481,14 +517,15 @@ export class TopflixDatabase {
   }
 
   /**
-   * Set to KV cache
+   * Set to KV cache (versioned)
    * @private
    */
   async _setCache(key, value, ttl = 3600) {
     if (!this.kv) return;
 
     try {
-      await this.kv.put(`db:${key}`, JSON.stringify(value), {
+      const version = await this._getCacheVersion();
+      await this.kv.put(`db:v${version}:${key}`, JSON.stringify(value), {
         expirationTtl: ttl
       });
     } catch (error) {
@@ -497,19 +534,20 @@ export class TopflixDatabase {
   }
 
   /**
-   * Invalidate list caches after data updates
+   * Invalidate list caches after data updates using versioned cache keys.
+   * Bumps a version counter in KV so all old cache keys become stale.
    * @private
    */
   async _invalidateListCaches() {
     if (!this.kv) return;
 
-    const prefixes = ['quality:', 'best:', 'recent:', 'stats:'];
-
     try {
-      // Note: KV doesn't support prefix deletion, so we'd need to track keys
-      // For now, we rely on TTL expiration
-      // In production, consider maintaining a "cache_keys" list in KV
-      console.log('Cache invalidation triggered (relying on TTL)');
+      const currentVersion = parseInt(await this.kv.get('db:cache_version') || '0');
+      await this.kv.put('db:cache_version', String(currentVersion + 1), {
+        expirationTtl: 604800 // 7 days
+      });
+      this._cacheVersion = currentVersion + 1;
+      console.log(`Cache invalidated: version bumped to ${currentVersion + 1}`);
     } catch (error) {
       console.error('Cache invalidation error:', error);
     }

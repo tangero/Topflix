@@ -15,8 +15,6 @@ function getWeekNumber(date) {
   return `${d.getUTCFullYear()}-${String(weekNo).padStart(2, '0')}`;
 }
 
-// Helper: Sleep for rate limiting
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 // Netflix Top 10 Scraper
 async function scrapeNetflixTop10() {
@@ -254,20 +252,15 @@ export async function fetchAndEnrichData(apiKey) {
     throw new Error('Failed to fetch Netflix Top 10 data');
   }
 
-  const enrichedMovies = [];
-  const enrichedSeries = [];
-
-  // Enrich movies
-  for (const movie of netflixData.movies) {
-    const enriched = await enrichTitle(movie.title, movie.rank, 'movie', apiKey);
-    enrichedMovies.push(enriched);
-  }
-
-  // Enrich series
-  for (const series of netflixData.series) {
-    const enriched = await enrichTitle(series.title, series.rank, 'series', apiKey);
-    enrichedSeries.push(enriched);
-  }
+  // Enrich all titles in parallel (max 20 items = 10 movies + 10 series)
+  const [enrichedMovies, enrichedSeries] = await Promise.all([
+    Promise.all(netflixData.movies.map(movie =>
+      enrichTitle(movie.title, movie.rank, 'movie', apiKey)
+    )),
+    Promise.all(netflixData.series.map(series =>
+      enrichTitle(series.title, series.rank, 'series', apiKey)
+    ))
+  ]);
 
   const today = new Date();
   const nextTuesday = new Date(today);

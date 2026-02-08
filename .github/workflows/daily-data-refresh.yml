@@ -1,10 +1,10 @@
-name: Daily Data Refresh
+name: Data Refresh
 
-# Runs daily at 06:00 UTC (08:00 CET) to refresh Netflix data
+# Netflix updates TOP10 weekly on Tuesday; we run Tue+Fri for fresh data
 on:
   schedule:
-    # Every day at 06:00 UTC
-    - cron: '0 6 * * *'
+    # Tuesday and Friday at 07:00 UTC (09:00 CET)
+    - cron: '0 7 * * 2,5'
 
   # Allow manual trigger
   workflow_dispatch:

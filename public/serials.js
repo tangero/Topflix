@@ -428,6 +428,12 @@ function cacheData(data, key) {
     localStorage.setItem(key, JSON.stringify(cacheItem));
 }
 
+// Cache TTL per section
+const CACHE_TTL = {
+    topflix_serials_top10: 24 * 60 * 60 * 1000, // 24 hours
+    topflix_serials_new: 12 * 60 * 60 * 1000     // 12 hours
+};
+
 function getCachedData(key) {
     const cached = localStorage.getItem(key);
     if (!cached) return null;
@@ -435,9 +441,9 @@ function getCachedData(key) {
     try {
         const { data, timestamp } = JSON.parse(cached);
         const age = Date.now() - timestamp;
-        const sevenDays = 7 * 24 * 60 * 60 * 1000;
+        const ttl = CACHE_TTL[key] || 12 * 60 * 60 * 1000;
 
-        if (age < sevenDays) {
+        if (age < ttl) {
             return data;
         }
     } catch (err) {

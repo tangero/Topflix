@@ -1,15 +1,14 @@
 # Cloudflare Worker for Cron Triggers
-# This worker refreshes data DAILY at 06:00 UTC (8:00 Prague time)
-# Netflix updates TOP10 daily, so we need to sync daily
+# Netflix updates TOP10 weekly on Tuesday, Netflix New changes more often
+# We run Tuesday (TOP10 update day) and Friday (mid-week catch-up)
 
 name = "topflix-cron"
 main = "workers/cron.js"
 compatibility_date = "2024-01-01"
 
-# Cron trigger for DAILY updates at 06:00 UTC
-# Netflix TOP10 updates every Tuesday, but we check daily to catch any updates
+# Cron trigger: Tuesday and Friday at 07:00 UTC (09:00 CET)
 [triggers]
-crons = ["0 6 * * *"]  # Every day at 06:00 UTC (08:00 CET)
+crons = ["0 7 * * 2,5"]  # Tuesday and Friday at 07:00 UTC
 
 # Environment variables
 [vars]

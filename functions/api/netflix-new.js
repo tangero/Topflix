@@ -5,9 +5,6 @@
 
 import { createDatabase } from '../_lib/database.js';
 
-// Helper: Sleep for rate limiting
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
 // TMDB API Integration - Get Netflix new content
 async function getNetflixNewContent(apiKey, type = 'movie', limit = 100) {
   try {
@@ -24,110 +21,92 @@ async function getNetflixNewContent(apiKey, type = 'movie', limit = 100) {
 
     // Calculate how many pages we need (TMDB returns 20 items per page)
     const itemsPerPage = 20;
-    const pagesToFetch = Math.ceil(limit / itemsPerPage);
+    const pagesToFetch = Math.min(Math.ceil(limit / itemsPerPage), 10);
 
-    // Fetch multiple pages to get enough items
-    let allItems = [];
-    for (let page = 1; page <= pagesToFetch && page <= 10; page++) {
-      const discoverUrl = `https://api.themoviedb.org/3/discover/${searchType}` +
-        `?api_key=${apiKey}` +
-        `&with_watch_providers=8` + // Netflix ID
-        `&watch_region=CZ` +
-        `&${dateParam}.gte=${dateFrom}` +
-        `&sort_by=popularity.desc` +
-        `&vote_count.gte=30` + // Minimum votes for quality (lowered to get more content)
-        `&language=cs-CZ` +
-        `&page=${page}`;
+    // Fetch discovery pages in parallel (max 5 concurrent)
+    const pageNumbers = Array.from({ length: pagesToFetch }, (_, i) => i + 1);
+    const pageResults = await Promise.all(
+      pageNumbers.map(page => {
+        const discoverUrl = `https://api.themoviedb.org/3/discover/${searchType}` +
+          `?api_key=${apiKey}` +
+          `&with_watch_providers=8` +
+          `&watch_region=CZ` +
+          `&${dateParam}.gte=${dateFrom}` +
+          `&sort_by=popularity.desc` +
+          `&vote_count.gte=30` +
+          `&language=cs-CZ` +
+          `&page=${page}`;
+        return fetch(discoverUrl).then(r => r.json()).catch(() => ({ results: [] }));
+      })
+    );
 
-      const response = await fetch(discoverUrl);
-      const data = await response.json();
-
-      if (data.results && data.results.length > 0) {
-        allItems = allItems.concat(data.results);
-      }
-
-      // Stop if we have enough items or no more results
-      if (allItems.length >= limit || !data.results || data.results.length === 0) {
-        break;
-      }
-
-      // Rate limiting - small delay between page requests
-      if (page < pagesToFetch) {
-        await sleep(100);
-      }
-    }
+    const allItems = pageResults.flatMap(data => data.results || []).slice(0, limit);
 
     if (allItems.length === 0) {
       return [];
     }
 
-    // Get genres for mapping
-    const genresUrl = `https://api.themoviedb.org/3/genre/${searchType}/list?api_key=${apiKey}&language=cs-CZ`;
-    const genresResponse = await fetch(genresUrl);
-    const genresData = await genresResponse.json();
-
-    // Process results - get details for each item to get countries, runtime, etc.
+    // Fetch details for all items in parallel batches of 10
+    const BATCH_SIZE = 10;
     const results = [];
 
-    for (const item of allItems.slice(0, limit)) {
-      try {
-        // Get detailed info for this item
-        const detailsUrl = `https://api.themoviedb.org/3/${searchType}/${item.id}?api_key=${apiKey}&language=cs-CZ`;
-        const detailsResponse = await fetch(detailsUrl);
-        const details = await detailsResponse.json();
+    for (let i = 0; i < allItems.length; i += BATCH_SIZE) {
+      const batch = allItems.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        batch.map(async (item) => {
+          try {
+            const detailsUrl = `https://api.themoviedb.org/3/${searchType}/${item.id}?api_key=${apiKey}&language=cs-CZ`;
+            const detailsResponse = await fetch(detailsUrl);
+            const details = await detailsResponse.json();
 
-        const genres = details.genres
-          ?.map(g => g.name)
-          .filter(Boolean)
-          .slice(0, 3)
-          .join(', ') || 'N/A';
+            const genres = details.genres
+              ?.map(g => g.name)
+              .filter(Boolean)
+              .slice(0, 3)
+              .join(', ') || 'N/A';
 
-        const tmdbUrl = `https://www.themoviedb.org/${searchType}/${item.id}`;
+            const countries = details.production_countries
+              ?.slice(0, 2)
+              .map(c => c.name)
+              .filter(Boolean) || [];
 
-        // Get production countries (first 2)
-        const countries = details.production_countries
-          ?.slice(0, 2)
-          .map(c => c.name)
-          .filter(Boolean) || [];
+            const originCountry = type === 'movie'
+              ? (details.production_countries?.map(c => c.iso_3166_1).filter(Boolean) || [])
+              : (details.origin_country || []);
 
-        // Get origin country codes (different for movies vs series)
-        // Movies: extract ISO codes from production_countries
-        // Series: use origin_country directly
-        const originCountry = type === 'movie'
-          ? (details.production_countries?.map(c => c.iso_3166_1).filter(Boolean) || [])
-          : (details.origin_country || []);
+            const result = {
+              tmdb_id: item.id,
+              tmdb_url: `https://www.themoviedb.org/${searchType}/${item.id}`,
+              title: details.title || details.name,
+              title_original: details.original_title || details.original_name,
+              year: (details.release_date || details.first_air_date || '').substring(0, 4),
+              genre: genres,
+              tmdb_rating: details.vote_average ? parseFloat(details.vote_average.toFixed(1)) : null,
+              description: details.overview || 'Popis není k dispozici.',
+              poster_url: details.poster_path
+                ? `https://image.tmdb.org/t/p/w300${details.poster_path}`
+                : null,
+              type: type,
+              popularity: item.popularity,
+              countries: countries,
+              origin_country: originCountry
+            };
 
-        const result = {
-          tmdb_id: item.id,
-          tmdb_url: tmdbUrl,
-          title: details.title || details.name,
-          title_original: details.original_title || details.original_name,
-          year: (details.release_date || details.first_air_date || '').substring(0, 4),
-          genre: genres,
-          tmdb_rating: details.vote_average ? parseFloat(details.vote_average.toFixed(1)) : null,
-          description: details.overview || 'Popis není k dispozici.',
-          poster_url: details.poster_path
-            ? `https://image.tmdb.org/t/p/w300${details.poster_path}`
-            : null,
-          type: type,
-          popularity: item.popularity,
-          countries: countries,
-          origin_country: originCountry
-        };
+            if (type === 'movie') {
+              result.runtime = details.runtime || null;
+            } else if (type === 'series') {
+              result.number_of_seasons = details.number_of_seasons || null;
+              result.number_of_episodes = details.number_of_episodes || null;
+            }
 
-        // Add type-specific fields
-        if (type === 'movie') {
-          result.runtime = details.runtime || null;
-        } else if (type === 'series') {
-          result.number_of_seasons = details.number_of_seasons || null;
-          result.number_of_episodes = details.number_of_episodes || null;
-        }
-
-        results.push(result);
-      } catch (error) {
-        console.error(`Error fetching details for ${item.id}:`, error);
-        // Skip this item if details fetch fails
-      }
+            return result;
+          } catch (error) {
+            console.error(`Error fetching details for ${item.id}:`, error);
+            return null;
+          }
+        })
+      );
+      results.push(...batchResults.filter(Boolean));
     }
 
     return results;

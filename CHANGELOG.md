@@ -5,6 +5,25 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-02-08
+
+### Changed
+- TMDB API requesty paralelizovány v netflix-new.js (batch po 10) a top10.js (Promise.all) -- ~5-10s rychlejší API odpověď
+- Discovery pages se stahují paralelně místo sekvenčně
+- localStorage cache TTL synchronizován s KV: top10=24h, netflix-new=12h (místo 2h/7d)
+- Cron job změněn z denního na 2x týdně (úterý+pátek 07:00 UTC) -- Netflix aktualizuje Top 10 v úterý
+- GitHub Actions workflow upraven na stejný rozvrh (úterý+pátek)
+- SQL queries používají explicitní výčet sloupců místo SELECT *
+
+### Fixed
+- Cache invalidace nyní funguje přes versionované klíče v KV (místo prázdné funkce)
+- appearance_history deduplikace -- INSERT OR IGNORE zabrání duplicitním záznamům za stejný den
+
+### Technical
+- Nová migrace 0002_deduplicate_history.sql -- přidá UNIQUE constraint na (tmdb_id, type, date, source)
+- Versionovaný cache systém v database.js (_getCacheVersion, db:cache_version counter v KV)
+- Odstraněn zbytečný sleep(100) z discovery page fetche
+
 ## [1.4.0] - 2026-02-08
 
 ### Added
