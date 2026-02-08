@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" id="metaDescription" content="Detail filmu nebo seriálu na Topflix - hodnocení z TMDB, IMDb, Rotten Tomatoes a Metacritic.">
+    <title id="pageTitle">Detail - Topflix</title>
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" id="ogUrl" content="https://www.topflix.cz/detail.html">
+    <meta property="og:title" id="ogTitle" content="Detail - Topflix">
+    <meta property="og:description" id="ogDescription" content="Detail filmu nebo seriálu na Topflix.">
+    <meta property="og:image" id="ogImage" content="">
+    <meta property="og:locale" content="cs_CZ">
+    <meta property="og:site_name" content="Topflix">
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" id="twTitle" content="Detail - Topflix">
+    <meta name="twitter:description" id="twDescription" content="Detail filmu nebo seriálu na Topflix.">
+    <meta name="twitter:image" id="twImage" content="">
+
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Clicky Analytics -->
+    <script async data-id="101496124" src="//static.getclicky.com/js"></script>
+
+    <style>
+        .detail-container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .detail-hero {
+            display: flex;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .detail-poster {
+            flex-shrink: 0;
+        }
+
+        .detail-poster img {
+            width: 200px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px var(--shadow);
+        }
+
+        .detail-poster .no-poster {
+            width: 200px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            font-size: 4rem;
+        }
+
+        .detail-main {
+            flex: 1;
+        }
+
+        .detail-title {
+            font-size: 2rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .detail-original-title {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-bottom: 1rem;
+        }
+
+        .detail-ratings {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-rating-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0.75rem 1.25rem;
+            text-align: center;
+            min-width: 100px;
+        }
+
+        .detail-rating-card .source-name {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .detail-rating-card .source-value {
+            font-size: 1.5rem;
+            font-weight: 800;
+            margin-top: 0.25rem;
+        }
+
+        .detail-rating-card.overall {
+            border-color: var(--accent);
+        }
+
+        .detail-rating-card.overall .source-value {
+            color: var(--accent);
+        }
+
+        .detail-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+        }
+
+        .detail-description {
+            color: var(--text-secondary);
+            line-height: 1.8;
+            margin-bottom: 1.5rem;
+            font-size: 1rem;
+        }
+
+        .detail-providers {
+            margin-bottom: 1.5rem;
+        }
+
+        .detail-providers h3 {
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .detail-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .detail-link-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+        }
+
+        .detail-link-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .detail-share {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .share-btn {
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-primary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s;
+        }
+
+        .share-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .history-section {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .history-section h3 {
+            margin-bottom: 1rem;
+            color: var(--accent);
+        }
+
+        .history-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .history-item {
+            background: var(--bg-secondary);
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .similar-section {
+            margin-bottom: 2rem;
+        }
+
+        .similar-section h3 {
+            margin-bottom: 1rem;
+            color: var(--accent);
+            font-size: 1.3rem;
+        }
+
+        .similar-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .similar-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.75rem;
+            display: flex;
+            gap: 0.75rem;
+            text-decoration: none;
+            color: var(--text-primary);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .similar-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px var(--shadow);
+        }
+
+        .similar-card img {
+            width: 60px;
+            height: 90px;
+            object-fit: cover;
+            border-radius: 4px;
+            flex-shrink: 0;
+        }
+
+        .similar-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .similar-info h4 {
+            font-size: 0.95rem;
+            margin-bottom: 0.25rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .similar-info .similar-meta {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+        }
+
+        .similar-rating {
+            font-weight: 700;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-bottom: 1.5rem;
+            color: var(--accent);
+            text-decoration: none;
+            font-size: 1rem;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 640px) {
+            .detail-hero {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .detail-poster img {
+                width: 160px;
+            }
+
+            .detail-title {
+                font-size: 1.5rem;
+            }
+
+            .detail-ratings {
+                justify-content: center;
+            }
+
+            .detail-meta {
+                justify-content: center;
+            }
+
+            .detail-links, .detail-share {
+                justify-content: center;
+            }
+
+            .similar-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-header">
+                    <img src="patrick-avatar.webp" alt="Patrick" class="logo-avatar">
+                    <h1>Topflix</h1>
+                </div>
+                <p class="tagline">Na co koukat na streamovacích platformách</p>
+            </div>
+
+            <div class="theme-toggle">
+                <button id="themeToggle" aria-label="Přepnout světlý/tmavý režim">
+                    <span class="theme-icon">☀️</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="nav-links">
+            <a href="index.html" class="nav-link">🎬 Filmy</a>
+            <a href="serials.html" class="nav-link">📺 Seriály</a>
+            <a href="archive.html" class="nav-link">📦 Archiv</a>
+            <a href="newsletter.html" class="nav-link">📧 Newsletter</a>
+        </nav>
+
+        <a href="javascript:history.back()" class="back-link">← Zpět</a>
+
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Načítání detailu...</p>
+        </div>
+
+        <!-- Error -->
+        <div id="error" class="error hidden">
+            <p>⚠️ Titul nebyl nalezen.</p>
+        </div>
+
+        <!-- Detail Content -->
+        <div id="detailContent" class="detail-container hidden"></div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="napoveda.html">Nápověda</a>
+                <span>•</span>
+                <a href="https://www.themoviedb.org" target="_blank" rel="noopener">Data z TMDB</a>
+                <span>•</span>
+                <a href="https://www.omdbapi.com" target="_blank" rel="noopener">Hodnocení z OMDb</a>
+                <span>•</span>
+                <a href="https://top10.netflix.com" target="_blank" rel="noopener">Netflix Top 10</a>
+            </div>
+            <p class="footer-note">
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.7.0</a>
+            </p>
+        </footer>
+    </div>
+
+    <script src="detail.js"></script>
+</body>
+</html>

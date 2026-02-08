@@ -454,6 +454,16 @@ body {
     margin-bottom: 0.25rem;
 }
 
+.title-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.title-link:hover {
+    color: var(--accent);
+}
+
 .card-title .original-title {
     font-size: 0.85rem;
     color: var(--text-secondary);
@@ -772,6 +782,270 @@ body.light-mode .provider-badge.provider-apple {
     border-color: var(--accent);
 }
 
+/* Search bar */
+.search-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    padding: 0 1rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.search-bar input {
+    flex: 1;
+    padding: 0.6rem 1rem;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.search-bar input:focus {
+    outline: none;
+    border-color: var(--accent);
+}
+
+.search-bar input::placeholder {
+    color: var(--text-secondary);
+}
+
+.search-results-info {
+    text-align: center;
+    padding: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.search-clear {
+    background: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    padding: 0.6rem 0.8rem;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.search-clear:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+/* Genre filter chips */
+.genre-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    justify-content: center;
+    margin-bottom: 1rem;
+    padding: 0 1rem;
+}
+
+.genre-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.3rem 0.7rem;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    user-select: none;
+}
+
+.genre-chip:hover {
+    border-color: var(--text-secondary);
+}
+
+.genre-chip.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+/* My services settings */
+.my-services-toggle {
+    text-align: center;
+    margin-bottom: 0.75rem;
+}
+
+.my-services-btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.my-services-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.my-services-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+}
+
+.my-services-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.my-services-panel h3 {
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-primary);
+}
+
+.services-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+}
+
+.service-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    border: 2px solid var(--border);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+    font-weight: 600;
+    user-select: none;
+}
+
+.service-checkbox input {
+    display: none;
+}
+
+.service-checkbox.checked {
+    color: white;
+}
+
+.service-checkbox[data-service="netflix"].checked {
+    background: #e50914;
+    border-color: #e50914;
+}
+.service-checkbox[data-service="disney"].checked {
+    background: #113ccf;
+    border-color: #113ccf;
+}
+.service-checkbox[data-service="apple"].checked {
+    background: #555;
+    border-color: #555;
+}
+.service-checkbox[data-service="prime"].checked {
+    background: #00a8e1;
+    border-color: #00a8e1;
+}
+.service-checkbox[data-service="max"].checked {
+    background: #0024e1;
+    border-color: #0024e1;
+}
+.service-checkbox[data-service="skyshowtime"].checked {
+    background: #ff0064;
+    border-color: #ff0064;
+}
+
+/* Hidden gems section */
+.hidden-gems-section {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 165, 0, 0.05));
+    border: 1px solid rgba(255, 215, 0, 0.3);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.hidden-gems-section h2 {
+    color: #fbbf24;
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.hidden-gems-section .gems-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+}
+
+.gems-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.gem-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.75rem;
+    display: flex;
+    gap: 0.75rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.gem-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px var(--shadow);
+}
+
+.gem-card img {
+    width: 60px;
+    height: 90px;
+    object-fit: cover;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+.gem-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.gem-info h3 {
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.gem-info .gem-meta {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.gem-rating {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--quality-excellent);
+}
+
 /* Utility classes */
 .hidden {
     display: none !important;
@@ -1039,6 +1313,56 @@ body.light-mode .provider-badge.provider-apple {
         padding: 0.35rem 0.6rem;
         font-size: 0.8rem;
         min-height: 36px;
+    }
+
+    /* Search bar mobile */
+    .search-bar {
+        padding: 0 0.75rem;
+    }
+
+    .search-bar input {
+        font-size: 16px;
+        min-height: 44px;
+    }
+
+    .search-clear {
+        min-height: 44px;
+    }
+
+    /* Genre filter mobile */
+    .genre-filter {
+        gap: 0.3rem;
+        padding: 0 0.75rem;
+    }
+
+    .genre-chip {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.6rem;
+    }
+
+    /* My services mobile */
+    .my-services-panel {
+        margin: 0 0.75rem 1rem;
+    }
+
+    .service-checkbox {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.7rem;
+    }
+
+    /* Hidden gems mobile */
+    .hidden-gems-section {
+        padding: 1rem;
+        margin: 0 0 1.5rem;
+    }
+
+    .gems-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .gem-card img {
+        width: 50px;
+        height: 75px;
     }
 
     /* Archive specific */

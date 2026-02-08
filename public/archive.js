@@ -58,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initRegionFilter();
     loadStats();
+    loadHiddenGems();
     fetchData();
     setupEventListeners();
 });
@@ -187,6 +188,44 @@ async function loadStats() {
         `;
     } catch (err) {
         console.error('Error loading stats:', err);
+    }
+}
+
+// Load hidden gems
+async function loadHiddenGems() {
+    try {
+        const response = await fetch('/api/hidden-gems?limit=8&excludeRegional=true');
+        if (!response.ok) return;
+        const data = await response.json();
+        const gems = data.data || [];
+
+        if (gems.length === 0) return;
+
+        const gemsGrid = document.getElementById('gemsGrid');
+        const gemsSection = document.getElementById('hiddenGemsSection');
+
+        gemsGrid.innerHTML = gems.map(item => {
+            const poster = item.poster_url
+                ? `<img src="${escapeHtml(item.poster_url)}" alt="${escapeHtml(item.title)}" loading="lazy">`
+                : '';
+            const typeIcon = item.type === 'movie' ? '🎬' : '📺';
+            const providers = (item.streaming_providers || []).map(p => PROVIDER_NAMES[p] || p).join(', ');
+            return `
+                <a href="detail.html?id=${item.tmdb_id}&type=${item.type}" class="gem-card">
+                    ${poster}
+                    <div class="gem-info">
+                        <h3>${escapeHtml(item.title)}</h3>
+                        <div class="gem-meta">${typeIcon} ${item.year || ''} ${item.genre ? '| ' + escapeHtml(item.genre) : ''}</div>
+                        ${providers ? `<div class="gem-meta">${escapeHtml(providers)}</div>` : ''}
+                        <div class="gem-rating">${item.avg_rating}%</div>
+                    </div>
+                </a>
+            `;
+        }).join('');
+
+        gemsSection.classList.remove('hidden');
+    } catch (err) {
+        console.error('Error loading hidden gems:', err);
     }
 }
 
@@ -449,7 +488,7 @@ function createTitleCard(item) {
             </div>
             <div class="card-info">
                 <div class="card-title">
-                    <h2>${escapeHtml(item.title || item.title_original)}</h2>
+                    <h2><a href="detail.html?id=${item.tmdb_id}&type=${item.type || 'movie'}" class="title-link">${escapeHtml(item.title || item.title_original)}</a></h2>
                     ${item.title_original && item.title !== item.title_original
                         ? `<div class="original-title">${escapeHtml(item.title_original)}</div>`
                         : ''}

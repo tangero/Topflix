@@ -5,6 +5,7 @@
 
 import { createDatabase } from '../_lib/database.js';
 import { enrichWithOMDbRatings } from '../_lib/omdb.js';
+import { calculateWeightedRating, getQualityTier } from '../_lib/ratings.js';
 
 // Streaming provider IDs and slugs for CZ market
 const PROVIDERS = {
@@ -146,25 +147,6 @@ async function getStreamingNewContent(apiKey, type = 'movie', limit = 100) {
   }
 }
 
-// Calculate quality indicator based on rating
-function getQualityIndicator(rating) {
-  if (!rating) return { quality: 'poor', label: 'Bez hodnocení' };
-
-  const ratingPercent = rating * 10; // Convert 0-10 to 0-100
-
-  if (ratingPercent >= 80) {
-    return { quality: 'excellent', label: 'Výjimečné' };
-  } else if (ratingPercent >= 70) {
-    return { quality: 'good', label: 'Velmi dobré' };
-  } else if (ratingPercent >= 60) {
-    return { quality: 'average', label: 'Průměrné' };
-  } else if (ratingPercent >= 50) {
-    return { quality: 'below-average', label: 'Slabé' };
-  } else {
-    return { quality: 'poor', label: 'Špatné' };
-  }
-}
-
 // Main data fetching
 export async function fetchNetflixNew(apiKey, omdbApiKey) {
   // Fetch both movies and series in parallel from all CZ streaming platforms
@@ -181,28 +163,21 @@ export async function fetchNetflixNew(apiKey, omdbApiKey) {
     ]);
   }
 
-  // Add quality indicators
-  const processedMovies = movies.map(movie => {
-    const { quality, label } = getQualityIndicator(movie.tmdb_rating);
+  // Add quality indicators with weighted average from all sources
+  const processItem = (item) => {
+    const weighted = calculateWeightedRating(item);
+    const avgRating = weighted !== null ? weighted : (item.tmdb_rating ? Math.round(item.tmdb_rating * 10) : null);
+    const quality = getQualityTier(avgRating);
     return {
-      ...movie,
+      ...item,
       quality,
-      quality_label: label,
-      avg_rating: movie.tmdb_rating ? Math.round(movie.tmdb_rating * 10) : null,
-      source: 'netflix_new' // Mark as coming from Netflix New
+      avg_rating: avgRating,
+      source: 'netflix_new'
     };
-  });
+  };
 
-  const processedSeries = series.map(show => {
-    const { quality, label } = getQualityIndicator(show.tmdb_rating);
-    return {
-      ...show,
-      quality,
-      quality_label: label,
-      avg_rating: show.tmdb_rating ? Math.round(show.tmdb_rating * 10) : null,
-      source: 'netflix_new' // Mark as coming from Netflix New
-    };
-  });
+  const processedMovies = movies.map(processItem);
+  const processedSeries = series.map(processItem);
 
   const today = new Date();
 

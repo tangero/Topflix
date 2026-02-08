@@ -40,6 +40,20 @@ let includeInternational = false;
 const PLATFORM_FILTER_KEY = 'topflix_platform_filter';
 let activePlatform = 'all';
 
+// Genre filter
+const GENRE_FILTER_KEY = 'topflix_genre_filter_serials';
+let activeGenre = 'all';
+
+// My services
+const MY_SERVICES_KEY = 'topflix_my_services';
+let myServices = [];
+let myServicesFilterActive = false;
+
+// Search
+let searchQuery = '';
+let searchResults = null;
+let searchDebounceTimer = null;
+
 // Provider display names
 const PROVIDER_NAMES = {
     netflix: 'Netflix',
@@ -74,6 +88,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initTheme();
     initRegionFilter();
     initPlatformFilter();
+    initMyServices();
+    initGenreFilter();
+    initSearch();
     fetchData();
     setupEventListeners();
     setupNewsletterForm();
@@ -103,6 +120,253 @@ function filterByPlatform(items) {
         const providers = item.providers || [];
         return providers.includes(activePlatform);
     });
+}
+
+// My Services management
+function initMyServices() {
+    const saved = localStorage.getItem(MY_SERVICES_KEY);
+    if (saved) {
+        try { myServices = JSON.parse(saved); } catch(e) { myServices = []; }
+    }
+    updateMyServicesUI();
+}
+
+function updateMyServicesUI() {
+    const checkboxes = document.querySelectorAll('.service-checkbox');
+    checkboxes.forEach(label => {
+        const input = label.querySelector('input');
+        const service = label.dataset.service;
+        if (myServices.includes(service)) {
+            input.checked = true;
+            label.classList.add('checked');
+        } else {
+            input.checked = false;
+            label.classList.remove('checked');
+        }
+    });
+
+    const btn = document.getElementById('myServicesBtn');
+    if (btn) {
+        if (myServices.length > 0 && myServicesFilterActive) {
+            btn.classList.add('active');
+            btn.textContent = `Moje služby (${myServices.length})`;
+        } else if (myServices.length > 0) {
+            btn.classList.remove('active');
+            btn.textContent = `Moje služby (${myServices.length})`;
+        } else {
+            btn.classList.remove('active');
+            btn.textContent = 'Moje služby';
+        }
+    }
+}
+
+function filterByMyServices(items) {
+    if (!myServicesFilterActive || myServices.length === 0) return items;
+    return items.filter(item => {
+        const providers = item.providers || [];
+        return providers.some(p => myServices.includes(p));
+    });
+}
+
+// Genre filter management
+function initGenreFilter() {
+    const saved = localStorage.getItem(GENRE_FILTER_KEY);
+    activeGenre = saved || 'all';
+}
+
+function extractGenres(items) {
+    const genreSet = new Set();
+    items.forEach(item => {
+        if (item.genre) {
+            item.genre.split(',').forEach(g => {
+                const trimmed = g.trim();
+                if (trimmed && trimmed !== 'N/A') genreSet.add(trimmed);
+            });
+        }
+    });
+    return Array.from(genreSet).sort();
+}
+
+function renderGenreChips(genres) {
+    const container = document.getElementById('genreFilter');
+    if (!container) return;
+
+    if (genres.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '<button class="genre-chip' + (activeGenre === 'all' ? ' active' : '') + '" data-genre="all">Vše</button>';
+    genres.forEach(genre => {
+        const isActive = activeGenre === genre ? ' active' : '';
+        html += `<button class="genre-chip${isActive}" data-genre="${escapeHtml(genre)}">${escapeHtml(genre)}</button>`;
+    });
+    container.innerHTML = html;
+
+    container.querySelectorAll('.genre-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            activeGenre = chip.dataset.genre;
+            localStorage.setItem(GENRE_FILTER_KEY, activeGenre);
+            container.querySelectorAll('.genre-chip').forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            renderContent();
+        });
+    });
+}
+
+function filterByGenre(items) {
+    if (activeGenre === 'all') return items;
+    return items.filter(item => {
+        if (!item.genre) return false;
+        return item.genre.split(',').some(g => g.trim() === activeGenre);
+    });
+}
+
+// Search functionality
+function initSearch() {
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+
+    if (!searchInput) return;
+
+    searchInput.addEventListener('input', (e) => {
+        const query = e.target.value.trim();
+        clearTimeout(searchDebounceTimer);
+
+        if (query.length === 0) {
+            clearSearch();
+            return;
+        }
+
+        searchClear.classList.remove('hidden');
+
+        if (query.length < 2) return;
+
+        searchDebounceTimer = setTimeout(() => {
+            performSearch(query);
+        }, 300);
+    });
+
+    if (searchClear) {
+        searchClear.addEventListener('click', () => {
+            searchInput.value = '';
+            clearSearch();
+        });
+    }
+}
+
+function clearSearch() {
+    searchQuery = '';
+    searchResults = null;
+    const searchClear = document.getElementById('searchClear');
+    const searchInfo = document.getElementById('searchResultsInfo');
+    if (searchClear) searchClear.classList.add('hidden');
+    if (searchInfo) searchInfo.classList.add('hidden');
+    renderContent();
+}
+
+async function performSearch(query) {
+    searchQuery = query;
+    const searchInfo = document.getElementById('searchResultsInfo');
+
+    try {
+        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}&type=series`);
+        if (!response.ok) throw new Error('Search failed');
+        const data = await response.json();
+
+        searchResults = data.data || [];
+
+        if (searchInfo) {
+            searchInfo.textContent = `Nalezeno ${searchResults.length} výsledků pro "${escapeHtml(query)}"`;
+            searchInfo.classList.remove('hidden');
+        }
+
+        renderSearchResults();
+    } catch (err) {
+        console.error('Search error:', err);
+        searchResults = null;
+        const allItems = getFilteredData();
+        const matched = allItems.filter(item =>
+            (item.title && item.title.toLowerCase().includes(query.toLowerCase())) ||
+            (item.title_original && item.title_original.toLowerCase().includes(query.toLowerCase()))
+        );
+
+        if (searchInfo) {
+            searchInfo.textContent = `Nalezeno ${matched.length} výsledků pro "${escapeHtml(query)}"`;
+            searchInfo.classList.remove('hidden');
+        }
+
+        content.innerHTML = '';
+        if (matched.length === 0) {
+            content.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Nic nenalezeno.</p>';
+        } else {
+            matched.forEach(item => content.appendChild(createTitleCard(item)));
+        }
+    }
+}
+
+function renderSearchResults() {
+    if (!searchResults) return;
+
+    content.innerHTML = '';
+    if (searchResults.length === 0) {
+        content.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Nic nenalezeno.</p>';
+        return;
+    }
+
+    searchResults.forEach(item => {
+        if (!item.quality && item.quality_tier) item.quality = item.quality_tier;
+        if (!item.quality) item.quality = getRatingQuality(item.avg_rating);
+        if (item.streaming_providers && !item.providers) item.providers = item.streaming_providers;
+        content.appendChild(createTitleCard(item));
+    });
+}
+
+// JSON-LD structured data for SEO
+function generateJsonLd(items) {
+    const ldItems = items.slice(0, 20).map(item => {
+        const schema = {
+            '@type': 'TVSeries',
+            'name': item.title || item.title_original,
+            'datePublished': item.year || undefined,
+            'genre': item.genre ? item.genre.split(',').map(g => g.trim()) : undefined,
+            'description': item.description || undefined,
+            'image': item.poster_url || undefined
+        };
+        if (item.avg_rating) {
+            schema.aggregateRating = {
+                '@type': 'AggregateRating',
+                'ratingValue': (item.avg_rating / 10).toFixed(1),
+                'bestRating': '10',
+                'worstRating': '0'
+            };
+        }
+        return schema;
+    });
+
+    return {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        'name': 'Topflix - Nejlepší seriály na streamovacích platformách',
+        'itemListElement': ldItems.map((item, i) => ({
+            '@type': 'ListItem',
+            'position': i + 1,
+            'item': item
+        }))
+    };
+}
+
+function injectJsonLd(items) {
+    const existing = document.getElementById('topflix-jsonld');
+    if (existing) existing.remove();
+
+    if (!items || items.length === 0) return;
+
+    const script = document.createElement('script');
+    script.type = 'application/ld+json';
+    script.id = 'topflix-jsonld';
+    script.textContent = JSON.stringify(generateJsonLd(items));
+    document.head.appendChild(script);
 }
 
 // Theme management with auto mode based on sunrise/sunset in Prague
@@ -319,6 +583,39 @@ function setupEventListeners() {
             renderContent();
         });
     });
+
+    // My Services toggle
+    const myServicesBtn = document.getElementById('myServicesBtn');
+    const myServicesPanel = document.getElementById('myServicesPanel');
+    if (myServicesBtn && myServicesPanel) {
+        myServicesBtn.addEventListener('click', () => {
+            if (myServicesPanel.classList.contains('hidden')) {
+                myServicesPanel.classList.remove('hidden');
+            } else if (myServices.length > 0) {
+                myServicesFilterActive = !myServicesFilterActive;
+                updateMyServicesUI();
+                renderContent();
+            } else {
+                myServicesPanel.classList.add('hidden');
+            }
+        });
+
+        myServicesPanel.querySelectorAll('.service-checkbox').forEach(label => {
+            label.addEventListener('click', (e) => {
+                e.preventDefault();
+                const input = label.querySelector('input');
+                const service = input.value;
+                if (myServices.includes(service)) {
+                    myServices = myServices.filter(s => s !== service);
+                } else {
+                    myServices.push(service);
+                }
+                localStorage.setItem(MY_SERVICES_KEY, JSON.stringify(myServices));
+                updateMyServicesUI();
+                if (myServicesFilterActive) renderContent();
+            });
+        });
+    }
 }
 
 // Update sort options based on section
@@ -527,10 +824,20 @@ function displayData() {
 
 // Render content based on filters and sort
 function renderContent() {
+    if (searchQuery && searchResults) {
+        renderSearchResults();
+        return;
+    }
+
     const filteredData = getFilteredData();
     const platformFiltered = filterByPlatform(filteredData);
-    const regionFiltered = filterByRegion(platformFiltered);
+    const servicesFiltered = filterByMyServices(platformFiltered);
+    const genreFiltered = filterByGenre(servicesFiltered);
+    const regionFiltered = filterByRegion(genreFiltered);
     const sortedData = getSortedData(regionFiltered);
+
+    const genresFromData = extractGenres(filterByPlatform(getFilteredData()));
+    renderGenreChips(genresFromData);
 
     content.innerHTML = '';
 
@@ -542,6 +849,8 @@ function renderContent() {
     sortedData.forEach(item => {
         content.appendChild(createTitleCard(item));
     });
+
+    injectJsonLd(sortedData);
 }
 
 // Get filtered data - Series only for this page
@@ -671,7 +980,7 @@ function createTitleCard(item) {
             </div>
             <div class="card-info">
                 <div class="card-title">
-                    <h2>${escapeHtml(item.title || item.title_original)}</h2>
+                    <h2><a href="detail.html?id=${item.tmdb_id}&type=${item.type || 'series'}" class="title-link">${escapeHtml(item.title || item.title_original)}</a></h2>
                     ${item.title_original && item.title !== item.title_original
                         ? `<div class="original-title">${escapeHtml(item.title_original)}</div>`
                         : ''}

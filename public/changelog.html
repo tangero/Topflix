@@ -177,12 +177,42 @@
                 <p>Historie všech změn a aktualizací</p>
             </div>
 
+            <!-- Version 1.7.0 -->
+            <div class="version-section">
+                <div class="version-header">
+                    <span class="version-number">v1.7.0</span>
+                    <span class="version-date">8. února 2026</span>
+                    <span class="badge latest">Aktuální</span>
+                </div>
+
+                <div class="change-category added">
+                    <h3>Přidáno</h3>
+                    <ul class="change-list">
+                        <li>Vyhledávání podle názvu: search bar s debounce na stránkách filmů a seriálů, API endpoint /api/search</li>
+                        <li>Vážený avg_rating z více zdrojů: TMDB 30% + IMDb 30% + RT 25% + MC 15%</li>
+                        <li>Žánrový filtr: dynamické genre chips s localStorage persistencí</li>
+                        <li>Hidden Gems sekce: výjimečně hodnocené tituly (80%+) s nízkým počtem výskytů</li>
+                        <li>Detail stránka: vlastní stránka pro každý titul s kompletními hodnoceními, historií a podobnými tituly</li>
+                        <li>JSON-LD strukturovaná data (Schema.org) pro SEO na všech stránkách</li>
+                        <li>"Moje služby" preference: výběr předplacených platforem s auto-filtrováním obsahu</li>
+                    </ul>
+                </div>
+
+                <div class="change-category changed">
+                    <h3>Změněno</h3>
+                    <ul class="change-list">
+                        <li>avg_rating se počítá jako vážený průměr ze všech dostupných zdrojů (dříve jen TMDB)</li>
+                        <li>Názvy titulů na kartách jsou klikatelné odkazy na detail stránku</li>
+                        <li>Hidden Gems sekce přidána na archivní stránku</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- Version 1.6.0 -->
             <div class="version-section">
                 <div class="version-header">
                     <span class="version-number">v1.6.0</span>
                     <span class="version-date">8. února 2026</span>
-                    <span class="badge latest">Aktuální</span>
                 </div>
 
                 <div class="change-category added">
@@ -529,7 +559,7 @@
                 <a href="https://top10.netflix.com" target="_blank" rel="noopener">Netflix Top 10</a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.6.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.7.0</a>
             </p>
         </footer>
     </div>

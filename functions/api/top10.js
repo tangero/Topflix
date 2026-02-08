@@ -5,6 +5,7 @@
 
 import { createDatabase } from '../_lib/database.js';
 import { enrichWithOMDbRatings } from '../_lib/omdb.js';
+import { calculateWeightedRating, getQualityTier } from '../_lib/ratings.js';
 
 // Streaming provider IDs and slugs for CZ market
 const PROVIDERS = {
@@ -230,17 +231,13 @@ async function enrichTitle(title, rank, type, apiKey) {
     };
   }
 
-  // Calculate rating (TMDB only, converted to 0-100 scale)
+  // Calculate weighted rating from all available sources
+  // Initial avg_rating from TMDB only (OMDb enrichment happens later in fetchAndEnrichData)
   const avgRating = tmdbData.tmdb_rating
     ? Math.round(tmdbData.tmdb_rating * 10)
     : null;
 
-  // Quality indicator based on rating
-  let quality = 'poor';
-  if (avgRating >= 80) quality = 'excellent';
-  else if (avgRating >= 70) quality = 'good';
-  else if (avgRating >= 60) quality = 'average';
-  else if (avgRating >= 50) quality = 'below-average';
+  const quality = getQualityTier(avgRating);
 
   // Build result object
   const result = {
@@ -300,6 +297,18 @@ export async function fetchAndEnrichData(apiKey, omdbApiKey) {
       enrichWithOMDbRatings(enrichedSeries, omdbApiKey)
     ]);
   }
+
+  // Recalculate weighted average rating from all available sources
+  const recalculate = (items) => items.map(item => {
+    const weighted = calculateWeightedRating(item);
+    if (weighted !== null) {
+      item.avg_rating = weighted;
+      item.quality = getQualityTier(weighted);
+    }
+    return item;
+  });
+  enrichedMovies = recalculate(enrichedMovies);
+  enrichedSeries = recalculate(enrichedSeries);
 
   const today = new Date();
   const nextTuesday = new Date(today);

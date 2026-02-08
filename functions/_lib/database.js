@@ -452,6 +452,181 @@ export class TopflixDatabase {
     }
   }
 
+  /**
+   * Search content by title (Czech or original)
+   * @param {string} query - Search query
+   * @param {Object} options - Query options
+   * @returns {Promise<Array>} Matching content items
+   */
+  async searchContent(query, options = {}) {
+    const { limit = 50, type = null } = options;
+
+    if (!query || query.trim().length < 2) return [];
+
+    const searchTerm = `%${query.trim()}%`;
+
+    let sql = `
+      SELECT tmdb_id, type, title, title_original, year, genre,
+             avg_rating, tmdb_rating, quality_tier, poster_url, description,
+             runtime, number_of_seasons, number_of_episodes,
+             origin_country, is_regional, first_seen, last_seen,
+             appearances, last_rank, last_source, tmdb_url,
+             imdb_id, imdb_rating, rotten_tomatoes_rating,
+             metacritic_rating, streaming_providers
+      FROM content
+      WHERE (title LIKE ?1 OR title_original LIKE ?1)
+    `;
+    const params = [searchTerm];
+
+    if (type) {
+      sql += ' AND type = ?2';
+      params.push(type);
+    }
+
+    sql += ' ORDER BY avg_rating DESC NULLS LAST';
+    sql += ` LIMIT ?${params.length + 1}`;
+    params.push(limit);
+
+    try {
+      const result = await this.db.prepare(sql).bind(...params).all();
+      return this._parseContentResults(result.results || []);
+    } catch (error) {
+      console.error('Failed to search content:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get hidden gems: high rating but low appearances
+   * @param {Object} options - Query options
+   * @returns {Promise<Array>} Hidden gem content items
+   */
+  async getHiddenGems(options = {}) {
+    const {
+      limit = 30,
+      type = null,
+      minRating = 80,
+      maxAppearances = 2,
+      excludeRegional = false
+    } = options;
+
+    const cacheKey = `gems:${type}:${minRating}:${maxAppearances}:${excludeRegional}:${limit}`;
+    const cached = await this._getFromCache(cacheKey);
+    if (cached) return cached;
+
+    let query = `
+      SELECT tmdb_id, type, title, title_original, year, genre,
+             avg_rating, tmdb_rating, quality_tier, poster_url, description,
+             runtime, number_of_seasons, number_of_episodes,
+             origin_country, is_regional, first_seen, last_seen,
+             appearances, last_rank, last_source, tmdb_url,
+             imdb_id, imdb_rating, rotten_tomatoes_rating,
+             metacritic_rating, streaming_providers
+      FROM content
+      WHERE avg_rating >= ?1 AND appearances <= ?2
+    `;
+    const params = [minRating, maxAppearances];
+
+    if (type) {
+      query += ` AND type = ?${params.length + 1}`;
+      params.push(type);
+    }
+
+    if (excludeRegional) {
+      query += ' AND is_regional = 0';
+    }
+
+    query += ' ORDER BY avg_rating DESC, first_seen DESC';
+    query += ` LIMIT ?${params.length + 1}`;
+    params.push(limit);
+
+    try {
+      const result = await this.db.prepare(query).bind(...params).all();
+      const items = this._parseContentResults(result.results || []);
+
+      await this._setCache(cacheKey, items, 3600);
+      return items;
+    } catch (error) {
+      console.error('Failed to get hidden gems:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get content by TMDB ID with all columns including new rating fields
+   * @param {number} tmdbId - TMDB ID
+   * @param {string} type - 'movie' or 'series'
+   * @returns {Promise<Object|null>} Content item or null
+   */
+  async getContentByIdFull(tmdbId, type) {
+    const cacheKey = `content_full:${tmdbId}:${type}`;
+    const cached = await this._getFromCache(cacheKey);
+    if (cached) return cached;
+
+    try {
+      const result = await this.db
+        .prepare(`SELECT tmdb_id, type, title, title_original, year, genre,
+             avg_rating, tmdb_rating, csfd_rating, quality_tier, poster_url, description,
+             runtime, number_of_seasons, number_of_episodes,
+             origin_country, is_regional, first_seen, last_seen,
+             appearances, last_rank, last_source, tmdb_url,
+             imdb_id, imdb_rating, rotten_tomatoes_rating,
+             metacritic_rating, streaming_providers
+      FROM content WHERE tmdb_id = ?1 AND type = ?2`)
+        .bind(tmdbId, type)
+        .first();
+
+      if (!result) return null;
+
+      const item = this._parseContentItem(result);
+
+      await this._setCache(cacheKey, item, 3600);
+      return item;
+    } catch (error) {
+      console.error('Failed to get content by ID:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get similar content (same genre, similar rating)
+   * @param {Object} item - Reference content item
+   * @param {number} limit - Max results
+   * @returns {Promise<Array>} Similar content items
+   */
+  async getSimilarContent(item, limit = 6) {
+    if (!item || !item.genre) return [];
+
+    const primaryGenre = item.genre.split(',')[0].trim();
+
+    try {
+      const result = await this.db
+        .prepare(`
+          SELECT tmdb_id, type, title, title_original, year, genre,
+                 avg_rating, tmdb_rating, quality_tier, poster_url, description,
+                 runtime, number_of_seasons, number_of_episodes,
+                 origin_country, is_regional, first_seen, last_seen,
+                 appearances, last_rank, last_source, tmdb_url,
+                 imdb_id, imdb_rating, rotten_tomatoes_rating,
+                 metacritic_rating, streaming_providers
+          FROM content
+          WHERE genre LIKE ?1
+            AND tmdb_id != ?2
+            AND type = ?3
+            AND avg_rating IS NOT NULL
+          ORDER BY ABS(avg_rating - ?4), appearances DESC
+          LIMIT ?5
+        `)
+        .bind(`%${primaryGenre}%`, item.tmdb_id, item.type, item.avg_rating || 70, limit)
+        .all();
+
+      return this._parseContentResults(result.results || []);
+    } catch (error) {
+      console.error('Failed to get similar content:', error);
+      return [];
+    }
+  }
+
   // ============================================
   // PRIVATE HELPER METHODS
   // ============================================

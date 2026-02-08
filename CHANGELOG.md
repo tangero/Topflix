@@ -5,6 +5,26 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-02-08
+
+### Added
+- Vyhledávání podle názvu: search bar s debounce na stránkách filmů a seriálů, API endpoint /api/search s fulltext vyhledáváním v D1
+- Vážený avg_rating z více zdrojů: TMDB 30% + IMDb 30% + RT 25% + MC 15% (sdílená utilita functions/_lib/ratings.js)
+- Žánrový filtr: dynamické genre chips na stránkách filmů a seriálů s localStorage persistencí
+- Hidden Gems sekce: výjimečně hodnocené tituly (80%+) s nízkým počtem výskytů, API endpoint /api/hidden-gems
+- Detail stránka: vlastní stránka detail.html pro každý titul s kompletními hodnoceními, historií v Top 10, podobnými tituly, share tlačítkem a SEO meta tagy
+- JSON-LD strukturovaná data (Schema.org Movie/TVSeries/ItemList) pro SEO na všech stránkách
+- "Moje služby" preference: uživatel vybere platformy které předplácí, auto-filtrování obsahu, localStorage persistence
+- API endpoint /api/detail pro detailní informace o titulu včetně historie a podobných titulů
+- Database metody: searchContent, getHiddenGems, getContentByIdFull, getSimilarContent
+
+### Changed
+- avg_rating se nyní počítá jako vážený průměr ze všech dostupných zdrojů (dříve jen TMDB)
+- Názvy titulů na kartách jsou nyní klikatelné odkazy na detail stránku
+- Přidány search bar, genre filter a moje služby UI do index.html a serials.html
+- Hidden Gems sekce přidána na archive stránku
+- Funkce getQualityIndicator v netflix-new.js nahrazena sdílenou getQualityTier z ratings.js
+
 ## [1.6.0] - 2026-02-08
 
 ### Added

@@ -58,6 +58,31 @@
             <button class="tab-btn" data-section="new">🆕 Nově na streamech</button>
         </div>
 
+        <!-- Search Bar -->
+        <div class="search-bar">
+            <input type="text" id="searchInput" placeholder="Hledat seriál podle názvu..." autocomplete="off">
+            <button class="search-clear hidden" id="searchClear" aria-label="Zrušit hledání">✕</button>
+        </div>
+        <div id="searchResultsInfo" class="search-results-info hidden"></div>
+
+        <!-- My Services Toggle -->
+        <div class="my-services-toggle">
+            <button class="my-services-btn" id="myServicesBtn">Moje služby</button>
+        </div>
+
+        <!-- My Services Panel (hidden by default) -->
+        <div class="my-services-panel hidden" id="myServicesPanel">
+            <h3>Vyberte platformy, které předplácíte:</h3>
+            <div class="services-grid">
+                <label class="service-checkbox" data-service="netflix"><input type="checkbox" value="netflix">Netflix</label>
+                <label class="service-checkbox" data-service="disney"><input type="checkbox" value="disney">Disney+</label>
+                <label class="service-checkbox" data-service="max"><input type="checkbox" value="max">Max</label>
+                <label class="service-checkbox" data-service="apple"><input type="checkbox" value="apple">Apple TV+</label>
+                <label class="service-checkbox" data-service="prime"><input type="checkbox" value="prime">Prime Video</label>
+                <label class="service-checkbox" data-service="skyshowtime"><input type="checkbox" value="skyshowtime">SkyShowtime</label>
+            </div>
+        </div>
+
         <!-- Platform Filter -->
         <div class="platform-filter">
             <button class="platform-chip active" data-provider="all">Vše</button>
@@ -68,6 +93,9 @@
             <button class="platform-chip" data-provider="prime">Prime</button>
             <button class="platform-chip" data-provider="skyshowtime">SkyShowtime</button>
         </div>
+
+        <!-- Genre Filter -->
+        <div class="genre-filter" id="genreFilter"></div>
 
         <!-- Controls -->
         <div class="controls">
@@ -148,7 +176,7 @@
                 </a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.6.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.7.0</a>
             </p>
         </footer>
     </div>
