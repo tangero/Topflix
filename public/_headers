@@ -3,4 +3,4 @@
   X-Frame-Options: DENY
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=()
-  Content-Security-Policy: default-src 'self'; img-src 'self' https://image.tmdb.org; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.themoviedb.org; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; img-src 'self' https://image.tmdb.org; script-src 'self' https://static.getclicky.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https://api.themoviedb.org https://in.getclicky.com; frame-ancestors 'none'
