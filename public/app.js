@@ -866,7 +866,8 @@ function renderContent() {
 // Get filtered data - Movies only for this page
 function getFilteredData() {
     const sectionData = allData[currentSection];
-    return sectionData.movies || [];
+    const items = sectionData.movies || [];
+    return items.filter(item => item.description && item.description !== 'Popis není k dispozici');
 }
 
 // Get sorted data

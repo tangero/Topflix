@@ -856,7 +856,8 @@ function renderContent() {
 // Get filtered data - Series only for this page
 function getFilteredData() {
     const sectionData = allData[currentSection];
-    return sectionData.series || [];
+    const items = sectionData.series || [];
+    return items.filter(item => item.description && item.description !== 'Popis není k dispozici');
 }
 
 // Get sorted data
