@@ -4,6 +4,7 @@
 name = "topflix-newsletter-cron"
 main = "newsletter-cron.js"
 compatibility_date = "2024-01-01"
+preview_urls = false
 
 # Cron Trigger - Every Tuesday at 15:00 UTC (16:00 CET / 17:00 CEST)
 # Cloudflare weekdays: 1 = Sunday, so 3 = Tuesday.
