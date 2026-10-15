@@ -66,7 +66,9 @@ TMDB_API_KEY = (už máš nastavené)
 Cloudflare Pages nepodporují cron triggers přímo, proto byl vytvořen samostatný **Cloudflare Worker** který:
 - Běží na: `https://topflix-newsletter-cron.zandl.workers.dev`
 - Spouští se každou středu v 15:00 UTC (cron: `0 15 * * 3`)
-- Volá endpoint: `https://www.topflix.cz/api/newsletter-send`
+- Volá endpoint: `https://www.topflix.cz/api/newsletter-send` s `Authorization: Bearer <ADMIN_API_KEY>`
+
+Worker potřebuje secret `ADMIN_API_KEY` se stejnou hodnotou jako Pages projekt (`cd workers && npx wrangler secret put ADMIN_API_KEY`). Bez něj endpoint vrátí 401.
 
 **Worker je již deploynutý a aktivní!**
 
@@ -137,7 +139,8 @@ Na zadaný email přijde testovací newsletter.
 Pro okamžité odeslání newsletteru všem subscriber-ům:
 
 ```bash
-curl -X POST https://www.topflix.cz/api/newsletter-send
+curl -X POST https://www.topflix.cz/api/newsletter-send \
+  -H "Authorization: Bearer $ADMIN_API_KEY"
 ```
 
 **POZOR:** Toto odešle newsletter VŠEM subscriber-ům! Používej opatrně.

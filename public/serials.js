@@ -91,10 +91,28 @@ document.addEventListener('DOMContentLoaded', () => {
     initMyServices();
     initGenreFilter();
     initSearch();
+    initFilterDisclosure();
     fetchData();
     setupEventListeners();
     setupNewsletterForm();
 });
+
+function cardOptions(extra = {}) {
+    return {
+        preferredProviders: myServices,
+        defaultType: 'series',
+        ...extra
+    };
+}
+
+function syncFilterStatus() {
+    const parts = [];
+    if (activePlatform !== 'all') parts.push(PROVIDER_NAMES[activePlatform] || activePlatform);
+    if (activeGenre !== 'all') parts.push(activeGenre);
+    if (currentSort === 'recommended') parts.push('jen nad 70 %');
+    else if (currentSort === 'rating') parts.push('podle hodnocení');
+    updateFilterStatus(parts);
+}
 
 // Platform filter management
 function initPlatformFilter() {
@@ -300,7 +318,7 @@ async function performSearch(query) {
         if (matched.length === 0) {
             content.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Nic nenalezeno.</p>';
         } else {
-            matched.forEach(item => content.appendChild(createTitleCard(item)));
+            matched.forEach(item => content.appendChild(createTitleCard(item, cardOptions())));
         }
     }
 }
@@ -318,7 +336,7 @@ function renderSearchResults() {
         if (!item.quality && item.quality_tier) item.quality = item.quality_tier;
         if (!item.quality) item.quality = getRatingQuality(item.avg_rating);
         if (item.streaming_providers && !item.providers) item.providers = item.streaming_providers;
-        content.appendChild(createTitleCard(item));
+        content.appendChild(createTitleCard(item, cardOptions()));
     });
 }
 
@@ -824,6 +842,8 @@ function displayData() {
 
 // Render content based on filters and sort
 function renderContent() {
+    syncFilterStatus();
+
     if (searchQuery && searchResults) {
         renderSearchResults();
         return;
@@ -842,12 +862,12 @@ function renderContent() {
     content.innerHTML = '';
 
     if (sortedData.length === 0) {
-        content.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Žádné tituly k zobrazení.</p>';
+        content.innerHTML = '<p class="empty-note">Žádné tituly k zobrazení.</p>';
         return;
     }
 
     sortedData.forEach(item => {
-        content.appendChild(createTitleCard(item));
+        content.appendChild(createTitleCard(item, cardOptions()));
     });
 
     injectJsonLd(sortedData);
@@ -857,7 +877,7 @@ function renderContent() {
 function getFilteredData() {
     const sectionData = allData[currentSection];
     const items = sectionData.series || [];
-    return items.filter(item => item.description && item.description !== 'Popis není k dispozici');
+    return items.filter(item => item.title || item.title_original);
 }
 
 // Get sorted data
@@ -888,153 +908,6 @@ function getRatingQuality(rating) {
     if (rating >= 60) return 'average';
     if (rating >= 50) return 'below-average';
     return 'poor';
-}
-
-// Helper: Format runtime (minutes to hours and minutes)
-function formatRuntime(minutes) {
-    if (!minutes) return null;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0 && mins > 0) return `${hours}h ${mins}min`;
-    if (hours > 0) return `${hours}h`;
-    return `${mins}min`;
-}
-
-// Create title card element
-function createTitleCard(item) {
-    const card = document.createElement('div');
-    card.className = `title-card quality-${item.quality}`;
-
-    // Poster
-    const posterHTML = item.poster_url
-        ? `<img src="${escapeHtml(item.poster_url)}" alt="${escapeHtml(item.title)}" loading="lazy">`
-        : '<div class="no-poster">🎬</div>';
-
-    // Rating badge with quality indicator
-    let qualityText = '❌';
-    let qualityClass = 'poor';
-    if (item.avg_rating >= 80) {
-        qualityText = '💣';
-        qualityClass = 'excellent';
-    } else if (item.avg_rating >= 70) {
-        qualityText = '✅';
-        qualityClass = 'good';
-    } else if (item.avg_rating >= 60) {
-        qualityText = '👍';
-        qualityClass = 'average';
-    } else if (item.avg_rating >= 50) {
-        qualityText = '⚠️';
-        qualityClass = 'below-average';
-    }
-
-    const ratingBadge = item.avg_rating
-        ? `<div class="rating-badge rating-${qualityClass}">
-            ${item.avg_rating}% ${qualityText}
-           </div>`
-        : '';
-
-    // Build metadata line
-    const metaParts = [];
-
-    // Origin country or production countries
-    if (item.origin_country && item.origin_country.length > 0) {
-        metaParts.push(`🌍 ${item.origin_country.join(', ')}`);
-    } else if (item.countries && item.countries.length > 0) {
-        metaParts.push(`🌍 ${item.countries.join(', ')}`);
-    }
-
-    // Year
-    if (item.year) {
-        metaParts.push(`📅 ${item.year}`);
-    }
-
-    // Seasons and episodes for series
-    const seasonInfo = [];
-    if (item.number_of_seasons) {
-        const seasonLabel = item.number_of_seasons === 1 ? 'řada' :
-                           item.number_of_seasons <= 4 ? 'řady' : 'řad';
-        seasonInfo.push(`${item.number_of_seasons} ${seasonLabel}`);
-    }
-    if (item.number_of_episodes) {
-        seasonInfo.push(`${item.number_of_episodes} epizod`);
-    }
-    if (seasonInfo.length > 0) {
-        metaParts.push(`📺 ${seasonInfo.join(', ')}`);
-    }
-
-    // Genre
-    if (item.genre) {
-        metaParts.push(`🎭 ${escapeHtml(item.genre)}`);
-    }
-
-    // Provider badges
-    const providerBadgesHTML = buildProviderBadges(item.providers);
-
-    // Multi-source ratings
-    const multiRatingsHTML = buildMultiRatings(item);
-
-    card.innerHTML = `
-        <div class="card-content">
-            <div class="card-poster">
-                ${posterHTML}
-                ${ratingBadge}
-            </div>
-            <div class="card-info">
-                <div class="card-title">
-                    <h2><a href="detail.html?id=${item.tmdb_id}&type=${item.type || 'series'}" class="title-link">${escapeHtml(item.title || item.title_original)}</a></h2>
-                    ${item.title_original && item.title !== item.title_original
-                        ? `<div class="original-title">${escapeHtml(item.title_original)}</div>`
-                        : ''}
-                </div>
-                ${providerBadgesHTML}
-                ${multiRatingsHTML}
-                <div class="meta">
-                    ${metaParts.join(' • ')}
-                </div>
-                ${item.description
-                    ? `<div class="description">${escapeHtml(item.description)}</div>`
-                    : ''}
-            </div>
-        </div>
-    `;
-
-    // Toggle expanded description on click
-    card.addEventListener('click', () => {
-        card.classList.toggle('card-expanded');
-    });
-
-    return card;
-}
-
-// Build provider badge HTML
-function buildProviderBadges(providers) {
-    if (!providers || providers.length === 0) return '';
-    const badges = providers.map(p => {
-        const name = PROVIDER_NAMES[p] || p;
-        return `<span class="provider-badge provider-${escapeHtml(p)}">${escapeHtml(name)}</span>`;
-    }).join('');
-    return `<div class="provider-badges">${badges}</div>`;
-}
-
-// Build multi-source rating HTML
-function buildMultiRatings(item) {
-    const parts = [];
-
-    if (item.tmdb_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">TMDB</span> <span class="rating-value">${item.tmdb_rating}</span></span>`);
-    }
-    if (item.imdb_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">IMDb</span> <span class="rating-value">${item.imdb_rating}</span></span>`);
-    }
-    if (item.rotten_tomatoes_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">RT</span> <span class="rating-value">${item.rotten_tomatoes_rating}%</span></span>`);
-    }
-    if (item.metacritic_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">MC</span> <span class="rating-value">${item.metacritic_rating}</span></span>`);
-    }
-
-    if (parts.length <= 1) return '';
-    return `<div class="multi-ratings">${parts.join('<span class="rating-divider">|</span>')}</div>`;
 }
 
 // Format date

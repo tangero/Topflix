@@ -5,6 +5,21 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-10-15
+
+### Added
+- Výběr Dnes večer na úvodu: až šest filmů a seriálů nad 70 %, mix toho, co teď táhne Netflix, a novějších titulů
+- Tlačítko se službou u každého řádku otevře hledání titulu na té službě
+
+### Changed
+- Seznam filmů a seriálů používá krátký řádek místo velké karty s popisem a čtyřmi hodnoceními
+- Filtry, hledání a moje služby jsou sbalené, na telefonu je první obrazovka samotný výběr
+- Když se divácké a kritické skóre rozejde aspoň o 15 bodů, řádek ukáže obě čísla
+
+### Fixed
+- Týdenní newsletter se po sestavení rovnou odešle odběratelům, nečeká jako koncept v Resendu
+- Cron se k odeslání přihlásí stejným admin klíčem jako ostatní chráněné endpointy
+
 ## [1.7.0] - 2026-02-08
 
 ### Added

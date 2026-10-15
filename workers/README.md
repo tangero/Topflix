@@ -27,7 +27,7 @@ Email všem subscriber-ům
 ## Co dělá tento Worker?
 
 1. Spouští se každou středu v 15:00 UTC (16:00 CET / 17:00 CEST)
-2. Volá POST request na `https://www.topflix.cz/api/newsletter-send`
+2. Volá POST request na `https://www.topflix.cz/api/newsletter-send` s hlavičkou `Authorization: Bearer`
 3. Loguje výsledek do Cloudflare Logs
 
 ## Deployment
@@ -55,7 +55,12 @@ Cron expression je nastaven v `wrangler.toml`:
 crons = ["0 15 * * 3"]
 ```
 
-**Poznámka:** Žádné environment variables nejsou potřeba - Worker jen volá endpoint, veškerá logika a credentials jsou v Pages Functions.
+**Poznámka:** Worker potřebuje secret `ADMIN_API_KEY` se stejnou hodnotou jako Pages projekt. Bez něj endpoint vrátí 401 a mail se neodešle.
+
+```bash
+cd workers
+npx wrangler secret put ADMIN_API_KEY
+```
 
 ## Testing
 

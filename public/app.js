@@ -54,6 +54,15 @@ let searchQuery = '';
 let searchResults = null; // null = not searching, array = search results
 let searchDebounceTimer = null;
 
+let tonightSettled = { top10: false, new: false };
+let tonightIgnoreServices = false;
+let sectionLoading = { top10: false, new: false };
+
+const REGIONAL_ORIGINS = new Set([
+    'JP', 'KR', 'CN', 'TW', 'HK', 'TH', 'IN', 'ID', 'PH', 'VN', 'SG', 'MY',
+    'MX', 'BR', 'AR', 'CL', 'CO', 'PE', 'VE', 'EC', 'BO', 'UY', 'PY'
+]);
+
 // Provider display names
 const PROVIDER_NAMES = {
     netflix: 'Netflix',
@@ -91,10 +100,24 @@ document.addEventListener('DOMContentLoaded', () => {
     initMyServices();
     initGenreFilter();
     initSearch();
-    fetchData();
+    initFilterDisclosure();
+    loadHome();
     setupEventListeners();
     setupNewsletterForm();
 });
+
+function cardOptions(extra = {}) {
+    return {
+        preferredProviders: myServices,
+        defaultType: 'movie',
+        ...extra
+    };
+}
+
+function isRegionalOrigin(item) {
+    const origins = item.origin_country || [];
+    return origins.some((country) => REGIONAL_ORIGINS.has(country));
+}
 
 // Platform filter management
 function initPlatformFilter() {
@@ -301,7 +324,7 @@ async function performSearch(query) {
         if (matched.length === 0) {
             content.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Nic nenalezeno.</p>';
         } else {
-            matched.forEach(item => content.appendChild(createTitleCard(item)));
+            matched.forEach(item => content.appendChild(createTitleCard(item, cardOptions())));
         }
     }
 }
@@ -320,7 +343,7 @@ function renderSearchResults() {
         if (!item.quality && item.quality_tier) item.quality = item.quality_tier;
         if (!item.quality) item.quality = getRatingQuality(item.avg_rating);
         if (item.streaming_providers && !item.providers) item.providers = item.streaming_providers;
-        content.appendChild(createTitleCard(item));
+        content.appendChild(createTitleCard(item, cardOptions()));
     });
 }
 
@@ -519,18 +542,7 @@ function filterByRegion(items) {
         return items;
     }
 
-    // Asian countries
-    const asianCountries = ['JP', 'KR', 'CN', 'TW', 'HK', 'TH', 'IN', 'ID', 'PH', 'VN', 'SG', 'MY'];
-    // Latin American countries
-    const latinCountries = ['MX', 'BR', 'AR', 'CL', 'CO', 'PE', 'VE', 'EC', 'BO', 'UY', 'PY'];
-
-    const filtered = items.filter(item => {
-        const origins = item.origin_country || [];
-        // Keep item if it doesn't have any Asian or Latin American country
-        return !origins.some(country =>
-            asianCountries.includes(country) || latinCountries.includes(country)
-        );
-    });
+    const filtered = items.filter(item => !isRegionalOrigin(item));
 
     // Update feedback
     const hiddenCount = items.length - filtered.length;
@@ -563,9 +575,9 @@ function setupEventListeners() {
             updateSortOptions();
 
             // Load data for the section if not already loaded
-            if (currentSection === 'new' && allData.new.movies.length === 0) {
+            if (currentSection === 'new' && allData.new.movies.length === 0 && allData.new.series.length === 0 && !sectionLoading.new) {
                 fetchData('new');
-            } else {
+            } else if (!sectionLoading[currentSection]) {
                 displayData();
             }
         });
@@ -616,7 +628,9 @@ function setupEventListeners() {
                     myServices.push(service);
                 }
                 localStorage.setItem(MY_SERVICES_KEY, JSON.stringify(myServices));
+                tonightIgnoreServices = false;
                 updateMyServicesUI();
+                renderTonight();
                 if (myServicesFilterActive) renderContent();
             });
         });
@@ -643,13 +657,26 @@ function updateSortOptions() {
     sortSelect.value = currentSort;
 }
 
+function loadHome() {
+    return Promise.all([
+        fetchData('top10'),
+        fetchData('new', { silent: true })
+    ]);
+}
+
 // Fetch data from API
-async function fetchData(section = 'top10') {
+async function fetchData(section = 'top10', options = {}) {
+    const silent = !!options.silent;
+    if (sectionLoading[section]) return;
+    sectionLoading[section] = true;
+
     try {
-        loading.classList.remove('hidden');
-        error.classList.add('hidden');
-        content.classList.add('hidden');
-        updateInfo.classList.add('hidden');
+        if (!silent) {
+            loading.classList.remove('hidden');
+            error.classList.add('hidden');
+            content.classList.add('hidden');
+            updateInfo.classList.add('hidden');
+        }
 
         const endpoint = API_ENDPOINTS[section];
         const cacheKey = `topflix_data_${section}`;
@@ -660,7 +687,9 @@ async function fetchData(section = 'top10') {
             // Sanitize cached data too (in case old invalid data is cached)
             const sanitized = sanitizeData(cachedData);
             allData[section] = sanitized;
-            displayData();
+            tonightSettled[section] = true;
+            if (section === currentSection) displayData();
+            else renderTonight();
             return;
         }
 
@@ -699,15 +728,25 @@ async function fetchData(section = 'top10') {
         // Sanitize data - remove invalid ČSFD ratings (< 10%)
         const sanitized = sanitizeData(data);
         allData[section] = sanitized;
+        tonightSettled[section] = true;
 
         // Cache the data
         cacheData(data, cacheKey);
 
-        displayData();
+        if (section === currentSection) displayData();
+        else renderTonight();
     } catch (err) {
         console.error('Error fetching data:', err);
+        tonightSettled[section] = true;
+        if (silent) {
+            renderTonight();
+            return;
+        }
         loading.classList.add('hidden');
         error.classList.remove('hidden');
+        renderTonight();
+    } finally {
+        sectionLoading[section] = false;
     }
 }
 
@@ -831,6 +870,9 @@ function displayData() {
 
 // Render content based on filters and sort
 function renderContent() {
+    renderTonight();
+    syncFilterStatus();
+
     // If search is active, show search results
     if (searchQuery && searchResults) {
         renderSearchResults();
@@ -851,12 +893,12 @@ function renderContent() {
     content.innerHTML = '';
 
     if (sortedData.length === 0) {
-        content.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Žádné tituly k zobrazení.</p>';
+        content.innerHTML = '<p class="empty-note">Žádné tituly k zobrazení.</p>';
         return;
     }
 
     sortedData.forEach(item => {
-        content.appendChild(createTitleCard(item));
+        content.appendChild(createTitleCard(item, cardOptions()));
     });
 
     // Inject JSON-LD structured data
@@ -867,7 +909,221 @@ function renderContent() {
 function getFilteredData() {
     const sectionData = allData[currentSection];
     const items = sectionData.movies || [];
-    return items.filter(item => item.description && item.description !== 'Popis není k dispozici');
+    return items.filter(item => item.title || item.title_original);
+}
+
+function syncFilterStatus() {
+    const parts = [];
+    if (activePlatform !== 'all') parts.push(PROVIDER_NAMES[activePlatform] || activePlatform);
+    if (activeGenre !== 'all') parts.push(activeGenre);
+    if (currentSort === 'recommended') parts.push('jen nad 70 %');
+    else if (currentSort === 'rating') parts.push('podle hodnocení');
+    updateFilterStatus(parts);
+}
+
+function pickScore(item) {
+    let score = Number(item.avg_rating) || 0;
+    if (item._fromTop10 && item.rank) score += 8;
+    else if (item._fromTop10) score += 4;
+    const year = parseInt(item.year, 10);
+    if (year >= new Date().getFullYear() - 1) score += 3;
+    return score;
+}
+
+function tonightReason(item) {
+    if (item._fromTop10 && item.rank) {
+        const providers = item.providers || [];
+        if (providers.length === 0 || providers.includes('netflix')) {
+            return `Teď ${item.rank}. na Netflixu`;
+        }
+        const where = (PROVIDER_NAMES[providers[0]] || providers[0]);
+        return `${item.rank}. v Top 10, běží na ${where}`;
+    }
+    const year = parseInt(item.year, 10);
+    const fresh = year >= new Date().getFullYear() - 1;
+    if (fresh && item.avg_rating >= 80) return 'Nové a vysoko hodnocené';
+    if (fresh) return 'Novější titul nad 70 %';
+    if (item.avg_rating >= 80) return 'Patří k tomu lepšímu, co teď běží';
+    return 'Jistější volba nad 70 %';
+}
+
+function addTonightItem(map, item, fromTop10) {
+    if (!item || !item.tmdb_id) return;
+    const rating = Number(item.avg_rating);
+    if (!Number.isFinite(rating) || rating < 70) return;
+    if (!includeInternational && isRegionalOrigin(item)) return;
+    const providers = item.providers || [];
+    if (!tonightIgnoreServices && myServices.length > 0 && !providers.some((provider) => myServices.includes(provider))) return;
+
+    const type = item.type === 'series' ? 'series' : 'movie';
+    const key = `${type}:${item.tmdb_id}`;
+    const next = { ...item, type, _fromTop10: fromTop10 };
+    const prev = map.get(key);
+    if (!prev || fromTop10) {
+        map.set(key, {
+            ...(prev || {}),
+            ...next,
+            rank: item.rank || prev?.rank,
+            _fromTop10: fromTop10 || prev?._fromTop10 || false
+        });
+    }
+}
+
+function collectTonightPool() {
+    const map = new Map();
+    (allData.top10.movies || []).forEach((item) => addTonightItem(map, item, true));
+    (allData.top10.series || []).forEach((item) => addTonightItem(map, item, true));
+    (allData.new.movies || []).forEach((item) => addTonightItem(map, { ...item, type: item.type || 'movie' }, false));
+    (allData.new.series || []).forEach((item) => addTonightItem(map, { ...item, type: 'series' }, false));
+    return [...map.values()];
+}
+
+function takeTonightPicks(items) {
+    const sorted = [...items].sort((a, b) => pickScore(b) - pickScore(a));
+    const picks = [];
+    const counts = { movie: 0, series: 0 };
+    sorted.forEach((item) => {
+        if (picks.length >= 6) return;
+        const type = item.type === 'series' ? 'series' : 'movie';
+        if (counts[type] >= 4) return;
+        picks.push(item);
+        counts[type] += 1;
+    });
+    if (picks.length < 6) {
+        sorted.forEach((item) => {
+            if (picks.length >= 6 || picks.includes(item)) return;
+            picks.push(item);
+        });
+    }
+    return picks.map((item) => ({ ...item, reason: tonightReason(item) }));
+}
+
+function renderServicesHint() {
+    const hint = document.getElementById('tonightServicesHint');
+    if (!hint) return;
+    hint.replaceChildren();
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'text-btn';
+
+    if (myServices.length === 0) {
+        button.textContent = 'Vybrat moje služby';
+        button.addEventListener('click', () => {
+            openFilterPanel();
+            const panel = document.getElementById('myServicesPanel');
+            if (panel) panel.classList.remove('hidden');
+        });
+        hint.appendChild(button);
+        return;
+    }
+
+    if (tonightIgnoreServices) {
+        hint.append('Výběr ze všech služeb. ');
+        button.textContent = 'Vrátit moje služby';
+        button.addEventListener('click', () => {
+            tonightIgnoreServices = false;
+            renderTonight();
+        });
+        hint.appendChild(button);
+        return;
+    }
+
+    const names = myServices.map((service) => PROVIDER_NAMES[service] || service).join(', ');
+    hint.append(`Jen ${names}. `);
+    button.textContent = 'Změnit';
+    button.addEventListener('click', () => {
+        openFilterPanel();
+        const panel = document.getElementById('myServicesPanel');
+        if (panel) panel.classList.remove('hidden');
+    });
+    hint.appendChild(button);
+}
+
+function withTonightFlags(flags, readPool) {
+    const savedIgnore = tonightIgnoreServices;
+    const savedRegion = includeInternational;
+    if (Object.prototype.hasOwnProperty.call(flags, 'ignoreServices')) {
+        tonightIgnoreServices = flags.ignoreServices;
+    }
+    if (Object.prototype.hasOwnProperty.call(flags, 'allowRegional')) {
+        includeInternational = flags.allowRegional;
+    }
+    try {
+        return readPool();
+    } finally {
+        tonightIgnoreServices = savedIgnore;
+        includeInternational = savedRegion;
+    }
+}
+
+function renderTonightEmpty(options) {
+    const root = document.getElementById('tonight');
+    const wrap = document.createElement('div');
+    wrap.className = 'tonight-empty';
+    const text = document.createElement('p');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'text-btn';
+
+    if (options.servicesWouldHelp) {
+        text.textContent = 'Na vašich službách teď nic není nad 70 %.';
+        button.textContent = 'Zobrazit i ostatní služby';
+        button.addEventListener('click', () => {
+            tonightIgnoreServices = true;
+            renderTonight();
+        });
+        wrap.append(text, button);
+    } else if (options.regionWouldHelp) {
+        text.textContent = 'Po skrytí asijských a latinskoamerických titulů tu nic nad 70 % nezbylo.';
+        button.textContent = 'Zahrnout je do výběru';
+        button.addEventListener('click', () => {
+            includeInternationalCheckbox.checked = true;
+            toggleInternational();
+        });
+        wrap.append(text, button);
+    } else {
+        text.textContent = 'Teď tu nic nepřesáhlo 70 %.';
+        wrap.append(text);
+    }
+    root.appendChild(wrap);
+}
+
+function renderTonight() {
+    const root = document.getElementById('tonight');
+    if (!root) return;
+    renderServicesHint();
+
+    if (!tonightSettled.top10 || !tonightSettled.new) return;
+
+    const picks = takeTonightPicks(collectTonightPool());
+    const withoutServices = withTonightFlags({ ignoreServices: true }, collectTonightPool);
+    const withRegion = withTonightFlags({ allowRegional: true }, collectTonightPool);
+
+    root.replaceChildren();
+    const hasAnyData = ['top10', 'new'].some((section) =>
+        (allData[section].movies || []).length || (allData[section].series || []).length
+    );
+    if (picks.length === 0 && !hasAnyData) {
+        const wrap = document.createElement('div');
+        wrap.className = 'tonight-empty';
+        const text = document.createElement('p');
+        text.textContent = 'Výběr se nepodařilo sestavit. Zkuste to za chvíli.';
+        wrap.appendChild(text);
+        root.appendChild(wrap);
+        return;
+    }
+    if (picks.length === 0) {
+        renderTonightEmpty({
+            servicesWouldHelp: myServices.length > 0 && !tonightIgnoreServices && withoutServices.length > 0,
+            regionWouldHelp: !includeInternational && withRegion.length > 0
+        });
+        return;
+    }
+
+    picks.forEach((item) => {
+        root.appendChild(createTitleCard(item, cardOptions({ showType: true, showReason: true })));
+    });
 }
 
 // Get sorted data
@@ -898,144 +1154,6 @@ function getRatingQuality(rating) {
     if (rating >= 60) return 'average';
     if (rating >= 50) return 'below-average';
     return 'poor';
-}
-
-// Helper: Format runtime (minutes to hours and minutes)
-function formatRuntime(minutes) {
-    if (!minutes) return null;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0 && mins > 0) return `${hours}h ${mins}min`;
-    if (hours > 0) return `${hours}h`;
-    return `${mins}min`;
-}
-
-// Create title card element
-function createTitleCard(item) {
-    const card = document.createElement('div');
-    card.className = `title-card quality-${item.quality}`;
-
-    // Poster
-    const posterHTML = item.poster_url
-        ? `<img src="${escapeHtml(item.poster_url)}" alt="${escapeHtml(item.title)}" loading="lazy">`
-        : '<div class="no-poster">🎬</div>';
-
-    // Rating badge with quality indicator
-    let qualityText = '❌';
-    let qualityClass = 'poor';
-    if (item.avg_rating >= 80) {
-        qualityText = '💣';
-        qualityClass = 'excellent';
-    } else if (item.avg_rating >= 70) {
-        qualityText = '✅';
-        qualityClass = 'good';
-    } else if (item.avg_rating >= 60) {
-        qualityText = '👍';
-        qualityClass = 'average';
-    } else if (item.avg_rating >= 50) {
-        qualityText = '⚠️';
-        qualityClass = 'below-average';
-    }
-
-    const ratingBadge = item.avg_rating
-        ? `<div class="rating-badge rating-${qualityClass}">
-            ${item.avg_rating}% ${qualityText}
-           </div>`
-        : '';
-
-    // Build metadata line
-    const metaParts = [];
-
-    // Origin country or production countries
-    if (item.origin_country && item.origin_country.length > 0) {
-        metaParts.push(`🌍 ${item.origin_country.join(', ')}`);
-    } else if (item.countries && item.countries.length > 0) {
-        metaParts.push(`🌍 ${item.countries.join(', ')}`);
-    }
-
-    // Year
-    if (item.year) {
-        metaParts.push(`📅 ${item.year}`);
-    }
-
-    // Runtime for movies
-    if (item.runtime) {
-        metaParts.push(`⏱️ ${formatRuntime(item.runtime)}`);
-    }
-
-    // Genre
-    if (item.genre) {
-        metaParts.push(`🎭 ${escapeHtml(item.genre)}`);
-    }
-
-    // Provider badges
-    const providerBadgesHTML = buildProviderBadges(item.providers);
-
-    // Multi-source ratings
-    const multiRatingsHTML = buildMultiRatings(item);
-
-    card.innerHTML = `
-        <div class="card-content">
-            <div class="card-poster">
-                ${posterHTML}
-                ${ratingBadge}
-            </div>
-            <div class="card-info">
-                <div class="card-title">
-                    <h2><a href="detail.html?id=${item.tmdb_id}&type=${item.type || 'movie'}" class="title-link">${escapeHtml(item.title || item.title_original)}</a></h2>
-                    ${item.title_original && item.title !== item.title_original
-                        ? `<div class="original-title">${escapeHtml(item.title_original)}</div>`
-                        : ''}
-                </div>
-                ${providerBadgesHTML}
-                ${multiRatingsHTML}
-                <div class="meta">
-                    ${metaParts.join(' • ')}
-                </div>
-                ${item.description
-                    ? `<div class="description">${escapeHtml(item.description)}</div>`
-                    : ''}
-            </div>
-        </div>
-    `;
-
-    // Toggle expanded description on click
-    card.addEventListener('click', () => {
-        card.classList.toggle('card-expanded');
-    });
-
-    return card;
-}
-
-// Build provider badge HTML
-function buildProviderBadges(providers) {
-    if (!providers || providers.length === 0) return '';
-    const badges = providers.map(p => {
-        const name = PROVIDER_NAMES[p] || p;
-        return `<span class="provider-badge provider-${escapeHtml(p)}">${escapeHtml(name)}</span>`;
-    }).join('');
-    return `<div class="provider-badges">${badges}</div>`;
-}
-
-// Build multi-source rating HTML
-function buildMultiRatings(item) {
-    const parts = [];
-
-    if (item.tmdb_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">TMDB</span> <span class="rating-value">${item.tmdb_rating}</span></span>`);
-    }
-    if (item.imdb_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">IMDb</span> <span class="rating-value">${item.imdb_rating}</span></span>`);
-    }
-    if (item.rotten_tomatoes_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">RT</span> <span class="rating-value">${item.rotten_tomatoes_rating}%</span></span>`);
-    }
-    if (item.metacritic_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">MC</span> <span class="rating-value">${item.metacritic_rating}</span></span>`);
-    }
-
-    if (parts.length <= 1) return ''; // Don't show if only TMDB (already in badge)
-    return `<div class="multi-ratings">${parts.join('<span class="rating-divider">|</span>')}</div>`;
 }
 
 // Format date

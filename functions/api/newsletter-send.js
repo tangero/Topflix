@@ -80,12 +80,15 @@ export async function onRequest(context) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        audience_id: env.RESEND_AUDIENCE_ID,
+        // Audiences were renamed to segments; the stored id is unchanged.
+        segment_id: env.RESEND_AUDIENCE_ID,
         from: 'Topflix <newsletter@topflix.cz>',
         reply_to: 'noreply@topflix.cz',
         subject: subjectLine,
         html: htmlContent,
         text: textContent,
+        // Without this, Resend stores a draft and does not mail anyone.
+        send: true,
         headers: {
           'List-Unsubscribe': '<https://www.topflix.cz/unsubscribe>',
           'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',

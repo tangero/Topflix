@@ -5,9 +5,10 @@ name = "topflix-newsletter-cron"
 main = "newsletter-cron.js"
 compatibility_date = "2024-01-01"
 
-# Cron Trigger - Every Wednesday at 15:00 UTC (16:00 CET / 17:00 CEST)
+# Cron Trigger - Every Tuesday at 15:00 UTC (16:00 CET / 17:00 CEST)
+# Cloudflare weekdays: 1 = Sunday, so 3 = Tuesday.
 [triggers]
 crons = ["0 15 * * 3"]
 
-# Note: No environment variables needed - this Worker just calls the Pages endpoint
-# All the logic and credentials are in the Pages Functions
+# Runtime secret, not committed. Same value as ADMIN_API_KEY on the Pages project:
+#   wrangler secret put ADMIN_API_KEY
