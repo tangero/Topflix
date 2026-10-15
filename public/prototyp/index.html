@@ -4,55 +4,90 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex">
-    <title>Topflix | Na co se dívat dnes večer</title>
-    <link rel="stylesheet" href="prototyp.css">
+    <meta name="description" content="Náhled nové titulky Topflixu: jeden tip na dnešní večer, alternativy podle situace, Top 10 na Netflixu s kontextem a starší tituly, které se teď objevily.">
+    <title>Topflix | Dnes na Netflixu (náhled)</title>
+    <!-- Sdílené řádky titulů (list-card.js) odkazují relativně na detail.html. -->
+    <base href="/">
+    <link rel="stylesheet" href="/style.css">
+    <link rel="stylesheet" href="/prototyp/dnes.css">
 </head>
 <body>
-    <a class="skip" href="#uvod">Přeskočit na obsah</a>
+    <a class="skip-link" href="/prototyp/#dnes">Přeskočit na výběr</a>
+    <div class="container dnes-page">
+        <header class="dnes-header">
+            <a class="dnes-mark" href="/prototyp/">Topflix</a>
+            <nav class="dnes-nav" aria-label="Hlavní">
+                <a href="/prototyp/" aria-current="page">Dnes</a>
+                <a href="/index.html#katalog">Filmy</a>
+                <a href="/serials.html">Seriály</a>
+                <a href="/archive.html">Archiv</a>
+            </nav>
+        </header>
 
-    <section class="hero" id="uvod">
-        <p class="mark">Topflix</p>
-        <div class="hero-copy">
-            <h1>“Na co se dívat dnes večer”</h1>
-            <p class="lede">Šest titulů nad 70 %.</p>
-            <a class="link" href="/#dnes">Otevřít výběr</a>
-        </div>
-    </section>
+        <p class="proto-note">Náhled varianty nové titulky. Původní koncept je na <a href="/prototyp/landing.html">landing page</a>, současná titulka zůstává na <a href="/">topflix.cz</a>.</p>
 
-    <section class="rule" aria-labelledby="rule-title">
-        <p class="mark mark-ink">Topflix</p>
-        <div class="rule-copy">
-            <p class="eyebrow">Dnes večer</p>
-            <h2 id="rule-title">Šest titulů nad 70 %.</h2>
-        </div>
-    </section>
+        <main>
+            <section class="dnes-hero" id="dnes" aria-labelledby="hero-heading">
+                <p class="dnes-eyebrow" id="hero-heading">Dnes večer na Netflixu</p>
+                <div id="hero" aria-live="polite">
+                    <div class="hero-card hero-skeleton" aria-hidden="true">
+                        <div class="hero-poster skel-block"></div>
+                        <div class="hero-copy"><span class="skel-line"></span><span class="skel-line short"></span></div>
+                    </div>
+                </div>
+            </section>
 
-    <section class="seventy" aria-label="Hranice sedmdesáti procent">
-        <img src="seventy.jpg" alt="Velké číslo 70 a tři záběry: Teď na Netflixu, Novější, Jistější volba.">
-    </section>
+            <section class="dnes-block" aria-labelledby="alt-heading">
+                <h2 id="alt-heading">Když ne tohle</h2>
+                <div id="alternatives" class="slot-list"></div>
+            </section>
 
-    <section class="device" aria-labelledby="device-title">
-        <p class="mark">Topflix</p>
-        <div class="device-photo" role="img" aria-label="Telefon se seznamem titulů, u každého jedno skóre a tlačítko služby."></div>
-        <div class="device-copy">
-            <h2 id="device-title">Jeden řádek.<br>Jedno skóre.</h2>
-        </div>
-    </section>
+            <section class="dnes-block" aria-labelledby="chart-heading">
+                <div class="block-head">
+                    <h2 id="chart-heading">Tento týden na Netflixu</h2>
+                    <div class="seg" role="group" aria-label="Typ">
+                        <button type="button" class="seg-btn" data-chart="movies" aria-pressed="true">Filmy</button>
+                        <button type="button" class="seg-btn" data-chart="series" aria-pressed="false">Seriály</button>
+                    </div>
+                </div>
+                <p class="block-sub" id="chartWeek"></p>
+                <ol id="chart" class="chart-list"></ol>
+            </section>
 
-    <section class="room" aria-labelledby="room-title">
-        <p class="display">Topflix</p>
-        <div class="room-copy">
-            <h2 id="room-title">“Bez katalogu.”</h2>
-            <p>Vyberete za minutu.</p>
-        </div>
-    </section>
+            <section class="dnes-block" aria-labelledby="added-heading">
+                <h2 id="added-heading">Starší tituly, nově v Top 10</h2>
+                <p class="block-sub">Filmy a seriály z dřívějška, které se teď drží v české Top 10. Často to znamená, že na Netflix právě přibyly.</p>
+                <div id="added" class="slot-list"></div>
+            </section>
 
-    <section class="close" aria-labelledby="close-title">
-        <p class="mark mark-center">Topflix</p>
-        <h2 id="close-title">“Dnes večer už má výběr.”</h2>
-        <a class="pill" href="/#dnes">Podívat se</a>
-        <hr>
-        <p class="fine">Zdarma. Česky. Bez účtu.</p>
-    </section>
+            <section class="dnes-block" aria-labelledby="fresh-heading">
+                <h2 id="fresh-heading">Novinky na Netflixu nad 70 %</h2>
+                <p class="block-sub">Premiéry posledního půl roku, seřazené podle hodnocení.</p>
+                <div id="fresh" class="slot-list"></div>
+            </section>
+
+            <section class="dnes-block dnes-services" aria-labelledby="services-heading">
+                <h2 id="services-heading">Další služby</h2>
+                <p class="block-sub">Výběr je z Netflixu. Pokud platíte i jinou službu, přidejte ji a tituly z ní se objeví také.</p>
+                <div class="service-chips" id="serviceChips"></div>
+            </section>
+
+            <p class="dnes-more"><a href="/index.html#katalog">Celý seznam filmů</a> · <a href="/serials.html">Celý seznam seriálů</a></p>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-links">
+                <a href="/napoveda.html">Nápověda</a>
+                <span>•</span>
+                <a href="https://www.themoviedb.org" target="_blank" rel="noopener">Data z TMDB</a>
+                <span>•</span>
+                <a href="https://www.omdbapi.com" target="_blank" rel="noopener">Hodnocení z OMDb</a>
+                <span>•</span>
+                <a href="https://www.netflix.com/tudum/top10" target="_blank" rel="noopener">Netflix Top 10</a>
+            </div>
+        </footer>
+    </div>
+    <script src="/list-card.js"></script>
+    <script src="/prototyp/dnes.js"></script>
 </body>
 </html>

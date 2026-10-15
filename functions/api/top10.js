@@ -1,31 +1,19 @@
 /**
  * Topflix - Netflix Top 10 API Function (Cloudflare Pages)
- * Fetches Netflix Top 10 data and enriches with TMDB and ČSFD ratings
+ * Fetches Netflix Top 10 data and enriches with TMDB and OMDb ratings
  */
 
 import { createDatabase } from '../_lib/database.js';
 import { enrichWithOMDbRatings } from '../_lib/omdb.js';
 import { calculateWeightedRating, getQualityTier } from '../_lib/ratings.js';
-
-// Streaming provider IDs and slugs for CZ market
-const PROVIDERS = {
-  8:    'netflix',
-  337:  'disney',
-  350:  'apple',
-  119:  'prime',
-  1899: 'max',
-  1773: 'skyshowtime'
-};
-
-// Extract provider slugs from TMDB watch/providers response for CZ
-function extractProviders(watchProviders) {
-  if (!watchProviders?.results?.CZ) return [];
-  const cz = watchProviders.results.CZ;
-  const flatrate = cz.flatrate || [];
-  return flatrate
-    .map(p => PROVIDERS[p.provider_id])
-    .filter(Boolean);
-}
+import { extractProviders, extractSeriesExtras } from '../_lib/tmdb.js';
+import {
+  fetchCountriesTsv,
+  parseCountryRows,
+  buildLatestWeek,
+  shortlistByTitle,
+  pickBestMatch
+} from '../_lib/netflix-top10.js';
 
 // Helper: Get week number
 function getWeekNumber(date) {
@@ -38,63 +26,11 @@ function getWeekNumber(date) {
 }
 
 
-// Netflix Top 10 Scraper
+// Netflix Top 10 pro ČR: poslední týden s počtem týdnů v žebříčku a předchozím pořadím
 async function scrapeNetflixTop10() {
   try {
-    const url = 'https://top10.netflix.com/data/all-weeks-countries.tsv';
-    const response = await fetch(url);
-    const text = await response.text();
-
-    const lines = text.split('\n');
-    const headers = lines[0].split('\t');
-
-    // Find the most recent week for Czech Republic
-    const czechData = [];
-    let latestWeek = '';
-
-    for (let i = 1; i < lines.length; i++) {
-      const values = lines[i].split('\t');
-      if (values.length < 5) continue;
-
-      const country = values[headers.indexOf('country_name')];
-      const week = values[headers.indexOf('week')];
-      const category = values[headers.indexOf('category')];
-      const showTitle = values[headers.indexOf('show_title')];
-      const weeklyRank = values[headers.indexOf('weekly_rank')];
-
-      if (country === 'Czech Republic' || country === 'Czechia') {
-        if (!latestWeek || week > latestWeek) {
-          latestWeek = week;
-        }
-
-        czechData.push({
-          week,
-          category,
-          title: showTitle,
-          rank: parseInt(weeklyRank)
-        });
-      }
-    }
-
-    // Filter only the latest week
-    const latestData = czechData.filter(item => item.week === latestWeek);
-
-    // Separate movies and series
-    const movies = latestData
-      .filter(item => item.category === 'Films')
-      .sort((a, b) => a.rank - b.rank)
-      .slice(0, 10);
-
-    const series = latestData
-      .filter(item => item.category === 'TV')
-      .sort((a, b) => a.rank - b.rank)
-      .slice(0, 10);
-
-    return {
-      week: latestWeek,
-      movies: movies.map(m => ({ rank: m.rank, title: m.title })),
-      series: series.map(s => ({ rank: s.rank, title: s.title }))
-    };
+    const text = await fetchCountriesTsv();
+    return buildLatestWeek(parseCountryRows(text));
   } catch (error) {
     console.error('Error scraping Netflix Top 10:', error);
     return null;
@@ -106,52 +42,40 @@ async function getTMDBData(title, type, apiKey) {
   try {
     const searchType = type === 'movie' ? 'movie' : 'tv';
 
-    // Step 1: Search to get ID
-    // Try searching with current year first (most Netflix Top 10 content is recent)
-    const currentYear = new Date().getFullYear();
-    const yearParam = type === 'movie' ? 'primary_release_year' : 'first_air_date_year';
+    // Step 1: Netflix uvádí anglické názvy, hledáme proto v en-US a bez roku.
+    // Top 10 v ČR je plná starého katalogu (Shrek, Ted), rok vydání tedy nic neříká.
+    const queries = [title];
+    if (title.startsWith('The ')) queries.push(title.substring(4));
 
-    let searchUrl = `https://api.themoviedb.org/3/search/${searchType}?api_key=${apiKey}&query=${encodeURIComponent(title)}&${yearParam}=${currentYear}&language=cs-CZ`;
-    let searchResponse = await fetch(searchUrl);
-    let searchData = await searchResponse.json();
-
-    // If no results with current year, try without year filter
-    if (!searchData.results || searchData.results.length === 0) {
-      searchUrl = `https://api.themoviedb.org/3/search/${searchType}?api_key=${apiKey}&query=${encodeURIComponent(title)}&language=cs-CZ`;
-      searchResponse = await fetch(searchUrl);
-      searchData = await searchResponse.json();
+    let candidates = [];
+    for (const query of queries) {
+      const searchUrl = `https://api.themoviedb.org/3/search/${searchType}?api_key=${apiKey}&query=${encodeURIComponent(query)}&language=en-US`;
+      const searchData = await fetch(searchUrl).then(r => r.json()).catch(() => ({}));
+      candidates = searchData.results || [];
+      if (candidates.length > 0) break;
     }
 
-    // If still no results and title starts with "The ", try without it
-    if ((!searchData.results || searchData.results.length === 0) && title.startsWith('The ')) {
-      const titleWithoutThe = title.substring(4);
-      searchUrl = `https://api.themoviedb.org/3/search/${searchType}?api_key=${apiKey}&query=${encodeURIComponent(titleWithoutThe)}&${yearParam}=${currentYear}&language=cs-CZ`;
-      searchResponse = await fetch(searchUrl);
-      searchData = await searchResponse.json();
-    }
-
-    if (!searchData.results || searchData.results.length === 0) {
+    if (candidates.length === 0) {
       return null;
     }
 
-    // Prefer recent results (within last 3 years)
-    let searchItem = searchData.results[0];
-    const recentYearThreshold = currentYear - 3;
+    // Step 2: U nejlepších shod podle názvu ověříme, jestli běží na Netflixu v ČR.
+    const shortlist = shortlistByTitle(title, candidates, 3);
+    const detailed = await Promise.all(shortlist.map(async (candidate) => {
+      const url = `https://api.themoviedb.org/3/${searchType}/${candidate.id}?api_key=${apiKey}&language=cs-CZ&append_to_response=external_ids,watch/providers`;
+      const details = await fetch(url).then(r => r.json()).catch(() => null);
+      if (!details || !details.id) return null;
+      const providers = extractProviders(details['watch/providers']);
+      return { ...candidate, details, providers, on_netflix_cz: providers.includes('netflix') };
+    }));
 
-    for (const result of searchData.results.slice(0, 5)) {
-      const releaseYear = parseInt((result.release_date || result.first_air_date || '').substring(0, 4));
-      if (releaseYear >= recentYearThreshold) {
-        searchItem = result;
-        break;
-      }
+    const best = pickBestMatch(title, detailed.filter(Boolean));
+    if (!best) {
+      return null;
     }
 
-    const tmdbId = searchItem.id;
-
-    // Step 2: Get detailed info with external_ids and watch providers in one request
-    const detailsUrl = `https://api.themoviedb.org/3/${searchType}/${tmdbId}?api_key=${apiKey}&language=cs-CZ&append_to_response=external_ids,watch/providers`;
-    const detailsResponse = await fetch(detailsUrl);
-    const details = await detailsResponse.json();
+    const tmdbId = best.id;
+    const details = best.details;
 
     // Build TMDB URL
     const tmdbUrl = `https://www.themoviedb.org/${searchType}/${tmdbId}`;
@@ -179,8 +103,7 @@ async function getTMDBData(title, type, apiKey) {
     // Extract IMDb ID from external_ids
     const imdbId = details.external_ids?.imdb_id || null;
 
-    // Extract streaming providers from watch/providers
-    const providers = extractProviders(details['watch/providers']);
+    const providers = best.providers;
 
     // Base result object
     const result = {
@@ -207,6 +130,7 @@ async function getTMDBData(title, type, apiKey) {
     } else if (type === 'series') {
       result.number_of_seasons = details.number_of_seasons || null;
       result.number_of_episodes = details.number_of_episodes || null;
+      Object.assign(result, extractSeriesExtras(details));
     }
 
     return result;
@@ -218,8 +142,21 @@ async function getTMDBData(title, type, apiKey) {
 
 // ČSFD scraping removed - using TMDB only for simpler and more reliable ratings
 
+// Kontext z Netflix Top 10: týdny v žebříčku, předchozí pořadí, řada seriálu
+function chartFields(entry) {
+  return {
+    weeks_in_top10: entry.weeks_in_top10,
+    prev_rank: entry.prev_rank,
+    is_new_entry: entry.is_new_entry,
+    season_title: entry.season_title,
+    season_number: entry.season_number,
+    limited_series: entry.limited_series
+  };
+}
+
 // Process a single title (enrich with TMDB data only)
-async function enrichTitle(title, rank, type, apiKey) {
+async function enrichTitle(entry, type, apiKey) {
+  const { title, rank } = entry;
   const tmdbData = await getTMDBData(title, type, apiKey);
 
   if (!tmdbData) {
@@ -227,6 +164,7 @@ async function enrichTitle(title, rank, type, apiKey) {
       rank,
       title,
       type,
+      ...chartFields(entry),
       error: 'Data not found'
     };
   }
@@ -258,6 +196,7 @@ async function enrichTitle(title, rank, type, apiKey) {
     imdb_id: tmdbData.imdb_id,
     providers: tmdbData.providers,
     type,
+    ...chartFields(entry),
     source: 'top10' // Mark as coming from Top 10
   };
 
@@ -267,6 +206,9 @@ async function enrichTitle(title, rank, type, apiKey) {
   } else if (type === 'series') {
     result.number_of_seasons = tmdbData.number_of_seasons;
     result.number_of_episodes = tmdbData.number_of_episodes;
+    result.series_status = tmdbData.series_status;
+    result.episode_runtime = tmdbData.episode_runtime;
+    result.last_air_date = tmdbData.last_air_date;
   }
 
   return result;
@@ -283,10 +225,10 @@ export async function fetchAndEnrichData(apiKey, omdbApiKey) {
   // Enrich all titles in parallel (max 20 items = 10 movies + 10 series)
   let [enrichedMovies, enrichedSeries] = await Promise.all([
     Promise.all(netflixData.movies.map(movie =>
-      enrichTitle(movie.title, movie.rank, 'movie', apiKey)
+      enrichTitle(movie, 'movie', apiKey)
     )),
     Promise.all(netflixData.series.map(series =>
-      enrichTitle(series.title, series.rank, 'series', apiKey)
+      enrichTitle(series, 'series', apiKey)
     ))
   ]);
 
@@ -364,7 +306,7 @@ export async function onRequest(context) {
       });
     }
 
-    const weekKey = `netflix_top10_cz_${getWeekNumber(new Date())}_v4`;
+    const weekKey = `netflix_top10_cz_${getWeekNumber(new Date())}_v5`;
     console.log('Fetching data for week:', weekKey);
 
     // Try to get from KV cache first (if available)

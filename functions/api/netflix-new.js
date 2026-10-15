@@ -6,27 +6,9 @@
 import { createDatabase } from '../_lib/database.js';
 import { enrichWithOMDbRatings } from '../_lib/omdb.js';
 import { calculateWeightedRating, getQualityTier } from '../_lib/ratings.js';
+import { PROVIDERS, extractProviders, extractSeriesExtras } from '../_lib/tmdb.js';
 
-// Streaming provider IDs and slugs for CZ market
-const PROVIDERS = {
-  8:    'netflix',
-  337:  'disney',
-  350:  'apple',
-  119:  'prime',
-  1899: 'max',
-  1773: 'skyshowtime'
-};
 const PROVIDER_IDS = Object.keys(PROVIDERS).join('|'); // "8|337|350|119|1899|1773"
-
-// Extract provider slugs from TMDB watch/providers response for CZ
-function extractProviders(watchProviders) {
-  if (!watchProviders?.results?.CZ) return [];
-  const cz = watchProviders.results.CZ;
-  const flatrate = cz.flatrate || [];
-  return flatrate
-    .map(p => PROVIDERS[p.provider_id])
-    .filter(Boolean);
-}
 
 // TMDB API Integration - Get streaming new content
 async function getStreamingNewContent(apiKey, type = 'movie', limit = 100) {
@@ -128,6 +110,7 @@ async function getStreamingNewContent(apiKey, type = 'movie', limit = 100) {
             } else if (type === 'series') {
               result.number_of_seasons = details.number_of_seasons || null;
               result.number_of_episodes = details.number_of_episodes || null;
+              Object.assign(result, extractSeriesExtras(details));
             }
 
             return result;
@@ -226,7 +209,7 @@ export async function onRequest(context) {
     }
 
     // Generate cache key based on date (v5 for increased limits to 150)
-    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v6`;
+    const cacheKey = `netflix_new_${new Date().toISOString().split('T')[0]}_v7`;
     console.log('Fetching data for:', cacheKey);
 
     // Try to get from KV cache first (if available)

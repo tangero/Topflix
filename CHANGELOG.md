@@ -5,6 +5,25 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-10-15
+
+### Added
+- Funkční náhled nové titulky na /prototyp: jeden tip na večer s důvodem „proč“, alternativy podle situace (film na dnešek, seriál na víkend, do 100 minut, starší titul v Top 10, méně známý klenot), Top 10 na Netflixu s kontextem a novinky nad 70 %
+- Top 10 ukazuje, kolikátý týden se titul drží, jestli je nový, stoupá, klesá nebo se vrátil, a kterou řadu seriálu lidé sledují
+- U seriálů je vidět, jestli jsou ukončené, a kolik mají dílů a jak dlouhých
+- Výběr v náhledu vychází z Netflixu, další služby si návštěvník přidá sám
+
+### Changed
+- Původní landing page prototypu je na /prototyp/landing.html
+
+### Fixed
+- Párování titulů z Netflix Top 10 na TMDB: starší filmy jako Ted, Ted 2, Shrek nebo Mumie se už nezamění za novější tituly s podobným názvem. Rozhoduje shoda názvu a dostupnost na Netflixu v ČR, ne rok vydání.
+- Top 10 se stahuje z nové adresy Netflix Tudum, stará jen přesměrovávala
+
+### Technical
+- Sdílené knihovny functions/_lib/netflix-top10.js (čtení TSV, týdny v žebříčku, předchozí pořadí, párování) a functions/_lib/tmdb.js (služby, údaje o seriálech)
+- Klíče cache zvýšeny (top10 v5, netflix-new v7)
+
 ## [1.9.1] - 2026-10-15
 
 ### Fixed
