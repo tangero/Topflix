@@ -114,7 +114,7 @@ function displayConfirmationStatus() {
                     ${email ? `<span class="confirmation-email">${email}</span>` : ''}
                 </p>
                 <p class="confirmation-message">
-                    První newsletter dostanete příští středu ráno s výběrem nejlepších filmů a seriálů na Netflixu.
+                    První newsletter dostanete nejbližší úterý odpoledne s výběrem nejlepších filmů a seriálů na Netflixu.
                 </p>
                 <div class="confirmation-actions">
                     <a href="../index.html" class="confirmation-button">Zobrazit filmy na Netflixu</a>

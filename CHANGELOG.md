@@ -5,6 +5,41 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] - 2026-10-15
+
+### Added
+- Nová titulka „Dnes“: jeden tip na večer s důvodem „proč“, alternativy podle situace, česká Top 10 s kontextem, nově přidané tituly a premiéry nad 70 %
+- Volba „Kolik máte času“: film do 100 minut, film na celý večer, seriál na víkend, seriál na dlouho
+- Tlačítka „Už jsem viděl“ a „Nezajímá mě“ schovají titul z výběru, skryté tituly jdou vrátit
+- „Nově přidáno na Netflix“: co přibylo do českého katalogu za posledních 30 dní, včetně starších titulů, a co z něj zmizelo. Katalog se kontroluje dvakrát týdně.
+- Stránka seriálů má vlastní „Seriál na dnešek“ s volbou na víkend, na dlouho, nová řada a krátké díly
+- Archiv lze doplnit o českou Top 10 od července 2021 a filtrovat jen na to, co je teď na Netflixu
+- Detail ukáže i titul, který zatím jen přibyl do katalogu, a týdny v Top 10 s umístěním
+
+### Changed
+- Netflix je hlavní osa: výběr i seznamy začínají u Netflixu, další služby si návštěvník přidá sám
+- Katalog filmů se přesunul na /filmy.html, navigace je Dnes · Filmy · Seriály · Archiv · Newsletter
+- Archiv používá stejné řádky jako zbytek webu, bez emoji nadpisů a vložených stylů
+- „Méně známé, výborně hodnocené“ vyžaduje hodnocení aspoň ze dvou zdrojů, takže zmizí tituly se 100 % od pár hlasujících
+- Nápověda popisuje současné hodnocení ze čtyř zdrojů místo ČSFD
+- Původní landing page prototypu je na /prototyp
+
+### Fixed
+- Cron se spouštěl v pondělí a čtvrtek místo v úterý a pátek (Cloudflare počítá 1 = neděle), pondělní běh tak stahoval minulou Top 10
+- Top 10 se kešovala podle týdne, takže nová úterní Top 10 se mohla objevit až další pondělí. Klíč je teď denní a do archivu se týden zapíše jen jednou.
+- Písma Fraunces a Outfit se na webu nenačítala, protože bezpečnostní hlavička blokuje Google Fonts. Nově jsou u stránky.
+- Newsletter chodí v úterý, texty na webu slibovaly středu
+- Výchozí filtr Netflix neschová tituly z Top 10, u kterých TMDB službu ještě nezná
+
+### Technical
+- Migrace 0004: tabulky netflix_catalog, netflix_catalog_runs, netflix_top10_weeks, netflix_title_map
+- Admin endpointy /api/netflix-catalog-sync (synchronizace po krocích, pojistka proti hromadnému mazání) a /api/top10-history-sync (načtení týdnů, párování po dávkách, úklid starého párování); veřejný /api/netflix-added
+- Cron worker volá synchronizaci katalogu a historie, potřebuje secret ADMIN_API_KEY
+- Skript scripts/backfill-netflix-data.sh pro jednorázové naplnění po migraci
+- Sdílené jádro výběru public/dnes-core.js pro titulku a seriály
+- Testy datové vrstvy (Top 10, párování, katalog, historie) v tests/node, spouští `npm run test:data` nad SQLite z Node
+- Synchronizace katalogu nepočítá úbytky, když má katalog víc než 500 stránek TMDB; po doplnění detailů se maže cache přírůstků
+
 ## [1.10.0] - 2026-10-15
 
 ### Added

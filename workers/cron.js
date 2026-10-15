@@ -1,19 +1,74 @@
 /**
  * Topflix - Cron Worker for scheduled updates
- * This worker runs DAILY at 06:00 UTC (08:00 CET) to refresh all data
+ * Runs on Tuesday and Friday at 07:00 UTC (09:00 CEST / 08:00 CET), see wrangler-cron.toml.
  *
  * Updates:
  * - Netflix TOP10 (movies + series)
  * - Netflix New content (last 6 months)
+ * - Netflix CZ catalog snapshot (what was added and removed)
+ * - Netflix Top 10 history backfill (a few batches per run)
+ *
+ * Catalog and history endpoints need ADMIN_API_KEY (wrangler secret put ADMIN_API_KEY).
  */
 
+const CATALOG_MAX_STEPS = 15;   // 15 x 40 stránek = celý katalog jednoho typu
+const ENRICH_MAX_STEPS = 5;     // 5 x 20 přírůstků
+const HISTORY_MAX_STEPS = 6;    // 6 x 25 názvů z historie Top 10
+
+async function adminPost(apiUrl, env, path) {
+  const response = await fetch(`${apiUrl}${path}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${env.ADMIN_API_KEY}`,
+      'User-Agent': 'Topflix-Cron/1.1'
+    }
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(`${path}: ${response.status} ${data.error || ''}`.trim());
+  return data;
+}
+
+async function syncCatalog(apiUrl, env) {
+  const summary = {};
+  for (const type of ['movie', 'series']) {
+    let state = null;
+    for (let step = 0; step < CATALOG_MAX_STEPS; step++) {
+      state = await adminPost(apiUrl, env, `/api/netflix-catalog-sync?type=${type}&pages=40`);
+      if (state.done) break;
+    }
+    summary[type] = { done: !!state?.done, seen: state?.seen, added: state?.added, removed: state?.removed, baseline: state?.baseline };
+  }
+  let enrich = null;
+  for (let step = 0; step < ENRICH_MAX_STEPS; step++) {
+    enrich = await adminPost(apiUrl, env, '/api/netflix-catalog-sync?action=enrich&limit=20');
+    if (!enrich.remaining) break;
+  }
+  summary.enrich_remaining = enrich?.remaining ?? null;
+  return summary;
+}
+
+async function backfillHistory(apiUrl, env) {
+  const loaded = await adminPost(apiUrl, env, '/api/top10-history-sync?action=load');
+  let mapped = 0;
+  let remaining = null;
+  for (let step = 0; step < HISTORY_MAX_STEPS; step++) {
+    const result = await adminPost(apiUrl, env, '/api/top10-history-sync?action=map&limit=25');
+    mapped += result.mapped || 0;
+    remaining = result.remaining;
+    if (!remaining) break;
+  }
+  return { weeks: loaded.weeks, mapped, remaining };
+}
+
 export default {
-  // Cron trigger handler (runs daily at 06:00 UTC)
+  // Cron trigger handler (Tuesday and Friday at 07:00 UTC)
   async scheduled(event, env, ctx) {
     const startTime = Date.now();
     const results = {
       top10: null,
       netflix_new: null,
+      catalog: null,
+      history: null,
       errors: []
     };
 
@@ -80,6 +135,27 @@ export default {
         results.netflix_new = { success: false, error: error.message };
         results.errors.push(`Netflix New error: ${error.message}`);
         console.error('❌ Netflix New error:', error);
+      }
+
+      // 3. Katalog Netflixu v ČR a 4. historie Top 10 (potřebují admin klíč)
+      if (!env.ADMIN_API_KEY) {
+        results.errors.push('ADMIN_API_KEY missing: catalog sync and history backfill skipped');
+        console.error('❌ ADMIN_API_KEY missing on cron worker');
+      } else {
+        try {
+          results.catalog = await syncCatalog(apiUrl, env);
+          console.log('✅ Catalog:', JSON.stringify(results.catalog));
+        } catch (error) {
+          results.errors.push(`Catalog error: ${error.message}`);
+          console.error('❌ Catalog error:', error);
+        }
+        try {
+          results.history = await backfillHistory(apiUrl, env);
+          console.log('✅ History:', JSON.stringify(results.history));
+        } catch (error) {
+          results.errors.push(`History error: ${error.message}`);
+          console.error('❌ History error:', error);
+        }
       }
 
       // Summary

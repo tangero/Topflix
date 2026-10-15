@@ -117,14 +117,43 @@ name = "topflix-cron"
 main = "workers/cron.js"
 compatibility_date = "2024-01-01"
 
-# Cron trigger (každé úterý v 10:00 UTC)
+# Úterý a pátek v 07:00 UTC. Názvy dnů schválně: Cloudflare počítá 1 = neděle.
 [triggers]
-crons = ["0 10 * * 2"]
+crons = ["0 7 * * TUE,FRI"]
 
 # Vaše Pages URL
 [vars]
 PAGES_URL = "https://topflix.pages.dev"
 ```
+
+Cron worker potřebuje secret `ADMIN_API_KEY` (stejná hodnota jako v Pages projektu):
+
+```bash
+npx wrangler secret put ADMIN_API_KEY --config wrangler-cron.toml
+npm run deploy:cron
+```
+
+### Katalog Netflixu a historie Top 10 (od verze 1.11.0)
+
+Migrace `0004` přidává tabulky pro týdenní snímky katalogu Netflixu v ČR (`netflix_catalog`)
+a pro historii české Top 10 (`netflix_top10_weeks`, `netflix_title_map`).
+
+```bash
+# 1) migrace na produkční D1 (jednorázově, tabulky zatím neexistují)
+npx wrangler d1 execute topflix-db --remote --file=migrations/0004_netflix_catalog_history.sql
+
+# 2) po nasazení Pages: výchozí snímek katalogu a historie Top 10 do archivu
+ADMIN_API_KEY=... ./scripts/backfill-netflix-data.sh
+
+# 3) až je historie napárovaná celá: kontrola a smazání řádků ze starého párování
+curl -X POST -H "Authorization: Bearer $ADMIN_API_KEY" \
+  "https://www.topflix.cz/api/top10-history-sync?action=mismatches"
+curl -X POST -H "Authorization: Bearer $ADMIN_API_KEY" \
+  "https://www.topflix.cz/api/top10-history-sync?action=cleanup&confirm=1"
+```
+
+První snímek katalogu je výchozí, přírůstky se ukážou až po druhém (cron v úterý a pátek).
+Do té doby titulka místo „Nově přidáno na Netflix“ ukazuje starší tituly z aktuální Top 10.
 
 ## 📊 Monitoring a údržba
 

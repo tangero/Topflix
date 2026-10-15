@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Na co koukat? Nejlepší seriály na streamovacích platformách v ČR - Netflix, Disney+, Max, Apple TV+, Prime Video s hodnocením TMDB, IMDb a Rotten Tomatoes.">
-    <title>Topflix - Seriály | Na co koukat na streamovacích platformách</title>
+    <meta name="description" content="Jaký seriál pustit na Netflixu: na víkend, na dlouho, nová řada. Česká Top 10 seriálů s hodnocením z TMDB, IMDb a Rotten Tomatoes.">
+    <title>Topflix | Seriály na Netflixu s hodnocením</title>
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.topflix.cz/serials.html">
-    <meta property="og:title" content="Topflix - Seriály | Na co koukat na streamovacích platformách">
-    <meta property="og:description" content="Objevte nejlepší seriály na Netflix, Disney+, Max, Apple TV+ a dalších. Hodnocení z TMDB, IMDb a Rotten Tomatoes.">
+    <meta property="og:title" content="Topflix | Seriály na Netflixu s hodnocením">
+    <meta property="og:description" content="Seriály z české Netflix Top 10 a novinky na Netflixu: na víkend, na dlouho, nová řada. Hodnocení z TMDB, IMDb a Rotten Tomatoes.">
     <meta property="og:locale" content="cs_CZ">
     <meta property="og:site_name" content="Topflix">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://www.topflix.cz/serials.html">
-    <meta name="twitter:title" content="Topflix - Seriály | Na co koukat na streamovacích platformách">
-    <meta name="twitter:description" content="Objevte nejlepší seriály na Netflix, Disney+, Max, Apple TV+ a dalších. Hodnocení z TMDB, IMDb a Rotten Tomatoes.">
+    <meta name="twitter:title" content="Topflix | Seriály na Netflixu s hodnocením">
+    <meta name="twitter:description" content="Seriály z české Netflix Top 10 a novinky na Netflixu: na víkend, na dlouho, nová řada. Hodnocení z TMDB, IMDb a Rotten Tomatoes.">
 
     <link rel="stylesheet" href="style.css">
 
@@ -26,6 +26,7 @@
     <script async data-id="101496124" src="//static.getclicky.com/js"></script>
 </head>
 <body>
+    <a class="skip-link" href="#dnes">Přeskočit na výběr</a>
     <div class="container">
         <!-- Header -->
         <header class="header">
@@ -34,7 +35,7 @@
                     <img src="patrick-avatar.webp" alt="Patrick" class="logo-avatar">
                     <h1>Topflix</h1>
                 </div>
-                <p class="tagline">Seriály, které teď běží</p>
+                <p class="tagline">Seriály na Netflixu</p>
             </div>
 
             <div class="theme-toggle">
@@ -46,18 +47,30 @@
 
         <!-- Navigation -->
         <nav class="nav-links" aria-label="Hlavní">
-            <a href="index.html" class="nav-link">Filmy</a>
+            <a href="index.html" class="nav-link">Dnes</a>
+            <a href="filmy.html" class="nav-link">Filmy</a>
             <a href="serials.html" class="nav-link active" aria-current="page">Seriály</a>
             <a href="archive.html" class="nav-link">Archiv</a>
             <a href="newsletter.html" class="nav-link">Newsletter</a>
         </nav>
 
-        <p class="page-note">Krátký výběr na dnešek, filmy i seriály, je na <a href="index.html#dnes">úvodu</a>.</p>
-
         <main>
-        <section class="catalog" aria-labelledby="catalog-heading">
+        <section class="dnes-hero dnes-page" id="dnes" aria-labelledby="series-heading">
+            <h2 class="dnes-eyebrow" id="series-heading">Seriál na dnešek</h2>
+            <div class="time-chips" id="seriesChips" role="group" aria-label="Jaký seriál"></div>
+            <div id="seriesHero" aria-live="polite">
+                <div class="hero-card hero-skeleton" aria-hidden="true">
+                    <div class="hero-poster skel-block"></div>
+                    <div class="hero-copy"><span class="skel-line"></span><span class="skel-line short"></span></div>
+                </div>
+            </div>
+            <div id="seriesPicks" class="slot-list series-picks"></div>
+            <p id="seriesHiddenNote" class="hidden-note hidden"></p>
+        </section>
+
+        <section class="catalog" id="katalog" aria-labelledby="catalog-heading">
             <div class="catalog-head">
-                <h2 id="catalog-heading">Celý seznam</h2>
+                <h2 id="catalog-heading">Všechny seriály</h2>
                 <button type="button" class="text-btn" id="filtersToggle" aria-expanded="false" aria-controls="filtersPanel">Upravit výběr</button>
             </div>
             <p id="filterStatus" class="filter-status hidden"></p>
@@ -85,8 +98,8 @@
                 </div>
 
                 <div class="platform-filter">
-                    <button class="platform-chip active" data-provider="all">Vše</button>
-                    <button class="platform-chip" data-provider="netflix">Netflix</button>
+                    <button class="platform-chip" data-provider="all">Vše</button>
+                    <button class="platform-chip active" data-provider="netflix">Netflix</button>
                     <button class="platform-chip" data-provider="disney">Disney+</button>
                     <button class="platform-chip" data-provider="max">Max</button>
                     <button class="platform-chip" data-provider="apple">Apple TV+</button>
@@ -118,7 +131,7 @@
 
             <div class="section-tabs">
                 <button class="tab-btn active" data-section="top10">Top 10 Netflix</button>
-                <button class="tab-btn" data-section="new">Nově na streamech</button>
+                <button class="tab-btn" data-section="new">Nově na Netflixu</button>
             </div>
 
             <div id="loading" class="loading">
@@ -172,17 +185,19 @@
                     Hodnocení z OMDb
                 </a>
                 <span>•</span>
-                <a href="https://top10.netflix.com" target="_blank" rel="noopener">
+                <a href="https://www.netflix.com/tudum/top10" target="_blank" rel="noopener">
                     Netflix Top 10
                 </a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.10.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.11.0</a>
             </p>
         </footer>
     </div>
 
     <script src="list-card.js"></script>
+    <script src="dnes-core.js"></script>
     <script src="serials.js"></script>
+    <script src="serials-tonight.js"></script>
 </body>
 </html>

@@ -3,38 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Šest filmů a seriálů nad 70 %, které teď dávají smysl na Netflixu a dalších službách v ČR. Jedno hodnocení a odkaz do přehrávače.">
-    <title>Topflix | Na co se dívat dnes večer</title>
+    <meta name="description" content="Na co se dívat dnes večer na Netflixu: jeden tip s důvodem, alternativy podle toho, kolik máte času, česká Top 10 s kontextem a co nově přibylo do katalogu.">
+    <title>Topflix | Na co se dívat dnes večer na Netflixu</title>
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.topflix.cz/">
-    <meta property="og:title" content="Topflix - Filmy | Na co koukat na streamovacích platformách">
-    <meta property="og:description" content="Objevte nejlepší filmy na Netflix, Disney+, Max, Apple TV+ a dalších. Hodnocení z TMDB, IMDb a Rotten Tomatoes.">
+    <meta property="og:title" content="Topflix | Na co se dívat dnes večer na Netflixu">
+    <meta property="og:description" content="Jeden tip na večer s důvodem, česká Netflix Top 10 s kontextem a co nově přibylo na Netflix. Hodnocení z TMDB, IMDb a Rotten Tomatoes.">
     <meta property="og:locale" content="cs_CZ">
     <meta property="og:site_name" content="Topflix">
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:url" content="https://www.topflix.cz/">
-    <meta name="twitter:title" content="Topflix - Filmy | Na co koukat na streamovacích platformách">
-    <meta name="twitter:description" content="Objevte nejlepší filmy na Netflix, Disney+, Max, Apple TV+ a dalších. Hodnocení z TMDB, IMDb a Rotten Tomatoes.">
+    <meta name="twitter:title" content="Topflix | Na co se dívat dnes večer na Netflixu">
+    <meta name="twitter:description" content="Jeden tip na večer s důvodem, česká Netflix Top 10 s kontextem a co nově přibylo na Netflix.">
 
     <link rel="stylesheet" href="style.css">
-
     <!-- Clicky Analytics -->
     <script async data-id="101496124" src="//static.getclicky.com/js"></script>
 </head>
 <body>
     <a class="skip-link" href="#dnes">Přeskočit na výběr</a>
-    <div class="container">
+    <div class="container dnes-page">
         <header class="header">
             <div class="logo">
                 <div class="logo-header">
                     <img src="patrick-avatar.webp" alt="Patrick" class="logo-avatar">
                     <h1>Topflix</h1>
                 </div>
-                <p class="tagline">Na co se dívat dnes večer</p>
+                <p class="tagline">Na co se dívat dnes večer na Netflixu</p>
             </div>
 
             <div class="theme-toggle">
@@ -45,129 +44,78 @@
         </header>
 
         <nav class="nav-links" aria-label="Hlavní">
-            <a href="index.html" class="nav-link active" aria-current="page">Filmy</a>
+            <a href="index.html" class="nav-link active" aria-current="page">Dnes</a>
+            <a href="filmy.html" class="nav-link">Filmy</a>
             <a href="serials.html" class="nav-link">Seriály</a>
             <a href="archive.html" class="nav-link">Archiv</a>
             <a href="newsletter.html" class="nav-link">Newsletter</a>
         </nav>
 
         <main>
-        <section class="tonight" id="dnes" aria-labelledby="tonight-heading">
-            <div class="tonight-head">
-                <h2 id="tonight-heading">Dnes večer</h2>
-                <p class="tonight-lead">Tituly nad 70 %. To, co teď táhne Netflix, a novější věci, které se vyplatí pustit.</p>
-            </div>
-            <p class="tonight-services" id="tonightServicesHint"></p>
-            <div id="tonight" class="tonight-list" aria-live="polite">
-                <div class="pick-row pick-skeleton" aria-hidden="true"><div class="skel-poster"></div><div class="skel-copy"><span></span><span></span></div></div>
-                <div class="pick-row pick-skeleton" aria-hidden="true"><div class="skel-poster"></div><div class="skel-copy"><span></span><span></span></div></div>
-                <div class="pick-row pick-skeleton" aria-hidden="true"><div class="skel-poster"></div><div class="skel-copy"><span></span><span></span></div></div>
-                <div class="pick-row pick-skeleton" aria-hidden="true"><div class="skel-poster"></div><div class="skel-copy"><span></span><span></span></div></div>
-                <div class="pick-row pick-skeleton" aria-hidden="true"><div class="skel-poster"></div><div class="skel-copy"><span></span><span></span></div></div>
-                <div class="pick-row pick-skeleton" aria-hidden="true"><div class="skel-poster"></div><div class="skel-copy"><span></span><span></span></div></div>
-            </div>
-        </section>
-
-        <section class="catalog" aria-labelledby="catalog-heading">
-            <div class="catalog-head">
-                <h2 id="catalog-heading">Celý seznam</h2>
-                <button type="button" class="text-btn" id="filtersToggle" aria-expanded="false" aria-controls="filtersPanel">Upravit výběr</button>
-            </div>
-            <p id="filterStatus" class="filter-status hidden"></p>
-
-            <div id="filtersPanel" class="filters-panel hidden">
-                <div class="search-bar">
-                    <input type="text" id="searchInput" placeholder="Hledat film podle názvu..." autocomplete="off">
-                    <button class="search-clear hidden" id="searchClear" aria-label="Zrušit hledání">✕</button>
-                </div>
-                <div id="searchResultsInfo" class="search-results-info hidden"></div>
-
-                <div class="my-services-toggle">
-                    <button class="my-services-btn" id="myServicesBtn">Moje služby</button>
-                </div>
-                <div class="my-services-panel hidden" id="myServicesPanel">
-                    <h3>Vyberte platformy, které předplácíte:</h3>
-                    <div class="services-grid">
-                        <label class="service-checkbox" data-service="netflix"><input type="checkbox" value="netflix">Netflix</label>
-                        <label class="service-checkbox" data-service="disney"><input type="checkbox" value="disney">Disney+</label>
-                        <label class="service-checkbox" data-service="max"><input type="checkbox" value="max">Max</label>
-                        <label class="service-checkbox" data-service="apple"><input type="checkbox" value="apple">Apple TV+</label>
-                        <label class="service-checkbox" data-service="prime"><input type="checkbox" value="prime">Prime Video</label>
-                        <label class="service-checkbox" data-service="skyshowtime"><input type="checkbox" value="skyshowtime">SkyShowtime</label>
+            <section class="dnes-hero" id="dnes" aria-labelledby="hero-heading">
+                <h2 class="dnes-eyebrow" id="hero-heading">Dnes večer na Netflixu</h2>
+                <div class="time-chips" id="timeChips" role="group" aria-label="Kolik máte času"></div>
+                <div id="hero" aria-live="polite">
+                    <div class="hero-card hero-skeleton" aria-hidden="true">
+                        <div class="hero-poster skel-block"></div>
+                        <div class="hero-copy"><span class="skel-line"></span><span class="skel-line short"></span></div>
                     </div>
                 </div>
+            </section>
 
-                <div class="platform-filter">
-                    <button class="platform-chip active" data-provider="all">Vše</button>
-                    <button class="platform-chip" data-provider="netflix">Netflix</button>
-                    <button class="platform-chip" data-provider="disney">Disney+</button>
-                    <button class="platform-chip" data-provider="max">Max</button>
-                    <button class="platform-chip" data-provider="apple">Apple TV+</button>
-                    <button class="platform-chip" data-provider="prime">Prime</button>
-                    <button class="platform-chip" data-provider="skyshowtime">SkyShowtime</button>
-                </div>
+            <section class="dnes-block" id="altBlock" aria-labelledby="alt-heading">
+                <h2 id="alt-heading">Když ne tohle</h2>
+                <div id="alternatives" class="slot-list"></div>
+                <p id="hiddenNote" class="hidden-note hidden"></p>
+            </section>
 
-                <div class="genre-filter" id="genreFilter"></div>
-
-                <div class="controls">
-                    <div class="sort-controls">
-                        <label for="sortSelect">Řadit podle:</label>
-                        <select id="sortSelect">
-                            <option value="rank">Pořadí na Netflix</option>
-                            <option value="rating">Hodnocení (nejlepší)</option>
-                            <option value="recommended">Jen doporučené (≥70%)</option>
-                        </select>
+            <section class="dnes-block" aria-labelledby="chart-heading">
+                <div class="block-head">
+                    <h2 id="chart-heading">Tento týden na Netflixu</h2>
+                    <div class="seg" role="group" aria-label="Typ">
+                        <button type="button" class="seg-btn" data-chart="movies" aria-pressed="true">Filmy</button>
+                        <button type="button" class="seg-btn" data-chart="series" aria-pressed="false">Seriály</button>
                     </div>
                 </div>
+                <p class="block-sub" id="chartWeek"></p>
+                <ol id="chart" class="chart-list"></ol>
+            </section>
 
-                <div class="region-filter">
-                    <label class="region-toggle">
-                        <input type="checkbox" id="includeInternational">
-                        <span class="toggle-label">Zahrnout asijské a latinskoamerické filmy</span>
-                    </label>
-                    <div id="hiddenCountFeedback" class="hidden-count hidden"></div>
-                </div>
+            <section class="dnes-block" aria-labelledby="added-heading">
+                <h2 id="added-heading">Nově přidáno na Netflix</h2>
+                <p class="block-sub" id="addedSub"></p>
+                <div id="added" class="slot-list"></div>
+            </section>
+
+            <section class="dnes-block" aria-labelledby="fresh-heading">
+                <h2 id="fresh-heading">Premiéry na Netflixu nad 70 %</h2>
+                <p class="block-sub">Filmy a seriály z posledního půl roku, seřazené podle hodnocení.</p>
+                <div id="fresh" class="slot-list"></div>
+            </section>
+
+            <section class="dnes-block dnes-services" aria-labelledby="services-heading">
+                <h2 id="services-heading">Další služby</h2>
+                <p class="block-sub">Výběr je z Netflixu. Pokud platíte i jinou službu, přidejte ji a tituly z ní se objeví také.</p>
+                <div class="service-chips" id="serviceChips"></div>
+            </section>
+
+            <p class="dnes-more"><a href="filmy.html">Všechny filmy</a> · <a href="serials.html">Všechny seriály</a> · <a href="archive.html">Archiv</a></p>
+
+            <!-- Newsletter -->
+            <div class="newsletter-section">
+                <p class="newsletter-text">Co stojí za to vidět, vám pošleme e-mailem jednou týdně</p>
+                <form id="newsletterForm" class="newsletter-form">
+                    <input
+                        type="email"
+                        id="newsletterEmail"
+                        placeholder="váš@email.cz"
+                        required
+                        aria-label="E-mail pro newsletter"
+                    >
+                    <button type="submit">Odebírat</button>
+                </form>
+                <div id="newsletterMessage" class="newsletter-message hidden" role="status"></div>
             </div>
-
-            <div class="section-tabs">
-                <button class="tab-btn active" data-section="top10">Top 10 Netflix</button>
-                <button class="tab-btn" data-section="new">Nově na streamech</button>
-            </div>
-
-            <div id="loading" class="loading">
-                <div class="pick-row pick-skeleton" aria-hidden="true"><div class="skel-poster"></div><div class="skel-copy"><span></span><span></span></div></div>
-                <div class="pick-row pick-skeleton" aria-hidden="true"><div class="skel-poster"></div><div class="skel-copy"><span></span><span></span></div></div>
-                <div class="pick-row pick-skeleton" aria-hidden="true"><div class="skel-poster"></div><div class="skel-copy"><span></span><span></span></div></div>
-                <p class="loading-label">Načítám seznam</p>
-            </div>
-
-            <div id="error" class="error hidden">
-                <p>Data se nepodařilo načíst. Zkuste to za chvíli.</p>
-            </div>
-
-            <div id="updateInfo" class="update-info hidden">
-                <span id="lastUpdate"></span>
-                <span id="nextUpdate"></span>
-            </div>
-
-            <div id="content" class="content-grid hidden"></div>
-        </section>
-
-        <!-- Newsletter -->
-        <div class="newsletter-section">
-            <p class="newsletter-text">Co stojí za to vidět dostanete emailem jednou týdně</p>
-            <form id="newsletterForm" class="newsletter-form">
-                <input
-                    type="email"
-                    id="newsletterEmail"
-                    placeholder="váš@email.cz"
-                    required
-                    aria-label="Email pro newsletter"
-                >
-                <button type="submit">Odebírat</button>
-            </form>
-            <div id="newsletterMessage" class="newsletter-message hidden"></div>
-        </div>
         </main>
 
         <!-- Footer -->
@@ -185,17 +133,18 @@
                     Hodnocení z OMDb
                 </a>
                 <span>•</span>
-                <a href="https://top10.netflix.com" target="_blank" rel="noopener">
+                <a href="https://www.netflix.com/tudum/top10" target="_blank" rel="noopener">
                     Netflix Top 10
                 </a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.10.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.11.0</a>
             </p>
         </footer>
     </div>
 
     <script src="list-card.js"></script>
-    <script src="app.js"></script>
+    <script src="dnes-core.js"></script>
+    <script src="dnes.js"></script>
 </body>
 </html>

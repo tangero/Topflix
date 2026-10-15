@@ -162,13 +162,19 @@ function renderDetail(item, history, similar) {
     const shareTitle = `${item.title} - Topflix`;
 
     // History
+    // Jen týdny v Top 10. Dny, kdy byl titul mezi novinkami, sem nepatří.
     let historyHTML = '';
-    if (history && history.length > 0) {
-        const historyItems = history.map(h => {
-            const rankText = h.rank ? ` #${h.rank}` : '';
-            return `<span class="history-item">${h.date}${rankText} (${h.source})</span>`;
+    const chartWeeks = (history || []).filter(h => h.source === 'top10');
+    if (chartWeeks.length > 0) {
+        const historyItems = chartWeeks.map(h => {
+            const date = new Date(`${h.date}T12:00:00`);
+            const label = Number.isNaN(date.getTime())
+                ? escapeHtml(h.date)
+                : date.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' });
+            const rankText = h.rank ? `${h.rank}. místo · ` : '';
+            return `<span class="history-item">${rankText}${label}</span>`;
         }).join('');
-        historyHTML = `<div class="history-section"><h3>Historie v Top 10</h3><div class="history-list">${historyItems}</div></div>`;
+        historyHTML = `<div class="history-section"><h3>V české Top 10</h3><div class="history-list">${historyItems}</div></div>`;
     }
 
     // Similar
@@ -193,7 +199,9 @@ function renderDetail(item, history, similar) {
 
     // Appearances
     const appearances = item.appearances || 0;
-    const appearancesText = appearances > 1 ? `${appearances}× v Top 10` : '';
+    const appearancesText = item.last_source === 'netflix_catalog'
+        ? (item.first_seen ? `Na Netflix přibyl ${new Date(`${item.first_seen}T12:00:00`).toLocaleDateString('cs-CZ')}` : '')
+        : (chartWeeks.length > 1 ? `${chartWeeks.length} ${chartWeeks.length < 5 ? 'týdny' : 'týdnů'} v Top 10` : '');
 
     detailContent.innerHTML = `
         <div class="detail-hero">

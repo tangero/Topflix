@@ -6,9 +6,14 @@ name = "topflix-cron"
 main = "workers/cron.js"
 compatibility_date = "2024-01-01"
 
-# Cron trigger: Tuesday and Friday at 07:00 UTC (09:00 CET)
+# Cron trigger: Tuesday and Friday at 07:00 UTC (09:00 CEST / 08:00 CET).
+# Day names on purpose: Cloudflare counts weekdays from 1 = Sunday, so the old "2,5"
+# fired on Monday and Thursday, before Netflix published the new Top 10.
 [triggers]
-crons = ["0 7 * * 2,5"]  # Tuesday and Friday at 07:00 UTC
+crons = ["0 7 * * TUE,FRI"]
+
+# Runtime secret, not committed. Same value as ADMIN_API_KEY on the Pages project:
+#   wrangler secret put ADMIN_API_KEY --config wrangler-cron.toml
 
 # Environment variables
 [vars]

@@ -2,17 +2,6 @@
  * Topflix - Archive Page
  */
 
-// HTML sanitization to prevent XSS
-function escapeHtml(str) {
-    if (!str) return '';
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;');
-}
-
 // State management
 let allContent = [];
 let currentOffset = 0;
@@ -23,19 +12,10 @@ let currentType = 'all'; // all, movie, series
 let currentMinRating = 70; // 60, 70, 80
 let currentSort = 'rating'; // rating, recent, popular
 let includeInternational = false;
+let netflixOnly = true;
 
 // Region filter key
 const INCLUDE_INTERNATIONAL_KEY = 'topflix_include_international';
-
-// Provider display names
-const PROVIDER_NAMES = {
-    netflix: 'Netflix',
-    disney: 'Disney+',
-    apple: 'Apple TV+',
-    prime: 'Prime Video',
-    max: 'Max',
-    skyshowtime: 'SkyShowtime'
-};
 
 // DOM elements
 const loading = document.getElementById('loading');
@@ -48,6 +28,7 @@ const ratingFilter = document.getElementById('ratingFilter');
 const sortSelect = document.getElementById('sortSelect');
 const themeToggle = document.getElementById('themeToggle');
 const includeInternationalCheckbox = document.getElementById('includeInternational');
+const netflixOnlyCheckbox = document.getElementById('netflixOnly');
 const hiddenCountFeedback = document.getElementById('hiddenCountFeedback');
 const loadMoreBtn = document.getElementById('loadMoreBtn');
 const loadMoreContainer = document.getElementById('loadMoreContainer');
@@ -177,15 +158,7 @@ async function loadStats() {
         const data = await response.json();
         const stats = data.stats;
 
-        totalCount.innerHTML = `
-            <strong>📊 Statistiky databáze:</strong>
-            ${stats.total} celkem •
-            ${stats.movies} filmů •
-            ${stats.series} seriálů •
-            ${stats.quality} kvalitních (≥70%) •
-            ${stats.excellent} výjimečných (≥80%) •
-            průměrné hodnocení ${stats.avgRating}%
-        `;
+        totalCount.textContent = `${stats.total} titulů v archivu, z toho ${stats.movies} filmů a ${stats.series} seriálů. Nad 70 % jich je ${stats.quality}, nad 80 % ${stats.excellent}.`;
     } catch (err) {
         console.error('Error loading stats:', err);
     }
@@ -194,34 +167,17 @@ async function loadStats() {
 // Load hidden gems
 async function loadHiddenGems() {
     try {
-        const response = await fetch('/api/hidden-gems?limit=8&excludeRegional=true');
+        const gemsGrid = document.getElementById('gemsGrid');
+        const gemsSection = document.getElementById('hiddenGemsSection');
+        const response = await fetch(`/api/hidden-gems?limit=6&excludeRegional=true&netflixOnly=${netflixOnly}`);
         if (!response.ok) return;
         const data = await response.json();
         const gems = data.data || [];
 
+        gemsSection.classList.toggle('hidden', gems.length === 0);
         if (gems.length === 0) return;
 
-        const gemsGrid = document.getElementById('gemsGrid');
-        const gemsSection = document.getElementById('hiddenGemsSection');
-
-        gemsGrid.innerHTML = gems.map(item => {
-            const poster = item.poster_url
-                ? `<img src="${escapeHtml(item.poster_url)}" alt="${escapeHtml(item.title)}" loading="lazy">`
-                : '';
-            const typeIcon = item.type === 'movie' ? '🎬' : '📺';
-            const providers = (item.streaming_providers || []).map(p => PROVIDER_NAMES[p] || p).join(', ');
-            return `
-                <a href="detail.html?id=${item.tmdb_id}&type=${item.type}" class="gem-card">
-                    ${poster}
-                    <div class="gem-info">
-                        <h3>${escapeHtml(item.title)}</h3>
-                        <div class="gem-meta">${typeIcon} ${item.year || ''} ${item.genre ? '| ' + escapeHtml(item.genre) : ''}</div>
-                        ${providers ? `<div class="gem-meta">${escapeHtml(providers)}</div>` : ''}
-                        <div class="gem-rating">${item.avg_rating}%</div>
-                    </div>
-                </a>
-            `;
-        }).join('');
+        gemsGrid.replaceChildren(...gems.map((item) => archiveRow(item)));
 
         gemsSection.classList.remove('hidden');
     } catch (err) {
@@ -233,6 +189,11 @@ async function loadHiddenGems() {
 function setupEventListeners() {
     themeToggle.addEventListener('click', toggleTheme);
     includeInternationalCheckbox.addEventListener('change', toggleInternational);
+    netflixOnlyCheckbox.addEventListener('change', () => {
+        netflixOnly = netflixOnlyCheckbox.checked;
+        loadHiddenGems();
+        resetAndFetch();
+    });
 
     typeFilter.addEventListener('change', (e) => {
         currentType = e.target.value;
@@ -283,7 +244,8 @@ async function fetchData(appendMode = false) {
             offset: currentOffset,
             minRating: currentMinRating,
             orderBy: currentSort,
-            excludeRegional: !includeInternational
+            excludeRegional: !includeInternational,
+            netflixOnly
         });
 
         if (currentType !== 'all') {
@@ -346,12 +308,12 @@ function displayData() {
     content.innerHTML = '';
 
     if (filtered.length === 0) {
-        content.innerHTML = '<p style="text-align: center; color: var(--text-secondary); padding: 2rem;">Žádné tituly k zobrazení.</p>';
+        content.innerHTML = '<p class="empty-note">Žádné tituly k zobrazení.</p>';
         return;
     }
 
     filtered.forEach(item => {
-        content.appendChild(createTitleCard(item));
+        content.appendChild(archiveRow(item));
     });
 }
 
@@ -360,186 +322,27 @@ function renderContent() {
     displayData();
 }
 
-// Helper: Format runtime
-function formatRuntime(minutes) {
-    if (!minutes) return null;
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    if (hours > 0 && mins > 0) return `${hours}h ${mins}min`;
-    if (hours > 0) return `${hours}h`;
-    return `${mins}min`;
+function formatArchiveDate(date) {
+    const parsed = new Date(`${date}T12:00:00`);
+    if (Number.isNaN(parsed.getTime())) return date;
+    return parsed.toLocaleDateString('cs-CZ', { day: 'numeric', month: 'numeric', year: 'numeric' });
 }
 
-// Helper: Convert country code to Czech name
-function getCountryName(code) {
-    const countryNames = {
-        'US': 'USA', 'GB': 'Velká Británie', 'FR': 'Francie', 'DE': 'Německo',
-        'IT': 'Itálie', 'ES': 'Španělsko', 'CA': 'Kanada', 'AU': 'Austrálie',
-        'JP': 'Japonsko', 'KR': 'Jižní Korea', 'CN': 'Čína', 'TW': 'Tchaj-wan',
-        'TH': 'Thajsko', 'IN': 'Indie', 'ID': 'Indonésie', 'VN': 'Vietnam',
-        'PH': 'Filipíny', 'MX': 'Mexiko', 'BR': 'Brazílie', 'AR': 'Argentina',
-        'CO': 'Kolumbie', 'CL': 'Chile', 'PE': 'Peru', 'VE': 'Venezuela',
-        'EC': 'Ekvádor', 'PL': 'Polsko', 'CZ': 'Česko', 'SK': 'Slovensko',
-        'AT': 'Rakousko', 'CH': 'Švýcarsko', 'NL': 'Nizozemsko', 'BE': 'Belgie',
-        'SE': 'Švédsko', 'NO': 'Norsko', 'DK': 'Dánsko', 'FI': 'Finsko',
-        'RU': 'Rusko', 'UA': 'Ukrajina', 'TR': 'Turecko', 'GR': 'Řecko',
-        'PT': 'Portugalsko', 'IE': 'Irsko', 'NZ': 'Nový Zéland', 'ZA': 'JAR',
-        'IL': 'Izrael', 'AE': 'SAE', 'SA': 'Saúdská Arábie', 'EG': 'Egypt',
-        'NG': 'Nigérie', 'KE': 'Keňa', 'MA': 'Maroko', 'HK': 'Hongkong',
-        'SG': 'Singapur', 'MY': 'Malajsie', 'PK': 'Pákistán', 'BD': 'Bangladéš'
-    };
-    return countryNames[code] || code;
-}
-
-// Helper: Convert country code to emoji flag
-function getCountryFlag(code) {
-    // Convert ISO 3166-1 alpha-2 code to emoji flag
-    // Each letter becomes a regional indicator symbol (🇦-🇿)
-    return code
-        .toUpperCase()
-        .split('')
-        .map(char => String.fromCodePoint(0x1F1E6 - 65 + char.charCodeAt(0)))
-        .join('');
-}
-
-// Create title card element
-function createTitleCard(item) {
-    const card = document.createElement('div');
-    card.className = `title-card quality-${item.quality_tier || 'average'}`;
-
-    // Poster
-    const posterHTML = item.poster_url
-        ? `<img src="${escapeHtml(item.poster_url)}" alt="${escapeHtml(item.title)}" loading="lazy">`
-        : '<div class="no-poster">🎬</div>';
-
-    // Rating badge with quality indicator
-    let qualityText = '❌';
-    let qualityClass = 'poor';
-    if (item.avg_rating >= 80) {
-        qualityText = '💣';
-        qualityClass = 'excellent';
-    } else if (item.avg_rating >= 70) {
-        qualityText = '✅';
-        qualityClass = 'good';
-    } else if (item.avg_rating >= 60) {
-        qualityText = '👍';
-        qualityClass = 'average';
-    } else if (item.avg_rating >= 50) {
-        qualityText = '⚠️';
-        qualityClass = 'below-average';
+// Řádek archivu: stejný jako na titulce, s poznámkou, kdy byl titul naposledy vidět.
+function archiveRow(item) {
+    const providers = Array.isArray(item.streaming_providers) ? item.streaming_providers : [];
+    let reason = '';
+    if (item.last_source === 'top10' && item.last_seen) {
+        reason = `Naposledy v Top 10 ${formatArchiveDate(item.last_seen)}`;
+    } else if (item.last_seen) {
+        reason = `Mezi novinkami ${formatArchiveDate(item.last_seen)}`;
     }
-
-    const ratingBadge = item.avg_rating
-        ? `<div class="rating-badge rating-${qualityClass}">
-            ${item.avg_rating}% ${qualityText}
-           </div>`
-        : '';
-
-    // Build metadata line
-    const metaParts = [];
-
-    // Type (movie or series)
-    metaParts.push(item.type === 'movie' ? '🎬 Film' : '📺 Seriál');
-
-    // Origin country
-    if (item.origin_country && Array.isArray(item.origin_country) && item.origin_country.length > 0) {
-        const flags = item.origin_country
-            .map(code => `<span title="${getCountryName(code)}" style="cursor: help;">${getCountryFlag(code)}</span>`)
-            .join(' ');
-        metaParts.push(flags);
+    if (providers.length === 0) {
+        reason = reason ? `${reason} · dostupnost neověřena` : 'Dostupnost neověřena';
     }
-
-    // Year
-    if (item.year) {
-        metaParts.push(`📅 ${item.year}`);
-    }
-
-    // Runtime for movies
-    if (item.runtime) {
-        metaParts.push(`⏱️ ${formatRuntime(item.runtime)}`);
-    }
-
-    // Seasons/episodes for series
-    if (item.number_of_seasons) {
-        metaParts.push(`📺 ${item.number_of_seasons} sezón`);
-    }
-
-    // Genre
-    if (item.genre) {
-        metaParts.push(`🎭 ${escapeHtml(item.genre)}`);
-    }
-
-    // Appearances count
-    if (item.appearances > 1) {
-        metaParts.push(`🔄 ${item.appearances}× v Top 10`);
-    }
-
-    // Provider badges
-    const providerBadgesHTML = buildProviderBadges(item.streaming_providers);
-
-    // Multi-source ratings
-    const multiRatingsHTML = buildMultiRatings(item);
-
-    card.innerHTML = `
-        <div class="card-content">
-            <div class="card-poster">
-                ${posterHTML}
-                ${ratingBadge}
-            </div>
-            <div class="card-info">
-                <div class="card-title">
-                    <h2><a href="detail.html?id=${item.tmdb_id}&type=${item.type || 'movie'}" class="title-link">${escapeHtml(item.title || item.title_original)}</a></h2>
-                    ${item.title_original && item.title !== item.title_original
-                        ? `<div class="original-title">${escapeHtml(item.title_original)}</div>`
-                        : ''}
-                </div>
-                ${providerBadgesHTML}
-                ${multiRatingsHTML}
-                <div class="meta">
-                    ${metaParts.join(' • ')}
-                </div>
-                ${item.description
-                    ? `<div class="description">${escapeHtml(item.description)}</div>`
-                    : ''}
-                <div class="links">
-                    ${item.tmdb_url
-                        ? `<a href="${escapeHtml(item.tmdb_url)}" target="_blank" rel="noopener" class="tmdb-link">TMDB</a>`
-                        : ''}
-                </div>
-            </div>
-        </div>
-    `;
-
-    return card;
-}
-
-// Build provider badge HTML
-function buildProviderBadges(providers) {
-    if (!providers || providers.length === 0) return '';
-    const badges = providers.map(p => {
-        const name = PROVIDER_NAMES[p] || p;
-        return `<span class="provider-badge provider-${escapeHtml(p)}">${escapeHtml(name)}</span>`;
-    }).join('');
-    return `<div class="provider-badges">${badges}</div>`;
-}
-
-// Build multi-source rating HTML
-function buildMultiRatings(item) {
-    const parts = [];
-
-    if (item.tmdb_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">TMDB</span> <span class="rating-value">${item.tmdb_rating}</span></span>`);
-    }
-    if (item.imdb_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">IMDb</span> <span class="rating-value">${item.imdb_rating}</span></span>`);
-    }
-    if (item.rotten_tomatoes_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">RT</span> <span class="rating-value">${item.rotten_tomatoes_rating}%</span></span>`);
-    }
-    if (item.metacritic_rating) {
-        parts.push(`<span class="rating-source"><span class="rating-label">MC</span> <span class="rating-value">${item.metacritic_rating}</span></span>`);
-    }
-
-    if (parts.length <= 1) return '';
-    return `<div class="multi-ratings">${parts.join('<span class="rating-divider">|</span>')}</div>`;
+    return createTitleCard({ ...item, providers, quality: null, reason }, {
+        showType: true,
+        showReason: !!reason,
+        preferredProviders: ['netflix']
+    });
 }

@@ -136,63 +136,86 @@
 
         <!-- Help Content -->
         <div class="help-section">
-            <h2>Barevné hodnocení filmů a seriálů</h2>
+            <h2>Jak Topflix vybírá</h2>
 
             <p>
-                Aplikace Topflix používá barevné kódování pro rychlou orientaci v kvalitě filmů a seriálů
-                z Netflix Top 10. Hodnocení je založeno na průměru ze dvou zdrojů: mezinárodní databáze TMDB
-                a české filmové databáze ČSFD.
+                Topflix pomáhá rychle vybrat, co pustit na Netflixu. Na úvodu je jeden tip na dnešní večer
+                a k němu pár alternativ podle situace: film na dnešek, seriál na víkend, něco do 100 minut,
+                starší titul, který právě přibyl, nebo méně známý a výborně hodnocený kousek.
             </p>
 
-            <h3>Stupnice hodnocení</h3>
+            <h3>Tip na dnešek</h3>
+            <ul style="color: var(--text-secondary); line-height: 1.8;">
+                <li>Vybírá se jen z titulů s hodnocením 70 % a víc.</li>
+                <li>Přednost má to, co je teď v české Netflix Top 10, novinky a tituly, které nově přibyly do katalogu.</li>
+                <li>U každého tipu je věta „Proč“: kolikátý týden se drží v Top 10, jestli je to nová řada, zda je seriál ukončený a jestli se shodnou diváci s kritikou.</li>
+                <li>Tlačítka nad tipem omezí výběr podle toho, kolik máte času: film do 100 minut, film na celý večer, seriál na víkend nebo na dlouho.</li>
+                <li>„Už jsem viděl“ a „Nezajímá mě“ titul z výběru schovají. Pamatuje si to jen váš prohlížeč a skryté tituly jdou kdykoli vrátit.</li>
+            </ul>
+
+            <h3>Netflix a další služby</h3>
+            <p>
+                Výběr vychází z Netflixu. Pokud platíte i Disney+, Max, Apple TV+, Prime Video nebo SkyShowtime,
+                přidejte je dole na úvodu v části „Další služby“. Tituly z nich se pak objeví také, Netflix má ale dál přednost.
+            </p>
+
+            <h3>Top 10 a nově přidané</h3>
+            <p>
+                Českou Top 10 zveřejňuje Netflix každé úterý. U každého titulu ukazujeme, jestli je v žebříčku nově,
+                stoupá, klesá, vrátil se, nebo kolikátý týden se drží.
+            </p>
+            <p>
+                „Nově přidáno na Netflix“ vzniká porovnáním katalogu Netflixu v ČR, který kontrolujeme dvakrát týdně.
+                Patří sem i starší filmy a seriály, které na Netflix teprve přišly. Datum přidání je den kontroly,
+                kdy jsme titul uviděli poprvé, takže se může o pár dní lišit. Netflix nikde nezveřejňuje,
+                co z katalogu brzy odejde, proto ukazujeme jen to, co už zmizelo.
+            </p>
+        </div>
+
+        <div class="help-section">
+            <h2>Hodnocení</h2>
+
+            <p>
+                Číslo u titulu je vážený průměr ze čtyř zdrojů: TMDB (30 %), IMDb (30 %), Rotten Tomatoes (25 %)
+                a Metacritic (15 %). Když některý zdroj chybí, počítá se ze zbylých. Pokud se diváci a kritika
+                rozejdou aspoň o 15 bodů, řádek ukáže obě čísla.
+            </p>
+
+            <h3>Stupnice</h3>
 
             <div class="rating-example green">
                 <div class="rating-badge-example green">
-                    70% - 100%
+                    70 – 100 %
                 </div>
                 <div class="rating-description">
-                    <strong>🟢 Doporučeno (Zelená)</strong><br>
-                    Vysoce kvalitní filmy a seriály s velmi dobrým hodnocením. Tyto tituly stojí za zhlédnutí.
+                    <strong>Doporučeno</strong><br>
+                    Z toho se vybírá tip na dnešek. Od 80 % jde o výjimečně hodnocené tituly.
                 </div>
             </div>
 
             <div class="rating-example yellow">
                 <div class="rating-badge-example yellow">
-                    50% - 69%
+                    50 – 69 %
                 </div>
                 <div class="rating-description">
-                    <strong>🟡 Průměr (Žlutá)</strong><br>
-                    Průměrné tituly s neutrálním hodnocením. Mohou bavit podle osobního vkusu.
+                    <strong>Průměr</strong><br>
+                    Může bavit podle vkusu. V Top 10 je ukazujeme, do tipů ne.
                 </div>
             </div>
 
             <div class="rating-example red">
                 <div class="rating-badge-example red">
-                    0% - 49%
+                    0 – 49 %
                 </div>
                 <div class="rating-description">
-                    <strong>🔴 Slabé (Červená)</strong><br>
-                    Tituly s nízkým hodnocením. Můžete na ně narazit ve Top 10, ale kvalita není zaručena.
+                    <strong>Slabé</strong><br>
+                    I takové tituly se do Top 10 dostanou. Kvalitu ale nezaručují.
                 </div>
             </div>
 
-            <h3>Zdroje hodnocení</h3>
-
             <p>
-                <strong>TMDB (The Movie Database):</strong> Mezinárodní databáze filmů a seriálů
-                s hodnocením 0-10. Pro srovnatelnost je převedeno na škálu 0-100%.
-            </p>
-
-            <p>
-                <strong>ČSFD (Česko-Slovenská filmová databáze):</strong> Domácí databáze
-                s hodnocením 0-100%. Pokud není hodnocení dostupné nebo je nevalidní (pod 10%),
-                nezobrazuje se.
-            </p>
-
-            <p>
-                <strong>Průměrné hodnocení:</strong> Konečné hodnocení se počítá jako průměr
-                dostupných hodnocení z obou zdrojů. Pokud je dostupné pouze jedno hodnocení,
-                použije se pouze to.
+                Tituly, které mají jen jedno hodnocení s pár hlasy, do tipů nedáváme. Jediné hodnocení
+                od hrstky lidí snadno ukáže 100 %.
             </p>
         </div>
 
@@ -200,19 +223,9 @@
             <h2>O aplikaci</h2>
 
             <p>
-                Topflix zobrazuje týdenní žebříček Netflix Top 10 pro Českou republiku,
-                obohacený o hodnocení z TMDB a ČSFD. Data jsou aktualizována každé úterý
-                a jsou cachovány pro rychlé načítání.
+                Data jsou z oficiální Netflix Top 10 pro Českou republiku, z TMDB (popisy, plakáty, dostupnost na službách
+                podle JustWatch) a z OMDb (IMDb, Rotten Tomatoes, Metacritic). Archiv obsahuje Top 10 od července 2021.
             </p>
-
-            <h3>Funkce</h3>
-            <ul style="color: var(--text-secondary); line-height: 1.8;">
-                <li>Filtrování podle typu (filmy, seriály, vše)</li>
-                <li>Řazení podle pořadí na Netflix, hodnocení nebo jen doporučené tituly</li>
-                <li>Tmavý/světlý režim</li>
-                <li>Odkazy na TMDB a ČSFD pro detailní informace</li>
-                <li>Mobilní responzivní design</li>
-            </ul>
 
             <div class="credits">
                 <p><strong>Autor:</strong> <a href="https://www.marigold.cz" target="_blank" rel="noopener">Patrick Zandl</a></p>
@@ -230,16 +243,16 @@
                     Data z TMDB
                 </a>
                 <span>•</span>
-                <a href="https://www.csfd.cz" target="_blank" rel="noopener">
-                    Hodnocení z ČSFD
+                <a href="https://www.omdbapi.com" target="_blank" rel="noopener">
+                    Hodnocení z OMDb
                 </a>
                 <span>•</span>
-                <a href="https://top10.netflix.com" target="_blank" rel="noopener">
+                <a href="https://www.netflix.com/tudum/top10" target="_blank" rel="noopener">
                     Netflix Top 10
                 </a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.10.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.11.0</a>
             </p>
         </footer>
     </div>

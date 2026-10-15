@@ -163,8 +163,9 @@
         </header>
 
         <!-- Navigation -->
-        <nav class="nav-links">
-            <a href="index.html" class="nav-link">Filmy</a>
+        <nav class="nav-links" aria-label="Hlavní">
+            <a href="index.html" class="nav-link">Dnes</a>
+            <a href="filmy.html" class="nav-link">Filmy</a>
             <a href="serials.html" class="nav-link">Seriály</a>
             <a href="archive.html" class="nav-link">Archiv</a>
             <a href="newsletter.html" class="nav-link">Newsletter</a>
@@ -177,12 +178,54 @@
                 <p>Historie všech změn a aktualizací</p>
             </div>
 
+            <!-- Version 1.11.0 -->
+            <div class="version-section">
+                <div class="version-header">
+                    <span class="version-number">v1.11.0</span>
+                    <span class="version-date">15. října 2026</span>
+                    <span class="badge latest">Aktuální</span>
+                </div>
+
+                <div class="change-category added">
+                    <h3>Přidáno</h3>
+                    <ul class="change-list">
+                        <li>Nová titulka „Dnes“: jeden tip na večer s důvodem „proč“, alternativy podle situace, Top 10 s kontextem, nově přidané tituly a premiéry nad 70 %</li>
+                        <li>Volba „Kolik máte času“: film do 100 minut, film na celý večer, seriál na víkend, seriál na dlouho</li>
+                        <li>Tlačítka „Už jsem viděl“ a „Nezajímá mě“ schovají titul z výběru</li>
+                        <li>„Nově přidáno na Netflix“: co přibylo do českého katalogu za 30 dní, i starší tituly, a co zmizelo</li>
+                        <li>Stránka seriálů má vlastní „Seriál na dnešek“</li>
+                        <li>Archiv s českou Top 10 od roku 2021 a filtrem jen na to, co je teď na Netflixu</li>
+                        <li>Detail ukáže i titul, který zatím jen přibyl do katalogu</li>
+                    </ul>
+                </div>
+
+                <div class="change-category changed">
+                    <h3>Změněno</h3>
+                    <ul class="change-list">
+                        <li>Netflix je hlavní osa, další služby si návštěvník přidá sám</li>
+                        <li>Katalog filmů je na /filmy.html, navigace Dnes · Filmy · Seriály · Archiv · Newsletter</li>
+                        <li>Archiv používá stejné řádky jako zbytek webu</li>
+                        <li>„Méně známé, výborně hodnocené“ vyžaduje hodnocení aspoň ze dvou zdrojů</li>
+                        <li>Nápověda popisuje současné hodnocení ze čtyř zdrojů</li>
+                    </ul>
+                </div>
+
+                <div class="change-category fixed">
+                    <h3>Opraveno</h3>
+                    <ul class="change-list">
+                        <li>Cron běžel v pondělí a čtvrtek místo v úterý a pátek</li>
+                        <li>Nová úterní Top 10 se kvůli týdenní cache mohla objevit až další pondělí</li>
+                        <li>Písma Fraunces a Outfit se na webu nenačítala</li>
+                        <li>Newsletter chodí v úterý, texty slibovaly středu</li>
+                    </ul>
+                </div>
+            </div>
+
             <!-- Version 1.10.0 -->
             <div class="version-section">
                 <div class="version-header">
                     <span class="version-number">v1.10.0</span>
                     <span class="version-date">15. října 2026</span>
-                    <span class="badge latest">Aktuální</span>
                 </div>
 
                 <div class="change-category added">
@@ -651,10 +694,10 @@
                 <span>•</span>
                 <a href="https://www.csfd.cz" target="_blank" rel="noopener">Hodnocení z ČSFD</a>
                 <span>•</span>
-                <a href="https://top10.netflix.com" target="_blank" rel="noopener">Netflix Top 10</a>
+                <a href="https://www.netflix.com/tudum/top10" target="_blank" rel="noopener">Netflix Top 10</a>
             </div>
             <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.10.0</a>
+                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.11.0</a>
             </p>
         </footer>
     </div>

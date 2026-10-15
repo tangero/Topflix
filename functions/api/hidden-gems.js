@@ -34,6 +34,7 @@ export async function onRequest(context) {
     const minRating = parseInt(url.searchParams.get('minRating') || '80');
     const maxAppearances = parseInt(url.searchParams.get('maxAppearances') || '2');
     const excludeRegional = url.searchParams.get('excludeRegional') === 'true';
+    const netflixOnly = url.searchParams.get('netflixOnly') === 'true';
 
     const db = createDatabase(env);
     const gems = await db.getHiddenGems({
@@ -41,7 +42,8 @@ export async function onRequest(context) {
       type,
       minRating,
       maxAppearances,
-      excludeRegional
+      excludeRegional,
+      netflixOnly
     });
 
     return new Response(JSON.stringify({

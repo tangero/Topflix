@@ -165,11 +165,12 @@ export class TopflixDatabase {
       type = null,
       minRating = 70,
       excludeRegional = false,
+      netflixOnly = false,
       orderBy = 'rating' // 'rating' | 'recent' | 'popular'
     } = options;
 
     // Try cache first
-    const cacheKey = `quality:${type}:${minRating}:${excludeRegional}:${orderBy}:${limit}:${offset}`;
+    const cacheKey = `quality:${type}:${minRating}:${excludeRegional}:${netflixOnly}:${orderBy}:${limit}:${offset}`;
     const cached = await this._getFromCache(cacheKey);
     if (cached) return cached;
 
@@ -194,6 +195,10 @@ export class TopflixDatabase {
 
     if (excludeRegional) {
       query += ` AND is_regional = 0`;
+    }
+
+    if (netflixOnly) {
+      query += ` AND streaming_providers LIKE '%"netflix"%'`;
     }
 
     // Order by
@@ -507,10 +512,11 @@ export class TopflixDatabase {
       type = null,
       minRating = 80,
       maxAppearances = 2,
-      excludeRegional = false
+      excludeRegional = false,
+      netflixOnly = false
     } = options;
 
-    const cacheKey = `gems:${type}:${minRating}:${maxAppearances}:${excludeRegional}:${limit}`;
+    const cacheKey = `gems:v2:${type}:${minRating}:${maxAppearances}:${excludeRegional}:${netflixOnly}:${limit}`;
     const cached = await this._getFromCache(cacheKey);
     if (cached) return cached;
 
@@ -524,6 +530,8 @@ export class TopflixDatabase {
              metacritic_rating, streaming_providers
       FROM content
       WHERE avg_rating >= ?1 AND appearances <= ?2
+        -- Jen TMDB s pár hlasy dává i 100 %. Klenot musí mít aspoň jeden další zdroj.
+        AND (imdb_rating IS NOT NULL OR rotten_tomatoes_rating IS NOT NULL OR metacritic_rating IS NOT NULL)
     `;
     const params = [minRating, maxAppearances];
 
@@ -534,6 +542,10 @@ export class TopflixDatabase {
 
     if (excludeRegional) {
       query += ' AND is_regional = 0';
+    }
+
+    if (netflixOnly) {
+      query += ` AND streaming_providers LIKE '%"netflix"%'`;
     }
 
     query += ' ORDER BY avg_rating DESC, first_seen DESC';

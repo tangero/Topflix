@@ -47,6 +47,7 @@ export async function onRequest(context) {
     const offset = parseInt(url.searchParams.get('offset') || '0');
     const minRating = parseInt(url.searchParams.get('minRating') || '70');
     const excludeRegional = url.searchParams.get('excludeRegional') === 'true';
+    const netflixOnly = url.searchParams.get('netflixOnly') === 'true';
     const orderBy = url.searchParams.get('orderBy') || 'rating'; // 'rating', 'recent', 'popular'
 
     // Validate parameters
@@ -84,6 +85,7 @@ export async function onRequest(context) {
       type,
       minRating,
       excludeRegional,
+      netflixOnly,
       orderBy
     });
 
@@ -100,6 +102,7 @@ export async function onRequest(context) {
         type: type || 'all',
         orderBy,
         excludeRegional,
+        netflixOnly,
         total_in_db: stats.quality
       },
       data: content,

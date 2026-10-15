@@ -13,6 +13,33 @@ function getCorsHeaders() {
   };
 }
 
+async function getCatalogItem(DB, tmdbId, type) {
+  try {
+    const row = await DB.prepare(`
+      SELECT tmdb_id, type, title, title_original, year, genre, avg_rating, tmdb_rating,
+             poster_url, description, runtime, number_of_seasons, number_of_episodes,
+             origin_country, first_seen, last_seen, removed_at, imdb_id, imdb_rating,
+             rotten_tomatoes_rating, metacritic_rating
+      FROM netflix_catalog WHERE tmdb_id = ?1 AND type = ?2
+    `).bind(tmdbId, type).first();
+    if (!row) return null;
+    let origin = [];
+    try { origin = row.origin_country ? JSON.parse(row.origin_country) : []; } catch { origin = []; }
+    const searchType = type === 'movie' ? 'movie' : 'tv';
+    return {
+      ...row,
+      origin_country: origin,
+      streaming_providers: row.removed_at ? [] : ['netflix'],
+      appearances: 0,
+      last_source: 'netflix_catalog',
+      tmdb_url: `https://www.themoviedb.org/${searchType}/${tmdbId}`
+    };
+  } catch (error) {
+    // Bez migrace 0004 katalog není.
+    return null;
+  }
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -41,8 +68,9 @@ export async function onRequest(context) {
 
     const db = createDatabase(env);
 
-    // Get full content detail
-    const item = await db.getContentByIdFull(tmdbId, type);
+    // Get full content detail. Titul, který jen přibyl do katalogu Netflixu,
+    // v archivu ještě není, ukážeme ho z katalogu.
+    const item = await db.getContentByIdFull(tmdbId, type) || await getCatalogItem(env.DB, tmdbId, type);
 
     if (!item) {
       return new Response(JSON.stringify({ error: 'Content not found' }), {

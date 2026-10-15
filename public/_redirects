@@ -1,4 +1,5 @@
 # Redirect apex domain to www subdomain
 https://topflix.cz/* https://www.topflix.cz/:splat 301
 http://topflix.cz/* https://www.topflix.cz/:splat 301
-/prototyp /prototyp/index.html 200
+/prototyp /prototyp/landing.html 200
+/prototyp/ /prototyp/landing.html 200

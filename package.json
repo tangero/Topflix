@@ -14,9 +14,16 @@
     "test:integration": "vitest run tests/integration",
     "test:e2e": "vitest run tests/e2e",
     "test:all": "vitest run --coverage",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:data": "node --no-warnings --test tests/node/*.test.mjs"
   },
-  "keywords": ["netflix", "top10", "tmdb", "csfd", "cloudflare"],
+  "keywords": [
+    "netflix",
+    "top10",
+    "tmdb",
+    "csfd",
+    "cloudflare"
+  ],
   "author": "",
   "license": "MIT",
   "devDependencies": {

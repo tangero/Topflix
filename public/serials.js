@@ -116,8 +116,9 @@ function syncFilterStatus() {
 
 // Platform filter management
 function initPlatformFilter() {
+    // Netflix je výchozí. Kdo si vybere jinou službu nebo "Vše", tomu to zůstane.
     const saved = localStorage.getItem(PLATFORM_FILTER_KEY);
-    activePlatform = saved || 'all';
+    activePlatform = saved || 'netflix';
     updatePlatformChips();
 }
 
@@ -136,6 +137,8 @@ function filterByPlatform(items) {
     if (activePlatform === 'all') return items;
     return items.filter(item => {
         const providers = item.providers || [];
+        // Netflix Top 10 je z Netflixu, i když TMDB službu ještě nezná.
+        if (activePlatform === 'netflix' && currentSection === 'top10' && providers.length === 0) return true;
         return providers.includes(activePlatform);
     });
 }
@@ -967,7 +970,7 @@ function setupNewsletterForm() {
                 }
 
                 // Success
-                showNewsletterMessage('✅ Úspěšně přihlášeno! Newsletter budete dostávat každou středu.', 'success');
+                showNewsletterMessage('✅ Úspěšně přihlášeno! Newsletter budete dostávat každé úterý odpoledne.', 'success');
                 newsletterEmail.value = '';
 
                 // Keep form disabled after successful subscription
