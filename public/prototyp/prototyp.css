@@ -1,0 +1,306 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,560&family=Outfit:wght@400;500&display=swap');
+
+:root {
+    --ink: #17171a;
+    --char: #1c1c1f;
+    --cream: #f3efe6;
+    --paper: #f6f1e8;
+    --type: #f4efe4;
+    --accent: #c4624a;
+    --link: #d9785c;
+    --serif: "Fraunces", "Iowan Old Style", Palatino, serif;
+    --sans: Outfit, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+    margin: 0;
+    background: var(--char);
+    color: var(--type);
+    font-family: var(--sans);
+    font-weight: 400;
+}
+
+.skip {
+    position: absolute;
+    left: 1rem;
+    top: -4rem;
+    background: var(--cream);
+    color: var(--ink);
+    padding: 0.5rem 0.8rem;
+    z-index: 5;
+}
+
+.skip:focus { top: 1rem; }
+
+.mark {
+    margin: 0;
+    font-family: var(--serif);
+    font-weight: 500;
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+}
+
+.hero,
+.room,
+.device,
+.rule {
+    position: relative;
+}
+
+.hero {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 2.2rem 6vw 8vh;
+    background:
+        linear-gradient(90deg, rgba(16, 16, 18, 0.55) 0%, rgba(16, 16, 18, 0.12) 46%, rgba(16, 16, 18, 0) 70%),
+        url("hero.jpg") center right / cover no-repeat;
+}
+
+.hero .mark {
+    position: absolute;
+    top: 2rem;
+    left: 6vw;
+}
+
+.hero-copy {
+    max-width: 22em;
+}
+
+h1, h2 {
+    font-family: var(--serif);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+}
+
+h1 {
+    margin: 0 0 0.7rem;
+    font-size: clamp(2.2rem, 3.5vw, 3.6rem);
+    font-optical-sizing: auto;
+}
+
+.lede {
+    margin: 0 0 1.3rem;
+    font-family: var(--serif);
+    font-size: clamp(1.25rem, 2vw, 1.7rem);
+}
+
+.link {
+    color: var(--link);
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    text-underline-offset: 0.28em;
+}
+
+.link:hover { color: #f0b39f; }
+
+.rule {
+    min-height: 78vh;
+    display: grid;
+    place-items: center;
+    background: var(--paper);
+    color: var(--ink);
+    text-align: center;
+}
+
+.rule::before,
+.rule::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: rgba(28, 24, 20, 0.28);
+}
+
+.rule::before { left: 7vw; }
+.rule::after { right: 7vw; }
+
+.mark-ink {
+    position: absolute;
+    top: 1.6rem;
+    left: 9vw;
+    color: var(--accent);
+    font-size: 1.15rem;
+}
+
+.eyebrow {
+    margin: 0 0 0.8rem;
+    color: var(--accent);
+    font-family: var(--serif);
+    font-size: 1.15rem;
+}
+
+.rule h2 {
+    margin: 0;
+    font-size: clamp(2.8rem, 6vw, 5.4rem);
+    max-width: 12em;
+}
+
+.seventy {
+    background: #1a1c1f;
+}
+
+.seventy img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.device {
+    min-height: 86vh;
+    display: block;
+    background: #1a1c1f url("phone.jpg") center / cover no-repeat;
+}
+
+.device .mark {
+    position: absolute;
+    top: 1.6rem;
+    left: 4vw;
+    z-index: 1;
+}
+
+.device-photo { display: none; }
+
+.device-copy {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 42%;
+    display: flex;
+    align-items: center;
+    padding: 4rem 6vw 4rem 2rem;
+}
+
+.device h2 {
+    margin: 0;
+    font-size: clamp(2.8rem, 4.5vw, 4.6rem);
+}
+
+.room {
+    min-height: 100svh;
+    background: url("room.jpg") center / cover no-repeat;
+}
+
+.display {
+    position: absolute;
+    top: 7vh;
+    left: 6vw;
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(3.4rem, 7vw, 6.4rem);
+    font-weight: 500;
+    letter-spacing: -0.03em;
+}
+
+.room-copy {
+    position: absolute;
+    right: 6vw;
+    bottom: 10vh;
+    text-align: right;
+}
+
+.room h2 {
+    margin: 0 0 0.4rem;
+    font-size: clamp(2.4rem, 4.4vw, 4.2rem);
+}
+
+.room p {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: clamp(1.2rem, 2vw, 1.6rem);
+}
+
+.close {
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 4rem 1.5rem;
+    background: radial-gradient(ellipse at center, #242428 0%, var(--char) 62%);
+}
+
+.mark-center {
+    margin-bottom: 2.2rem;
+}
+
+.close h2 {
+    margin: 0 0 2rem;
+    max-width: 14em;
+    font-size: clamp(2.4rem, 5vw, 4.3rem);
+}
+
+.pill {
+    display: inline-block;
+    background: var(--accent);
+    color: var(--cream);
+    text-decoration: none;
+    border-radius: 999px;
+    padding: 0.85rem 2.1rem;
+    font-family: var(--serif);
+    font-size: 1.2rem;
+}
+
+.pill:hover { background: #d17158; }
+
+.close hr {
+    width: 4.5rem;
+    border: 0;
+    border-top: 1px solid rgba(244, 239, 228, 0.55);
+    margin: 1.6rem 0 1rem;
+}
+
+.fine {
+    margin: 0;
+    font-family: var(--serif);
+    font-size: 1.05rem;
+}
+
+a:focus-visible {
+    outline: 2px solid var(--link);
+    outline-offset: 4px;
+}
+
+@media (max-width: 800px) {
+    .hero { background-position: 70% center; }
+    .hero-copy { max-width: 16em; }
+
+    .device {
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+        background: #1a1c1f;
+    }
+
+    .device-photo {
+        display: block;
+        min-height: 58vh;
+        background: url("phone.jpg") 30% center / cover no-repeat;
+    }
+
+    .device-copy {
+        position: static;
+        width: auto;
+        padding: 2.5rem 6vw 4rem;
+    }
+
+    .room-copy {
+        left: 6vw;
+        right: auto;
+        text-align: left;
+        max-width: 12em;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+}
