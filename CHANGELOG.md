@@ -5,6 +5,18 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.0] - 2026-10-16
+
+### Added
+- Týdenní newsletter má mezi filmy a seriály reklamu označenou „Reklama“: workshop, akci, reklamní text nebo banner z vibecoding.cz, stejně jako na webu
+
+### Fixed
+- Cloudflare Web Analytics neodesílal data: CSP neobsahovala `https://cloudflareinsights.com` v `connect-src`
+
+### Technical
+- `fetchNewsletterPromo`, `normalizePromo`, `formatPromoHtml` a `formatPromoText` v `newsletter-generator.js`. Odkaz vede přes `clickUrl` s `site=topflix&surface=newsletter`. Když API do 3 s neodpoví, newsletter odejde bez reklamy
+- Testy `tests/node/newsletter-promo.test.mjs`
+
 ## [1.12.0] - 2026-10-16
 
 ### Added

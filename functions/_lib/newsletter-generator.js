@@ -13,9 +13,10 @@ import { fetchNetflixNew } from '../api/netflix-new.js';
 export async function fetchNewsletterData(apiKey, omdbApiKey) {
   try {
     // Same sources and ratings as the website (OMDb included), so the numbers match
-    const [top10Data, newData] = await Promise.all([
+    const [top10Data, newData, promo] = await Promise.all([
       fetchAndEnrichData(apiKey, omdbApiKey),
-      fetchNetflixNew(apiKey, omdbApiKey)
+      fetchNetflixNew(apiKey, omdbApiKey),
+      fetchNewsletterPromo()
     ]);
 
     // The newsletter is about Netflix: new titles from other services stay out
@@ -116,6 +117,7 @@ export async function fetchNewsletterData(apiKey, omdbApiKey) {
       series: mainSeries,
       regionalMovies: regionalMovies,
       regionalSeries: regionalSeries,
+      promo,
       top10Data,
       newData
     };
@@ -125,11 +127,161 @@ export async function fetchNewsletterData(apiKey, omdbApiKey) {
   }
 }
 
+// Reklama z propagačního systému vibecoding.cz, stejná jako v zóně na webu.
+// Výběr proběhne jednou při generování, takže všichni odběratelé dostanou totéž.
+const PROMO_ORIGIN = 'https://www.vibecoding.cz';
+const PROMO_MONTHS = ['ledna', 'února', 'března', 'dubna', 'května', 'června',
+  'července', 'srpna', 'září', 'října', 'listopadu', 'prosince'];
+
+export async function fetchNewsletterPromo() {
+  try {
+    const response = await fetch(`${PROMO_ORIGIN}/api/active-promotion`, {
+      signal: AbortSignal.timeout(3000)
+    });
+    if (!response.ok) return null;
+    return normalizePromo(await response.json());
+  } catch (error) {
+    // Newsletter musí odejít i bez reklamy
+    console.warn('Newsletter promo unavailable:', error.message);
+    return null;
+  }
+}
+
+function escapeHtml(value) {
+  return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function promoDate(iso, withYear) {
+  const parts = String(iso || '').split('-');
+  if (parts.length !== 3) return '';
+  const text = `${parseInt(parts[2], 10)}. ${PROMO_MONTHS[parseInt(parts[1], 10) - 1]}`;
+  return withYear ? `${text} ${parts[0]}` : text;
+}
+
+/**
+ * Turns the API answer into the fields the email needs, or null when it is
+ * unusable. Links go through the click redirect with site=topflix and
+ * surface=newsletter, so clicks show up in the promo statistics.
+ */
+export function normalizePromo(item, now = new Date()) {
+  if (!item || (!item.isAd && !(item.slug && item.date))) return null;
+
+  let url = '';
+  if (item.clickUrl) {
+    try {
+      const click = new URL(item.clickUrl);
+      click.searchParams.set('site', 'topflix');
+      click.searchParams.set('surface', 'newsletter');
+      url = click.toString();
+    } catch (error) {
+      url = '';
+    }
+  }
+  if (!url && item.isAd && /^https:\/\//i.test(item.externalUrl || '')) url = item.externalUrl;
+  if (!url && item.slug) {
+    url = `${PROMO_ORIGIN}/akce/${encodeURIComponent(item.slug)}/?utm_source=topflix&utm_medium=email&utm_campaign=event-promo`;
+  }
+  if (!/^https:\/\//i.test(url)) return null;
+
+  const image = /^\/promo-media\/[A-Za-z0-9][A-Za-z0-9_-]{2,80}(\?v=\d+)?$/.test(item.imageUrl || '')
+    ? PROMO_ORIGIN + item.imageUrl
+    : '';
+
+  if (item.isAd) {
+    return {
+      url,
+      image,
+      imageAlt: item.imageAlt || item.title,
+      badge: item.badgeLabel || 'Tip',
+      title: item.title,
+      meta: '',
+      description: item.bannerDescription || '',
+      highlight: item.highlight || '',
+      cta: item.ctaLabel || 'Více'
+    };
+  }
+
+  const city = item.city || (item.location ? String(item.location).split(',').slice(-1)[0].trim() : '');
+  let meta = promoDate(item.date, true);
+  if (Array.isArray(item.dateVariants) && item.dateVariants.length > 1) meta += ' a další termíny';
+  if (city) meta += `, ${city}`;
+
+  let highlight = '';
+  if (item.isPaid && item.earlyBirdPrice && item.earlyBirdDeadline
+      && now <= new Date(`${item.earlyBirdDeadline}T23:59:59`)) {
+    highlight = `Early bird do ${promoDate(item.earlyBirdDeadline, false)}`;
+  }
+
+  return {
+    url,
+    image: '',
+    imageAlt: '',
+    badge: item.isPaid ? 'Workshop' : (item.isOwn ? 'Akce' : 'Přednáška'),
+    title: item.isOwn || !item.talkTitle ? item.title : `${item.title}: ${item.talkTitle}`,
+    meta,
+    description: item.bannerDescription || '',
+    highlight,
+    cta: 'Detaily'
+  };
+}
+
+export function formatPromoHtml(promo) {
+  if (!promo) return '';
+  const url = escapeHtml(promo.url);
+  const label = '<p style="margin: 0 0 8px 0; color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;">Reklama</p>';
+
+  if (promo.image) {
+    return `
+          <tr>
+            <td style="padding: 10px 30px 20px 30px;">
+              ${label}
+              <a href="${url}" style="display: block; text-decoration: none;">
+                <img src="${escapeHtml(promo.image)}" alt="${escapeHtml(promo.imageAlt)}" width="540" style="display: block; width: 100%; max-width: 540px; height: auto; border: 0; border-radius: 8px;">
+              </a>
+            </td>
+          </tr>`;
+  }
+
+  return `
+          <tr>
+            <td style="padding: 10px 30px 20px 30px;">
+              ${label}
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f7f5f2; border: 1px solid #e6e0d8; border-left: 3px solid #d4533c; border-radius: 8px;">
+                <tr>
+                  <td style="padding: 16px 18px;">
+                    <p style="margin: 0 0 4px 0; color: #b8432e; font-size: 12px; font-weight: bold;">${escapeHtml(promo.badge)}</p>
+                    <p style="margin: 0 0 6px 0; font-size: 16px; font-weight: bold; line-height: 1.3;">
+                      <a href="${url}" style="color: #141414; text-decoration: none;">${escapeHtml(promo.title)}</a>
+                    </p>
+                    ${promo.meta ? `<p style="margin: 0 0 6px 0; color: #666; font-size: 13px;">${escapeHtml(promo.meta)}</p>` : ''}
+                    ${promo.description ? `<p style="margin: 0 0 6px 0; color: #555; font-size: 13px; line-height: 1.45;">${escapeHtml(promo.description)}</p>` : ''}
+                    ${promo.highlight ? `<p style="margin: 0 0 6px 0; color: #141414; font-size: 13px; font-weight: bold;">${escapeHtml(promo.highlight)}</p>` : ''}
+                    <a href="${url}" style="display: inline-block; margin-top: 6px; padding: 9px 18px; background-color: #d4533c; color: #ffffff; text-decoration: none; border-radius: 999px; font-size: 14px; font-weight: bold;">${escapeHtml(promo.cta)}</a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`;
+}
+
+export function formatPromoText(promo) {
+  if (!promo) return '';
+  let text = `\nREKLAMA\n${'-'.repeat(50)}\n`;
+  text += `${promo.badge}: ${promo.title}\n`;
+  if (promo.meta) text += `${promo.meta}\n`;
+  if (promo.description) text += `${promo.description}\n`;
+  if (promo.highlight) text += `${promo.highlight}\n`;
+  text += `${promo.url}\n\n`;
+  return text;
+}
+
 /**
  * Generate HTML email template
  */
 export function generateNewsletterHTML(data) {
-  const { movies, series, regionalMovies, regionalSeries } = data;
+  const { movies, series, regionalMovies, regionalSeries, promo } = data;
 
   // Helper: Get quality emoji
   function getQualityEmoji(rating) {
@@ -296,6 +448,9 @@ export function generateNewsletterHTML(data) {
           </tr>
           ` : ''}
 
+          <!-- Promo (vibecoding.cz) -->
+          ${formatPromoHtml(promo)}
+
           <!-- Series Section -->
           ${series.length > 0 ? `
           <tr>
@@ -381,7 +536,7 @@ export function generateNewsletterHTML(data) {
  * Generate plain text version
  */
 export function generateNewsletterText(data) {
-  const { movies, series, regionalMovies, regionalSeries } = data;
+  const { movies, series, regionalMovies, regionalSeries, promo } = data;
 
   let text = `TOPFLIX - TÝDENNÍ VÝBĚR\n`;
   text += `Co stojí za to vidět tento týden\n\n`;
@@ -405,6 +560,8 @@ export function generateNewsletterText(data) {
       text += `\n`;
     });
   }
+
+  text += formatPromoText(promo);
 
   if (series.length > 0) {
     text += `\n📺 DOPORUČENÉ SERIÁLY\n`;
