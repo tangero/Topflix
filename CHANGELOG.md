@@ -5,6 +5,32 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] - 2026-10-16
+
+### Added
+- Patička na všech stránkách odkazuje na další projekty: Přijímačky na střední školu, AI ve firmách a Workshopy pro AI vývojáře
+- Reklamní zóna se štítkem „Reklama“ na stránkách Dnes, Filmy, Seriály, Archiv a Detail. Obsah (workshopy, akce, reklamní texty a bannery) vybírá propagační systém vibecoding.cz, stejně jako na marigold.cz
+
+### Changed
+- Nová patička: další projekty ve třech sloupcích (na mobilu pod sebou), pod nimi zdroje dat a verze
+- Stránka newsletteru má stejný vzhled jako titulka: nadpis, krátký popis, formulář hned nahoře a odhlášení dole
+- Filmy, Seriály, Newsletter, Nápověda a Changelog jsou vycentrované ve stejné šířce jako titulka
+- Logo a nápis Topflix vedou na všech stránkách na úvod
+- Newsletter má nahoře tituly z české Top 10 v pořadí žebříčku, pak novinky podle hodnocení
+
+### Fixed
+- Newsletter označoval jako „Nově na Netflix“ i tituly z Disney+, Apple TV+, Prime a SkyShowtime
+- Hodnocení v newsletteru se počítalo jen z TMDB, takže nesedělo s webem
+- Po přihlášení k newsletteru stránka žádala potvrzení e-mailem, které se neposílá
+- Potvrzovací stránka newsletteru vkládala text z adresy bez ošetření (HTML injection)
+- Patička newsletteru odkazovala na ČSFD, odkaz na verzi byl modrý
+- `newsletter.js` padal na stránkách bez formuláře (changelog)
+
+### Technical
+- `public/promo-banner.js` čte `https://www.vibecoding.cz/api/active-promotion`, kliky měří přes `clickUrl` a imprese beaconem po 50% viditelnosti (`site=topflix`). Bez odpovědi zůstane zóna skrytá
+- CSP v `_headers` povoluje `https://www.vibecoding.cz` v `connect-src` a `img-src`
+- `fetchNewsletterData(apiKey, omdbApiKey)`; volající endpointy předávají `OMDB_API_KEY`
+
 ## [1.11.1] - 2026-10-16
 
 ### Fixed

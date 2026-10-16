@@ -87,12 +87,20 @@ function initTheme() {
     }
 }
 
-// Get URL parameters
+// The message comes from the URL, so it is escaped before it goes into innerHTML.
+function escapeHtml(value) {
+    return String(value).replace(/[&<>"']/g, (ch) => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+}
+
+// Get URL parameters (URLSearchParams already decodes them)
 function getUrlParams() {
     const params = new URLSearchParams(window.location.search);
+    const message = params.get('message');
     return {
         status: params.get('status'),
-        message: params.get('message')
+        message: message ? escapeHtml(message) : ''
     };
 }
 
@@ -105,7 +113,7 @@ function displayConfirmationStatus() {
 
     switch (status) {
         case 'success':
-            const email = message ? decodeURIComponent(message) : '';
+            const email = message || '';
             content = `
                 <div class="confirmation-icon">✅</div>
                 <h2 class="confirmation-title">Přihlášení potvrzeno!</h2>
@@ -131,7 +139,7 @@ function displayConfirmationStatus() {
             break;
 
         case 'expired':
-            const expiredEmail = message ? decodeURIComponent(message) : '';
+            const expiredEmail = message || '';
             content = `
                 <div class="confirmation-icon">⏰</div>
                 <h2 class="confirmation-title">Odkaz vypršel</h2>
@@ -150,7 +158,7 @@ function displayConfirmationStatus() {
             break;
 
         case 'notfound':
-            const notfoundEmail = message ? decodeURIComponent(message) : '';
+            const notfoundEmail = message || '';
             content = `
                 <div class="confirmation-icon">❓</div>
                 <h2 class="confirmation-title">Email nenalezen</h2>
@@ -170,7 +178,7 @@ function displayConfirmationStatus() {
 
         case 'error':
         default:
-            const errorMsg = message ? decodeURIComponent(message) : 'Neznámá chyba';
+            const errorMsg = message || 'Neznámá chyba';
             content = `
                 <div class="confirmation-icon">❌</div>
                 <h2 class="confirmation-title">Něco se pokazilo</h2>

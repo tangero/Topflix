@@ -154,6 +154,7 @@ function setupSubscribeForm() {
     const emailInput = document.getElementById('subscribeEmail');
     const submitButton = document.getElementById('subscribeButton');
     const messageElement = document.getElementById('subscribeMessage');
+    if (!form) return;
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -182,7 +183,7 @@ function setupSubscribeForm() {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                showMessage(messageElement, 'Úspěšně přihlášeno! Zkontrolujte svůj email pro potvrzení.', 'success');
+                showMessage(messageElement, 'Hotovo, jste přihlášeni. Newsletter vám přijde každé úterý odpoledne.', 'success');
                 emailInput.value = '';
             } else {
                 showMessage(messageElement, data.error || 'Nepodařilo se přihlásit k odběru. Zkuste to prosím později.', 'error');
@@ -203,6 +204,7 @@ function setupUnsubscribeForm() {
     const emailInput = document.getElementById('unsubscribeEmail');
     const submitButton = document.getElementById('unsubscribeButton');
     const messageElement = document.getElementById('unsubscribeMessage');
+    if (!form) return;
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();

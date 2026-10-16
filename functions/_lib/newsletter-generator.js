@@ -10,13 +10,16 @@ import { fetchNetflixNew } from '../api/netflix-new.js';
 /**
  * Fetch all data needed for newsletter
  */
-export async function fetchNewsletterData(apiKey) {
+export async function fetchNewsletterData(apiKey, omdbApiKey) {
   try {
-    // Fetch both Top 10 and New content in parallel
+    // Same sources and ratings as the website (OMDb included), so the numbers match
     const [top10Data, newData] = await Promise.all([
-      fetchAndEnrichData(apiKey),
-      fetchNetflixNew(apiKey)
+      fetchAndEnrichData(apiKey, omdbApiKey),
+      fetchNetflixNew(apiKey, omdbApiKey)
     ]);
+
+    // The newsletter is about Netflix: new titles from other services stay out
+    const onNetflix = (item) => Array.isArray(item.providers) && item.providers.includes('netflix');
 
     // Filter for recommended content (≥70%)
     const recommendedMovies = [];
@@ -52,7 +55,7 @@ export async function fetchNewsletterData(apiKey) {
     // From New content (only if not already in Top 10)
     if (newData.movies) {
       newData.movies.forEach(movie => {
-        if (movie.avg_rating >= 70 && movie.tmdb_id && !moviesMap.has(movie.tmdb_id)) {
+        if (movie.avg_rating >= 70 && movie.tmdb_id && onNetflix(movie) && !moviesMap.has(movie.tmdb_id)) {
           moviesMap.set(movie.tmdb_id, {
             ...movie,
             source: 'new'
@@ -63,7 +66,7 @@ export async function fetchNewsletterData(apiKey) {
 
     if (newData.series) {
       newData.series.forEach(series => {
-        if (series.avg_rating >= 70 && series.tmdb_id && !seriesMap.has(series.tmdb_id)) {
+        if (series.avg_rating >= 70 && series.tmdb_id && onNetflix(series) && !seriesMap.has(series.tmdb_id)) {
           seriesMap.set(series.tmdb_id, {
             ...series,
             source: 'new'
@@ -76,9 +79,17 @@ export async function fetchNewsletterData(apiKey) {
     recommendedMovies.push(...moviesMap.values());
     recommendedSeries.push(...seriesMap.values());
 
-    // Sort by rating (best first)
-    recommendedMovies.sort((a, b) => b.avg_rating - a.avg_rating);
-    recommendedSeries.sort((a, b) => b.avg_rating - a.avg_rating);
+    // Top 10 first in chart order, then new titles by rating. Sorting everything by
+    // rating pushed the Top 10 out of the first eight cards.
+    const byTop10ThenRating = (a, b) => {
+      const aTop = a.source === 'top10';
+      const bTop = b.source === 'top10';
+      if (aTop !== bTop) return aTop ? -1 : 1;
+      if (aTop) return (a.rank || 99) - (b.rank || 99);
+      return b.avg_rating - a.avg_rating;
+    };
+    recommendedMovies.sort(byTop10ThenRating);
+    recommendedSeries.sort(byTop10ThenRating);
 
     // Helper: Check if content is Asian or Latin American
     function isAsianOrLatinAmerican(item) {
@@ -347,7 +358,7 @@ export function generateNewsletterHTML(data) {
           <tr>
             <td style="padding: 20px 30px; text-align: center; background-color: #f9f9f9; border-top: 1px solid #e0e0e0;">
               <p style="margin: 0 0 10px 0; font-size: 12px; color: #999;">
-                Data z TMDB | Netflix Top 10
+                Data z TMDB a OMDb | Netflix Top 10
               </p>
               <p style="margin: 0; font-size: 12px; color: #999;">
                 <a href="{{{RESEND_UNSUBSCRIBE_URL}}}" style="color: #999; text-decoration: underline;">Odhlásit z odběru newsletteru</a>
@@ -453,7 +464,7 @@ export function generateNewsletterText(data) {
 
   text += `\nZobrazit více na: https://www.topflix.cz\n\n`;
   text += `---\n`;
-  text += `Data z TMDB | Netflix Top 10\n`;
+  text += `Data z TMDB a OMDb | Netflix Top 10\n`;
 
   return text;
 }

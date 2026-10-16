@@ -21,15 +21,17 @@
     <meta name="twitter:description" id="twDescription" content="Detail filmu nebo seriálu na Topflix.">
     <meta name="twitter:image" id="twImage" content="">
 
-    <link rel="stylesheet" href="style.css?v=1.11.1">
+    <link rel="stylesheet" href="style.css?v=1.12.0">
 
     <!-- Clicky Analytics -->
     <script async data-id="101496124" src="//static.getclicky.com/js"></script>
 
     <style>
-        .detail-container {
+        .detail-container,
+        .ad-zone {
             max-width: 900px;
-            margin: 0 auto;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .detail-hero {
@@ -328,11 +330,11 @@
         <!-- Header -->
         <header class="header">
             <div class="logo">
-                <div class="logo-header">
-                    <img src="patrick-avatar.webp" alt="Patrick" class="logo-avatar">
+                <a class="logo-header" href="/">
+                    <img src="patrick-avatar.webp" alt="" class="logo-avatar">
                     <h1>Topflix</h1>
-                </div>
-                <p class="tagline">Na co koukat na streamovacích platformách</p>
+                </a>
+                <p class="tagline">Na co se dívat na Netflixu</p>
             </div>
 
             <div class="theme-toggle">
@@ -367,23 +369,35 @@
         <!-- Detail Content -->
         <div id="detailContent" class="detail-container hidden"></div>
 
+        <aside class="ad-zone" data-promo-surface="other" aria-label="Reklama" hidden>
+            <p class="ad-zone-label">Reklama</p>
+            <div class="ad-zone-slot"></div>
+        </aside>
+
         <!-- Footer -->
         <footer class="footer">
-            <div class="footer-links">
-                <a href="napoveda.html">Nápověda</a>
-                <span>•</span>
-                <a href="https://www.themoviedb.org" target="_blank" rel="noopener">Data z TMDB</a>
-                <span>•</span>
-                <a href="https://www.omdbapi.com" target="_blank" rel="noopener">Hodnocení z OMDb</a>
-                <span>•</span>
-                <a href="https://www.netflix.com/tudum/top10" target="_blank" rel="noopener">Netflix Top 10</a>
+            <section class="footer-projects" aria-labelledby="footer-projects-heading">
+                <h2 class="footer-heading" id="footer-projects-heading">Další projekty</h2>
+                <ul class="footer-project-list">
+                    <li><a href="https://www.prijimackynaskolu.cz" target="_blank" rel="noopener"><span class="fp-name">Přijímačky na střední školu</span><span class="fp-host">prijimackynaskolu.cz</span></a></li>
+                    <li><a href="https://www.aivefirmach.cz" target="_blank" rel="noopener"><span class="fp-name">AI ve firmách</span><span class="fp-host">aivefirmach.cz</span></a></li>
+                    <li><a href="https://www.vibecoding.cz/workshopy/" target="_blank" rel="noopener"><span class="fp-name">Workshopy pro AI vývojáře</span><span class="fp-host">vibecoding.cz/workshopy</span></a></li>
+                </ul>
+            </section>
+        
+            <div class="footer-meta">
+                <nav class="footer-links" aria-label="Zdroje a nápověda">
+                    <a href="napoveda.html">Nápověda</a>
+                    <a href="https://www.themoviedb.org" target="_blank" rel="noopener">Data z TMDB</a>
+                    <a href="https://www.omdbapi.com" target="_blank" rel="noopener">Hodnocení z OMDb</a>
+                    <a href="https://www.netflix.com/tudum/top10" target="_blank" rel="noopener">Netflix Top 10</a>
+                </nav>
+                <p class="footer-note">Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.12.0</a></p>
             </div>
-            <p class="footer-note">
-                Vytvořeno s ❤️ pro milovníky dobrých filmů a seriálů <a href="changelog.html">ve verzi 1.11.1</a>
-            </p>
         </footer>
     </div>
 
-    <script src="detail.js?v=1.11.1"></script>
+    <script src="detail.js?v=1.12.0"></script>
+    <script src="promo-banner.js?v=1.12.0" defer></script>
 </body>
 </html>
