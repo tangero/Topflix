@@ -5,6 +5,14 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.1] - 2026-10-16
+
+### Fixed
+- Po aktualizaci se nová titulka zobrazovala bez stylů, protože prohlížeč držel starou verzi `style.css` a skriptů
+
+### Technical
+- Odkazy na CSS a JS ve všech stránkách nesou `?v=<verze>`, aby nové vydání obešlo mezipaměť prohlížeče (max-age 4 h)
+
 ## [1.11.0] - 2026-10-15
 
 ### Added
