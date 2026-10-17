@@ -47,6 +47,16 @@ async function syncCatalog(apiUrl, env) {
   return summary;
 }
 
+// Netflix ID z Wikidat pro přímé odkazy „Pustit“ (nové tituly a dřív nenalezené)
+async function syncNetflixIds(apiUrl, env) {
+  let result = null;
+  for (let i = 0; i < 10; i++) {
+    result = await adminPost(apiUrl, env, '/api/netflix-ids-sync?limit=300');
+    if (!result.remaining) break;
+  }
+  return result;
+}
+
 async function backfillHistory(apiUrl, env) {
   const loaded = await adminPost(apiUrl, env, '/api/top10-history-sync?action=load');
   let mapped = 0;
@@ -148,6 +158,13 @@ export default {
         } catch (error) {
           results.errors.push(`Catalog error: ${error.message}`);
           console.error('❌ Catalog error:', error);
+        }
+        try {
+          results.netflix_ids = await syncNetflixIds(apiUrl, env);
+          console.log('✅ Netflix IDs:', JSON.stringify(results.netflix_ids));
+        } catch (error) {
+          results.errors.push(`Netflix ID error: ${error.message}`);
+          console.error('❌ Netflix ID error:', error);
         }
         try {
           results.history = await backfillHistory(apiUrl, env);

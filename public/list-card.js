@@ -30,6 +30,21 @@ const WATCH_SEARCH = {
     skyshowtime: (q) => `https://www.skyshowtime.com/watch/search?q=${q}`
 };
 
+/**
+ * Odkaz na přehrání. U Netflixu s netflix_id vede přímo na titul
+ * (na mobilu otevře aplikaci), jinak na vyhledávání ve službě, které
+ * funguje jen přihlášenému uživateli v prohlížeči.
+ * Vrátí { href, direct } nebo null.
+ */
+function listWatchLink(item, service) {
+    if (service === 'netflix' && /^\d{5,12}$/.test(String(item.netflix_id || ''))) {
+        return { href: `https://www.netflix.com/title/${item.netflix_id}`, direct: true };
+    }
+    const query = encodeURIComponent(item.title_original || item.title || '');
+    if (!service || !WATCH_SEARCH[service] || !query) return null;
+    return { href: WATCH_SEARCH[service](query), direct: false };
+}
+
 function listEscape(str) {
     if (!str) return '';
     return String(str)
@@ -110,10 +125,7 @@ function createTitleCard(item, options = {}) {
     const split = listSplit(item);
     const detailHref = (window.TopflixUrl && window.TopflixUrl.titlePath({ ...item, type }))
         || `detail.html?id=${encodeURIComponent(item.tmdb_id)}&type=${type}`;
-    const query = encodeURIComponent(item.title_original || item.title || '');
-    const playHref = providerId && WATCH_SEARCH[providerId] && query
-        ? WATCH_SEARCH[providerId](query)
-        : '';
+    const watch = listWatchLink(item, providerId);
 
     const poster = item.poster_url
         ? `<img class="pick-poster" src="${listEscape(item.poster_url)}" alt="" loading="lazy" width="56" height="84">`
@@ -135,7 +147,7 @@ function createTitleCard(item, options = {}) {
             </div>
             ${score}
         </a>
-        ${playHref ? `<a class="pick-play" href="${playHref}" target="_blank" rel="noopener noreferrer">${listEscape(LIST_PROVIDER_SHORT[providerId] || providerName)}<span class="visually-hidden">, pustit ${listEscape(title)}</span></a>` : ''}
+        ${watch ? `<a class="pick-play" href="${listEscape(watch.href)}" target="_blank" rel="noopener noreferrer" data-watch="${watch.direct ? 'direct' : 'search'}"${watch.direct ? '' : ` title="Hledat ve službě ${listEscape(providerName)}"`}>${listEscape(LIST_PROVIDER_SHORT[providerId] || providerName)}<span class="visually-hidden">, ${watch.direct ? 'pustit' : 'hledat'} ${listEscape(title)}</span></a>` : ''}
     `;
     return article;
 }

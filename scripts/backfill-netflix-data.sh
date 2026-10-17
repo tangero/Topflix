@@ -37,6 +37,13 @@ for _ in $(seq 1 100); do
   [ "$(echo "${result}" | field remaining)" = "0" ] && break
 done
 
+echo "Netflix ID z Wikidat (přímé odkazy Pustit)"
+for _ in $(seq 1 60); do
+  result="$(post "/api/netflix-ids-sync?limit=300")"
+  echo "  ${result}"
+  [ "$(echo "${result}" | field remaining)" = "0" ] && break
+done
+
 echo "Chybně napárované řádky z dřívějška (nic se nemaže):"
 post "/api/top10-history-sync?action=mismatches" | cut -c1-2000; echo
 echo "Smazat je: curl -X POST -H 'Authorization: Bearer …' '${BASE}/api/top10-history-sync?action=cleanup&confirm=1'"

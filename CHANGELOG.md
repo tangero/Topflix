@@ -5,6 +5,20 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.15.0] - 2026-10-17
+
+### Changed
+- Tlačítka „Pustit“ vedou u titulů se známým Netflix ID přímo na `https://www.netflix.com/title/<id>` (na mobilu otevře aplikaci). Bez ID vedou dál na vyhledávání a hlavní tlačítko říká „Hledat na Netflixu“. Tlačítka mají `data-watch="direct|search"` pro budoucí měření
+- Detail filmu a seriálu má tlačítko „Pustit na Netflixu“
+
+### Technical
+- Migrace `0005_netflix_ids.sql`: tabulka `netflix_ids` (tmdb_id, type, netflix_id, source, checked_at)
+- `functions/_lib/netflix-ids.js`: dohledání ID na Wikidatech (P1874 podle TMDB P4947/P4983, záložně podle IMDb P345), opakovaný pokus, nenalezené znovu po 3 dnech. Titul se dohledává jen v běhu, který si ho podmíněným upsertem zarezervoval (na hodinu), takže souběžné požadavky a cron se na Wikidata neptají dvakrát
+- `/api/netflix-ids-sync` i `syncNetflixIdsStep` omezují `limit` na 1 až 600 (záporný LIMIT by v SQLite znamenal bez omezení)
+- `functions/api/_middleware.js` doplní `netflix_id` do odpovědí `/api/top10`, `netflix-new`, `netflix-added`, `archive`, `hidden-gems`, `best`, `search` a `detail`, chybějící ID dohledá na pozadí
+- `/api/netflix-ids-sync` (admin) pro dávkové doplnění archivu a katalogu, krok v cronu a v `scripts/backfill-netflix-data.sh`
+- Testy `tests/node/netflix-ids.test.mjs`
+
 ## [1.14.5] - 2026-10-17
 
 ### Changed

@@ -388,16 +388,24 @@
         return path || `detail.html?id=${encodeURIComponent(item.tmdb_id)}&type=${item.type}`;
     }
 
+    // label je text velkého tlačítka („Pustit na Netflixu“). Bez přímého
+    // odkazu vede na vyhledávání, a tak tlačítko poctivě říká „Hledat“.
     function playLink(item, className, label) {
         const service = serviceOf(item);
-        const query = encodeURIComponent(item.title_original || item.title || '');
-        if (!service || !WATCH_SEARCH[service] || !query) return null;
+        const watch = listWatchLink(item, service);
+        if (!watch) return null;
         const link = el('a', className);
-        link.href = WATCH_SEARCH[service](query);
+        link.href = watch.href;
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
-        link.append(label || (LIST_PROVIDER_SHORT[service] || service));
-        link.appendChild(el('span', 'visually-hidden', `, pustit ${item.title || item.title_original}`));
+        link.dataset.watch = watch.direct ? 'direct' : 'search';
+        if (label) {
+            link.append(watch.direct ? label : label.replace(/^Pustit/, 'Hledat'));
+        } else {
+            link.append(LIST_PROVIDER_SHORT[service] || service);
+            if (!watch.direct) link.title = `Hledat ve službě ${LIST_PROVIDERS[service] || service}`;
+        }
+        link.appendChild(el('span', 'visually-hidden', `, ${watch.direct ? 'pustit' : 'hledat'} ${item.title || item.title_original}`));
         return link;
     }
 
