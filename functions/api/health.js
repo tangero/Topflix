@@ -4,7 +4,7 @@
  * For use with UptimeRobot and monitoring services
  */
 
-import { createDatabase } from '../_lib/database.js';
+import { evaluateData, loadDataInputs, loadNewsletterInputs, evaluateNewsletter } from '../_lib/health-checks.js';
 
 // CORS headers
 function getCorsHeaders() {
@@ -77,141 +77,37 @@ async function checkSystemHealth(env) {
  * Check data collection health
  */
 async function checkDataCollectionHealth(env) {
-  const status = {
-    status: 'healthy',
-    total_records: 0,
-    quality_records: 0,
-    last_top10_update: null,
-    last_netflix_new_update: null,
-    age_hours: null,
-    issues: []
-  };
-
   try {
-    // Get database stats
-    const db = createDatabase(env);
-    const stats = await db.getStats();
-    status.total_records = stats.total || 0;
-    status.quality_records = stats.quality || 0;
-
-    // Check cache ages to determine last update
-    if (env.TOPFLIX_KV) {
-      try {
-        // Check TOP10 cache
-        const kvList = await env.TOPFLIX_KV.list({ prefix: 'netflix_top10_' });
-        if (kvList.keys && kvList.keys.length > 0) {
-          const top10Key = kvList.keys[0];
-          if (top10Key.expiration) {
-            const expirationDate = new Date(top10Key.expiration * 1000);
-            const createdDate = new Date(expirationDate.getTime() - (7 * 24 * 60 * 60 * 1000)); // 7 days TTL
-            status.last_top10_update = createdDate.toISOString();
-          }
-        }
-
-        // Check Netflix New cache
-        const newList = await env.TOPFLIX_KV.list({ prefix: 'netflix_new_' });
-        if (newList.keys && newList.keys.length > 0) {
-          const newKey = newList.keys[0];
-          if (newKey.expiration) {
-            const expirationDate = new Date(newKey.expiration * 1000);
-            const createdDate = new Date(expirationDate.getTime() - (24 * 60 * 60 * 1000)); // 1 day TTL
-            status.last_netflix_new_update = createdDate.toISOString();
-          }
-        }
-
-        // Calculate age of oldest update
-        const updates = [status.last_top10_update, status.last_netflix_new_update].filter(Boolean);
-        if (updates.length > 0) {
-          const oldestUpdate = new Date(Math.min(...updates.map(d => new Date(d))));
-          status.age_hours = Math.round((Date.now() - oldestUpdate.getTime()) / (1000 * 60 * 60) * 10) / 10;
-        }
-      } catch (kvError) {
-        console.error('KV cache check error:', kvError);
-      }
-    }
-
-    // Warn if data is too old
-    if (status.age_hours && status.age_hours > 48) {
-      status.status = 'degraded';
-      status.issues.push(`Data is ${status.age_hours} hours old (>48h)`);
-    }
-
-    // Warn if too few records
-    if (status.total_records < 50) {
-      status.status = 'degraded';
-      status.issues.push(`Only ${status.total_records} records in database (<50)`);
-    }
-
+    if (!env.DB) throw new Error('D1 database binding not found');
+    return evaluateData(await loadDataInputs(env));
   } catch (error) {
-    status.status = 'unhealthy';
-    status.issues.push(`Data check error: ${error.message}`);
+    return { status: 'unhealthy', issues: [`Data check error: ${error.message}`] };
   }
-
-  return status;
 }
 
 /**
- * Check newsletter health
+ * Check newsletter health (Resend). Veřejně jen stav a datum poslední
+ * rozesílky, správce vidí i počet odběratelů a obsah poslední rozesílky.
  */
-async function checkNewsletterHealth(env) {
-  const status = {
-    status: 'healthy',
-    resend_api: 'unknown',
-    active_subscribers: 0,
-    last_sent: null,
-    days_since_last: null,
-    issues: []
-  };
-
-  try {
-    // Check Resend API key
-    status.resend_api = env.RESEND_API_KEY ? 'configured' : 'missing';
-    if (!env.RESEND_API_KEY) {
-      status.issues.push('Resend API key not configured');
-      status.status = 'degraded';
-    }
-
-    // Get subscriber count from D1
-    if (env.DB) {
-      try {
-        const subResult = await env.DB.prepare(
-          'SELECT COUNT(*) as count FROM newsletter_subscribers WHERE confirmed = 1'
-        ).first();
-        status.active_subscribers = subResult?.count || 0;
-      } catch (dbError) {
-        console.error('Subscriber count error:', dbError);
-      }
-
-      // Get last newsletter send time
-      try {
-        const lastSent = await env.DB.prepare(
-          'SELECT created_at FROM newsletter_log ORDER BY created_at DESC LIMIT 1'
-        ).first();
-
-        if (lastSent && lastSent.created_at) {
-          status.last_sent = new Date(lastSent.created_at * 1000).toISOString();
-          const daysSince = Math.round((Date.now() - lastSent.created_at * 1000) / (1000 * 60 * 60 * 24));
-          status.days_since_last = daysSince;
-
-          // Warn if newsletter not sent in 7+ days
-          if (daysSince > 7) {
-            status.status = 'degraded';
-            status.issues.push(`Newsletter not sent in ${daysSince} days (>7)`);
-          }
-        } else {
-          status.issues.push('No newsletter send history found');
-        }
-      } catch (dbError) {
-        console.error('Newsletter log error:', dbError);
-      }
-    }
-
-  } catch (error) {
-    status.status = 'unhealthy';
-    status.issues.push(`Newsletter check error: ${error.message}`);
+async function checkNewsletterHealth(env, admin) {
+  if (!env.RESEND_API_KEY) return evaluateNewsletter(env, {}, { admin });
+  const cacheKey = 'health_newsletter_v1';
+  let inputs = null;
+  if (!admin && env.TOPFLIX_KV) {
+    try { inputs = await env.TOPFLIX_KV.get(cacheKey, 'json'); } catch (error) { inputs = null; }
   }
-
-  return status;
+  if (!inputs) {
+    inputs = await loadNewsletterInputs(env, { admin });
+    if (!admin && env.TOPFLIX_KV && !inputs.error) {
+      // Selhání mezipaměti nesmí zahodit už zjištěný výsledek
+      try {
+        await env.TOPFLIX_KV.put(cacheKey, JSON.stringify(inputs), { expirationTtl: 1800 });
+      } catch (error) {
+        console.warn('Health cache write failed:', error.message);
+      }
+    }
+  }
+  return evaluateNewsletter(env, inputs, { admin });
 }
 
 /**
@@ -230,6 +126,7 @@ export async function onRequest(context) {
   try {
     const url = new URL(request.url);
     const checkType = url.searchParams.get('check'); // 'system', 'data', 'newsletter', or null (all)
+    const admin = Boolean(env.ADMIN_API_KEY) && request.headers.get('Authorization') === `Bearer ${env.ADMIN_API_KEY}`;
 
     const health = {
       status: 'healthy',
@@ -247,7 +144,7 @@ export async function onRequest(context) {
     }
 
     if (!checkType || checkType === 'newsletter') {
-      health.checks.newsletter = await checkNewsletterHealth(env);
+      health.checks.newsletter = await checkNewsletterHealth(env, admin);
     }
 
     // Determine overall status
@@ -270,6 +167,7 @@ export async function onRequest(context) {
       status: httpStatus,
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-store',
         ...getCorsHeaders()
       }
     });

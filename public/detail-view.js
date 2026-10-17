@@ -92,7 +92,7 @@ export function renderDetailHtml(item, history, similar, { shareUrl, titlePath }
 
     const watch = netflixWatch(item);
     const watchHTML = watch
-        ? `<div class="detail-watch"><a class="hero-play" href="${escapeHtml(watch.href)}" target="_blank" rel="noopener noreferrer" data-watch="${watch.direct ? 'direct' : 'search'}">${watch.label}</a></div>`
+        ? `<div class="detail-watch"><a class="hero-play" href="${escapeHtml(watch.href)}" target="_blank" rel="noopener noreferrer" data-watch="${watch.direct ? 'direct' : 'search'}" data-provider="netflix" data-title="${escapeHtml(`${item.type}:${item.tmdb_id}`)}">${watch.label}</a></div>`
         : '';
 
     let linksHTML = '';
