@@ -63,7 +63,7 @@ export async function onRequest(context) {
 
     // Fetch newsletter data
     console.log('Fetching newsletter data for test send...');
-    const data = await fetchNewsletterData(env.TMDB_API_KEY, env.OMDB_API_KEY);
+    const data = await fetchNewsletterData(env.TMDB_API_KEY, env.OMDB_API_KEY, env.DB);
 
     console.log(`Test: Found ${data.movies.length} movies and ${data.series.length} series with >=70% rating`);
 

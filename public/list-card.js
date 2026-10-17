@@ -147,7 +147,7 @@ function createTitleCard(item, options = {}) {
             </div>
             ${score}
         </a>
-        ${watch ? `<a class="pick-play" href="${listEscape(watch.href)}" target="_blank" rel="noopener noreferrer" data-watch="${watch.direct ? 'direct' : 'search'}"${watch.direct ? '' : ` title="Hledat ve službě ${listEscape(providerName)}"`}>${listEscape(LIST_PROVIDER_SHORT[providerId] || providerName)}<span class="visually-hidden">, ${watch.direct ? 'pustit' : 'hledat'} ${listEscape(title)}</span></a>` : ''}
+        ${watch ? `<a class="pick-play" href="${listEscape(watch.href)}" target="_blank" rel="noopener noreferrer" data-watch="${watch.direct ? 'direct' : 'search'}" data-provider="${listEscape(providerId)}" data-title="${listEscape(`${type}:${item.tmdb_id}`)}"${watch.direct ? '' : ` title="Hledat ve službě ${listEscape(providerName)}"`}>${listEscape(LIST_PROVIDER_SHORT[providerId] || providerName)}<span class="visually-hidden">, ${watch.direct ? 'pustit' : 'hledat'} ${listEscape(title)}</span></a>` : ''}
     `;
     return article;
 }

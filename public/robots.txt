@@ -2,5 +2,6 @@ User-agent: *
 Disallow: /api/
 Disallow: /prototyp/
 Disallow: /newsletter/confirm
+Disallow: /go/
 
 Sitemap: https://www.topflix.cz/sitemap.xml

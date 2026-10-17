@@ -6,11 +6,32 @@
 // Import the data fetching functions (they're exported from API files)
 import { fetchAndEnrichData } from '../api/top10.js';
 import { fetchNetflixNew } from '../api/netflix-new.js';
+import '../../public/title-url.js';
+import { attachNetflixIds, refreshNetflixIds } from './netflix-ids.js';
+
+const SITE_URL = 'https://www.topflix.cz';
+const NEWSLETTER_UTM = 'utm_source=newsletter&utm_medium=email&utm_campaign=weekly';
+
+/**
+ * Odkazy titulu v newsletteru. Název vede na stránku titulu na Topflixu.
+ * Tlačítko s Netflix ID jde přes /go/netflix/<id>, který klik započítá
+ * a pošle čtenáře přímo na titul (na mobilu otevře aplikaci). Bez ID
+ * vede tlačítko na stránku titulu: vyhledávání Netflixu v mobilu nefunguje.
+ */
+export function newsletterLinks(item) {
+  const path = globalThis.TopflixUrl.titlePath(item);
+  const page = path ? `${SITE_URL}${path}?${NEWSLETTER_UTM}` : `${SITE_URL}/?${NEWSLETTER_UTM}`;
+  if (/^\d{5,12}$/.test(String(item.netflix_id || ''))) {
+    const watch = `${SITE_URL}/go/netflix/${item.netflix_id}?s=newsletter&t=${item.type}-${item.tmdb_id}`;
+    return { page, watch, label: 'Pustit na Netflixu', direct: true };
+  }
+  return { page, watch: page, label: 'Zobrazit na Topflixu', direct: false };
+}
 
 /**
  * Fetch all data needed for newsletter
  */
-export async function fetchNewsletterData(apiKey, omdbApiKey) {
+export async function fetchNewsletterData(apiKey, omdbApiKey, db = null) {
   try {
     // Same sources and ratings as the website (OMDb included), so the numbers match
     const [top10Data, newData, promo] = await Promise.all([
@@ -111,6 +132,21 @@ export async function fetchNewsletterData(apiKey, omdbApiKey) {
     // Split series into main and regional
     const mainSeries = recommendedSeries.filter(s => !isAsianOrLatinAmerican(s));
     const regionalSeries = recommendedSeries.filter(s => isAsianOrLatinAmerican(s));
+
+    // Netflix ID pro tlačítka „Pustit“. Chybějící se dohledají hned: newsletter
+    // odchází jednou týdně, na odpověď Wikidat počkat můžeme.
+    if (db) {
+      try {
+        const all = [...mainMovies, ...mainSeries, ...regionalMovies, ...regionalSeries];
+        const stale = await attachNetflixIds(db, all);
+        if (stale.length) {
+          await refreshNetflixIds(db, stale);
+          await attachNetflixIds(db, all);
+        }
+      } catch (error) {
+        console.warn('Newsletter Netflix IDs unavailable:', error.message);
+      }
+    }
 
     return {
       movies: mainMovies,
@@ -309,7 +345,7 @@ export function generateNewsletterHTML(data) {
               <td width="20"></td>
               <td valign="top">
                 <h3 style="margin: 0 0 5px 0; font-size: 18px; color: #141414;">
-                  ${movie.title || movie.title_original}
+                  <a href="${escapeHtml(newsletterLinks(movie).page)}" style="color: #141414; text-decoration: none;">${escapeHtml(movie.title || movie.title_original)}</a>
                 </h3>
                 ${movie.title_original && movie.title !== movie.title_original
                   ? `<p style="margin: 0 0 10px 0; font-size: 14px; color: #666; font-style: italic;">${movie.title_original}</p>`
@@ -325,6 +361,9 @@ export function generateNewsletterHTML(data) {
                   ? `<p style="margin: 0; font-size: 14px; color: #333; line-height: 1.5;">${movie.description.substring(0, 150)}${movie.description.length > 150 ? '...' : ''}</p>`
                   : ''
                 }
+                <p style="margin: 12px 0 0 0;">
+                  <a href="${escapeHtml(newsletterLinks(movie).watch)}" style="display: inline-block; padding: 8px 16px; background-color: #d4533c; color: #ffffff; text-decoration: none; border-radius: 999px; font-size: 14px; font-weight: bold;">${newsletterLinks(movie).label}</a>
+                </p>
               </td>
             </tr>
           </table>
@@ -362,7 +401,7 @@ export function generateNewsletterHTML(data) {
               <td width="20"></td>
               <td valign="top">
                 <h3 style="margin: 0 0 5px 0; font-size: 18px; color: #141414;">
-                  ${series.title || series.title_original}
+                  <a href="${escapeHtml(newsletterLinks(series).page)}" style="color: #141414; text-decoration: none;">${escapeHtml(series.title || series.title_original)}</a>
                 </h3>
                 ${series.title_original && series.title !== series.title_original
                   ? `<p style="margin: 0 0 10px 0; font-size: 14px; color: #666; font-style: italic;">${series.title_original}</p>`
@@ -378,6 +417,9 @@ export function generateNewsletterHTML(data) {
                   ? `<p style="margin: 0; font-size: 14px; color: #333; line-height: 1.5;">${series.description.substring(0, 150)}${series.description.length > 150 ? '...' : ''}</p>`
                   : ''
                 }
+                <p style="margin: 12px 0 0 0;">
+                  <a href="${escapeHtml(newsletterLinks(series).watch)}" style="display: inline-block; padding: 8px 16px; background-color: #d4533c; color: #ffffff; text-decoration: none; border-radius: 999px; font-size: 14px; font-weight: bold;">${newsletterLinks(series).label}</a>
+                </p>
               </td>
             </tr>
           </table>
@@ -557,6 +599,7 @@ export function generateNewsletterText(data) {
       if (movie.year) text += `📅 ${movie.year}\n`;
       if (movie.genre) text += `🎭 ${movie.genre}\n`;
       if (movie.description) text += `\n${movie.description.substring(0, 150)}${movie.description.length > 150 ? '...' : ''}\n`;
+      text += `${newsletterLinks(movie).label}: ${newsletterLinks(movie).watch}\n`;
       text += `\n`;
     });
   }
@@ -579,6 +622,7 @@ export function generateNewsletterText(data) {
       if (s.year) text += `📅 ${s.year}\n`;
       if (s.genre) text += `🎭 ${s.genre}\n`;
       if (s.description) text += `\n${s.description.substring(0, 150)}${s.description.length > 150 ? '...' : ''}\n`;
+      text += `${newsletterLinks(s).label}: ${newsletterLinks(s).watch}\n`;
       text += `\n`;
     });
   }
@@ -600,6 +644,7 @@ export function generateNewsletterText(data) {
       if (movie.year) text += `📅 ${movie.year}\n`;
       if (movie.genre) text += `🎭 ${movie.genre}\n`;
       if (movie.description) text += `\n${movie.description.substring(0, 150)}${movie.description.length > 150 ? '...' : ''}\n`;
+      text += `${newsletterLinks(movie).label}: ${newsletterLinks(movie).watch}\n`;
       text += `\n`;
     });
 
@@ -615,6 +660,7 @@ export function generateNewsletterText(data) {
       if (s.year) text += `📅 ${s.year}\n`;
       if (s.genre) text += `🎭 ${s.genre}\n`;
       if (s.description) text += `\n${s.description.substring(0, 150)}${s.description.length > 150 ? '...' : ''}\n`;
+      text += `${newsletterLinks(s).label}: ${newsletterLinks(s).watch}\n`;
       text += `\n`;
     });
   }

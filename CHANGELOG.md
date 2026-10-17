@@ -5,6 +5,20 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.0] - 2026-10-17
+
+### Added
+- Newsletter: název titulu vede na stránku titulu na Topflixu (UTM `newsletter/email/weekly`), tlačítko „Pustit na Netflixu“ přes `/go/netflix/<id>` přímo na titul. Bez Netflix ID tlačítko „Zobrazit na Topflixu“. Odkazy i v textové verzi
+- Měření kliků na „Pustit“: `public/track.js` posílá `sendBeacon` na `/api/click` (stránka, sekce podle `data-track`, přímý odkaz nebo vyhledávání, služba, titul). Denní součty v `watch_clicks_daily`, bez IP a cookies. Kliky z newsletteru počítá `/go/netflix/<id>`. Souhrn pro správce na `/api/click-stats?days=14`
+
+### Fixed
+- `/api/health` hlásil falešný poplach: stáří dat odhadoval z vypršení klíčů KV se špatnou dobou platnosti a odběratele i rozesílky hledal v neexistujících tabulkách D1. Teď čte týden Top 10 (`top10_db_week`), poslední novinky, poslední synchronizaci katalogu a data z Resendu. Počet odběratelů a obsah poslední rozesílky (včetně délky textové verze) vidí jen správce
+
+### Technical
+- Migrace `0006_watch_clicks.sql`, `functions/_lib/watch-clicks.js`, `functions/_lib/health-checks.js`
+- `robots.txt` zakazuje `/go/`
+- Testy `tests/node/health-and-clicks.test.mjs`
+
 ## [1.15.0] - 2026-10-17
 
 ### Changed

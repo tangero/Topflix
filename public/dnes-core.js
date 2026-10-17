@@ -399,6 +399,8 @@
         link.target = '_blank';
         link.rel = 'noopener noreferrer';
         link.dataset.watch = watch.direct ? 'direct' : 'search';
+        link.dataset.provider = service;
+        link.dataset.title = `${item.type}:${item.tmdb_id}`;
         if (label) {
             link.append(watch.direct ? label : label.replace(/^Pustit/, 'Hledat'));
         } else {
