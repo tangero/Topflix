@@ -3,3 +3,6 @@ https://topflix.cz/* https://www.topflix.cz/:splat 301
 http://topflix.cz/* https://www.topflix.cz/:splat 301
 /prototyp /prototyp/landing.html 200
 /prototyp/ /prototyp/landing.html 200
+
+# Odkaz z hlavičky List-Unsubscribe v newsletteru
+/unsubscribe /newsletter#nl-unsub 301

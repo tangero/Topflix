@@ -384,7 +384,8 @@
     }
 
     function detailHref(item) {
-        return `detail.html?id=${encodeURIComponent(item.tmdb_id)}&type=${item.type}`;
+        const path = window.TopflixUrl && window.TopflixUrl.titlePath(item);
+        return path || `detail.html?id=${encodeURIComponent(item.tmdb_id)}&type=${item.type}`;
     }
 
     function playLink(item, className, label) {

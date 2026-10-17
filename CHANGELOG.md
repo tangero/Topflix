@@ -5,6 +5,27 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-10-17
+
+### Added
+- Stránky titulů vykreslené na serveru: `/film/<slug>-<tmdb_id>` a `/serial/<slug>-<tmdb_id>` s vlastním titulkem, popisem, kanonickou adresou, náhledem pro sdílení (plakát) a strukturovanými daty Movie / TVSeries
+- `/sitemap.xml` se stránkami webu a všemi hodnocenými tituly, `robots.txt`
+- `404.html` s `noindex` pro neexistující adresy
+
+### Changed
+- Odkazy z titulky, seznamů, archivu a podobných titulů vedou na nové adresy titulů. Staré `detail.html?id=…` trvale přesměrují (301), adresa s jiným názvem také
+- Strukturovaná data detailu už neobsahují `aggregateRating` s vymyšleným počtem hodnocení
+- Tituly, které jen přibyly do katalogu a nemají hodnocení, mají `noindex` a v sitemapě nejsou
+
+### Fixed
+- „Kopírovat odkaz“ a „Zpět“ na detailu blokovala CSP (inline `onclick` a `javascript:`)
+- Neexistující adresy vracely titulku se stavem 200
+- `/unsubscribe` z hlavičky `List-Unsubscribe` přesměruje na odhlašovací formulář
+
+### Technical
+- `public/title-url.js` (slug a adresa titulu, sdílí prohlížeč i Pages Functions), `public/detail-view.js` (vykreslení detailu, ES modul pro obě strany), `functions/_lib/title-page.js` (HTMLRewriter nad šablonou `detail.html`)
+- Testy `tests/node/title-pages.test.mjs`
+
 ## [1.13.0] - 2026-10-16
 
 ### Added

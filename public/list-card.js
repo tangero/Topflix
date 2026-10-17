@@ -108,7 +108,8 @@ function createTitleCard(item, options = {}) {
     if (length) meta.push(length);
 
     const split = listSplit(item);
-    const detailHref = `detail.html?id=${encodeURIComponent(item.tmdb_id)}&type=${type}`;
+    const detailHref = (window.TopflixUrl && window.TopflixUrl.titlePath({ ...item, type }))
+        || `detail.html?id=${encodeURIComponent(item.tmdb_id)}&type=${type}`;
     const query = encodeURIComponent(item.title_original || item.title || '');
     const playHref = providerId && WATCH_SEARCH[providerId] && query
         ? WATCH_SEARCH[providerId](query)

@@ -13,7 +13,7 @@ function getCorsHeaders() {
   };
 }
 
-async function getCatalogItem(DB, tmdbId, type) {
+export async function getCatalogItem(DB, tmdbId, type) {
   try {
     const row = await DB.prepare(`
       SELECT tmdb_id, type, title, title_original, year, genre, avg_rating, tmdb_rating,
