@@ -13,7 +13,9 @@ const DAY = 24 * 60 * 60 * 1000;
 // Netflix zveřejní týden (končí v neděli) v úterý. Mezi dvěma týdny je tak až
 // 9 dní. Občas se zpozdí, proto poplach až po 16 dnech.
 export const MAX_CHART_WEEK_AGE_DAYS = 16;
-export const MAX_NEW_AGE_DAYS = 3;
+// Novinky ukládá cron v úterý a v pátek a jinak jen návštěva, která je načte.
+// Z pátku na úterý jsou 4 dny, v úterý ráno před cronem tedy ještě nejde o výpadek.
+export const MAX_NEW_AGE_DAYS = 5;
 // Cron běží v úterý a v pátek, nejdelší mezera jsou 4 dny.
 export const MAX_CATALOG_AGE_DAYS = 5;
 // Newsletter chodí každé úterý.
@@ -30,6 +32,12 @@ function parseDate(value) {
 
 /** Vyhodnotí stáří dat. Vstupem jsou hodnoty načtené z D1 a KV. */
 export function evaluateData({ chartWeek, lastNew, lastCatalog, totalRecords, qualityRecords }, now = new Date()) {
+  // lastCatalog: { movie, series } s posledním dokončeným během každého typu
+  // (filmy a seriály se synchronizují zvlášť, výpadek jednoho nesmí zakrýt druhý).
+  // Řetězec je starší tvar pro oba typy najednou.
+  const catalogRuns = typeof lastCatalog === 'string' || !lastCatalog
+    ? { movie: lastCatalog || null, series: lastCatalog || null }
+    : lastCatalog;
   const issues = [];
   let status = 'healthy';
   const degrade = (message) => { status = 'degraded'; issues.push(message); };
@@ -44,10 +52,12 @@ export function evaluateData({ chartWeek, lastNew, lastCatalog, totalRecords, qu
   if (!fresh) degrade('No new-on-Netflix data stored yet');
   else if (newAge > MAX_NEW_AGE_DAYS) degrade(`New-on-Netflix data is ${newAge} days old (>${MAX_NEW_AGE_DAYS})`);
 
-  const catalog = parseDate(lastCatalog);
-  const catalogAge = catalog ? daysBetween(catalog, now) : null;
-  if (!catalog) degrade('Netflix catalog has never been synced');
-  else if (catalogAge > MAX_CATALOG_AGE_DAYS) degrade(`Netflix catalog sync is ${catalogAge} days old (>${MAX_CATALOG_AGE_DAYS})`);
+  for (const type of ['movie', 'series']) {
+    const finished = parseDate(catalogRuns[type]);
+    const age = finished ? daysBetween(finished, now) : null;
+    if (!finished) degrade(`Netflix catalog (${type}) has never been synced`);
+    else if (age > MAX_CATALOG_AGE_DAYS) degrade(`Netflix catalog (${type}) sync is ${age} days old (>${MAX_CATALOG_AGE_DAYS})`);
+  }
 
   if ((totalRecords || 0) < 50) degrade(`Only ${totalRecords || 0} records in database (<50)`);
 
@@ -58,7 +68,7 @@ export function evaluateData({ chartWeek, lastNew, lastCatalog, totalRecords, qu
     top10_week: chartWeek || null,
     top10_week_age_days: chartAge,
     last_new_on_netflix: lastNew || null,
-    last_catalog_sync: lastCatalog || null,
+    last_catalog_sync: { movie: catalogRuns.movie || null, series: catalogRuns.series || null },
     issues
   };
 }
@@ -70,10 +80,12 @@ export async function loadDataInputs(env) {
       (SELECT COUNT(*) FROM content WHERE avg_rating >= 70) AS quality,
       (SELECT MAX(date) FROM appearance_history WHERE source = 'netflix_new') AS last_new
   `).first();
-  let lastCatalog = null;
+  const lastCatalog = { movie: null, series: null };
   try {
-    const run = await env.DB.prepare('SELECT MAX(finished_at) AS finished FROM netflix_catalog_runs').first();
-    lastCatalog = run?.finished || null;
+    const { results } = await env.DB.prepare(
+      'SELECT type, MAX(finished_at) AS finished FROM netflix_catalog_runs WHERE finished_at IS NOT NULL GROUP BY type'
+    ).all();
+    for (const run of results || []) lastCatalog[run.type] = run.finished;
   } catch (error) {
     // Bez migrace 0004 katalog neexistuje
   }
@@ -101,7 +113,7 @@ async function resendGet(env, path, fetchImpl) {
  * a to, jestli poslední rozesílka měla textovou verzi.
  */
 export async function loadNewsletterInputs(env, { admin = false, fetchImpl = fetch } = {}) {
-  const inputs = { lastSent: null, lastBroadcast: null, subscribers: null, error: null };
+  const inputs = { lastSent: null, lastBroadcast: null, subscribers: null, subscribersComplete: null, error: null };
   try {
     const list = await resendGet(env, '/broadcasts?limit=20', fetchImpl);
     const sent = (list.data || [])
@@ -122,15 +134,18 @@ export async function loadNewsletterInputs(env, { admin = false, fetchImpl = fet
     if (admin && env.RESEND_AUDIENCE_ID) {
       let count = 0;
       let after = '';
+      let complete = false;
       for (let page = 0; page < 50; page++) {
         const query = `/contacts?segment_id=${encodeURIComponent(env.RESEND_AUDIENCE_ID)}&limit=100${after ? `&after=${encodeURIComponent(after)}` : ''}`;
         const chunk = await resendGet(env, query, fetchImpl);
         const contacts = chunk.data || [];
         count += contacts.filter((c) => !c.unsubscribed).length;
-        if (!chunk.has_more || !contacts.length) break;
+        if (!chunk.has_more || !contacts.length) { complete = true; break; }
         after = contacts[contacts.length - 1].id;
       }
       inputs.subscribers = count;
+      // Po 50 stránkách (5 000 kontaktů) se přestane počítat: součet je pak jen dolní mez.
+      inputs.subscribersComplete = complete;
     }
   } catch (error) {
     inputs.error = error.status === 401 || error.status === 403
@@ -163,6 +178,7 @@ export function evaluateNewsletter(env, inputs, { admin = false } = {}, now = ne
 
   if (admin) {
     result.active_subscribers = inputs.subscribers;
+    if (inputs.subscribersComplete === false) result.active_subscribers_complete = false;
     result.last_broadcast = inputs.lastBroadcast;
     if (inputs.lastBroadcast && inputs.lastBroadcast.text_length === 0) {
       degrade('Last newsletter was sent without a plain-text version');

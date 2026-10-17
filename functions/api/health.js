@@ -99,7 +99,12 @@ async function checkNewsletterHealth(env, admin) {
   if (!inputs) {
     inputs = await loadNewsletterInputs(env, { admin });
     if (!admin && env.TOPFLIX_KV && !inputs.error) {
-      await env.TOPFLIX_KV.put(cacheKey, JSON.stringify(inputs), { expirationTtl: 1800 });
+      // Selhání mezipaměti nesmí zahodit už zjištěný výsledek
+      try {
+        await env.TOPFLIX_KV.put(cacheKey, JSON.stringify(inputs), { expirationTtl: 1800 });
+      } catch (error) {
+        console.warn('Health cache write failed:', error.message);
+      }
     }
   }
   return evaluateNewsletter(env, inputs, { admin });

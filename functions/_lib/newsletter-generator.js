@@ -19,7 +19,8 @@ const NEWSLETTER_UTM = 'utm_source=newsletter&utm_medium=email&utm_campaign=week
  * vede tlačítko na stránku titulu: vyhledávání Netflixu v mobilu nefunguje.
  */
 export function newsletterLinks(item) {
-  const path = globalThis.TopflixUrl.titlePath(item);
+  // has_page === false: titul zatím není v databázi a jeho stránka by vrátila 404
+  const path = item.has_page === false ? '' : globalThis.TopflixUrl.titlePath(item);
   const page = path ? `${SITE_URL}${path}?${NEWSLETTER_UTM}` : `${SITE_URL}/?${NEWSLETTER_UTM}`;
   if (/^\d{5,12}$/.test(String(item.netflix_id || ''))) {
     const watch = `${SITE_URL}/go/netflix/${item.netflix_id}?s=newsletter&t=${item.type}-${item.tmdb_id}`;
@@ -31,6 +32,24 @@ export function newsletterLinks(item) {
 /**
  * Fetch all data needed for newsletter
  */
+/**
+ * Označí tituly, které mají stránku na Topflixu. Stránka titulu čte z content
+ * a netflix_catalog. Titul, který se objevil až po posledním uložení, by vedl
+ * na 404, a tak dostane odkaz na titulku.
+ */
+export async function markTitlePages(db, items) {
+  const ids = [...new Set(items.map((i) => Number(i.tmdb_id)).filter(Boolean))];
+  if (!ids.length) return;
+  const known = new Set();
+  const { results } = await db.prepare(`
+    SELECT tmdb_id, type FROM content WHERE tmdb_id IN (SELECT value FROM json_each(?1))
+    UNION
+    SELECT tmdb_id, type FROM netflix_catalog WHERE tmdb_id IN (SELECT value FROM json_each(?1))
+  `).bind(JSON.stringify(ids)).all();
+  for (const row of results || []) known.add(`${row.type}:${row.tmdb_id}`);
+  for (const item of items) item.has_page = known.has(`${item.type}:${item.tmdb_id}`);
+}
+
 export async function fetchNewsletterData(apiKey, omdbApiKey, db = null) {
   try {
     // Same sources and ratings as the website (OMDb included), so the numbers match
@@ -136,6 +155,11 @@ export async function fetchNewsletterData(apiKey, omdbApiKey, db = null) {
     // Netflix ID pro tlačítka „Pustit“. Chybějící se dohledají hned: newsletter
     // odchází jednou týdně, na odpověď Wikidat počkat můžeme.
     if (db) {
+      try {
+        await markTitlePages(db, [...mainMovies, ...mainSeries, ...regionalMovies, ...regionalSeries]);
+      } catch (error) {
+        console.warn('Newsletter title pages unknown:', error.message);
+      }
       try {
         const all = [...mainMovies, ...mainSeries, ...regionalMovies, ...regionalSeries];
         const stale = await attachNetflixIds(db, all);

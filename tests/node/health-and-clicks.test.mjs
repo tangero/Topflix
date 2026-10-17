@@ -6,7 +6,8 @@ import { evaluateData, evaluateNewsletter, loadNewsletterInputs } from '../../fu
 import { normalizeClick, recordClick, clickStats } from '../../functions/_lib/watch-clicks.js';
 import { onRequestGet as goNetflix } from '../../functions/go/netflix/[id].js';
 import { onRequestPost as clickPost } from '../../functions/api/click.js';
-import { newsletterLinks, generateNewsletterHTML, generateNewsletterText } from '../../functions/_lib/newsletter-generator.js';
+import { newsletterLinks, generateNewsletterHTML, generateNewsletterText, markTitlePages } from '../../functions/_lib/newsletter-generator.js';
+import { onRequest as healthHandler } from '../../functions/api/health.js';
 
 const MIGRATIONS = [
   'migrations/0001_initial_schema.sql',
@@ -26,14 +27,28 @@ test('data health: current data is healthy', () => {
 test('data health: stale chart, new titles and catalog are reported', () => {
   const r = evaluateData({ chartWeek: '2026-09-27', lastNew: '2026-10-10', lastCatalog: '2026-10-01T00:00:00Z', totalRecords: 2266 }, NOW);
   assert.equal(r.status, 'degraded');
-  assert.equal(r.issues.length, 3);
+  // Top 10, novinky a katalog zvlášť za filmy a za seriály
+  assert.equal(r.issues.length, 4);
   assert.match(r.issues[0], /Top 10 week 2026-09-27 is 20 days old/);
 });
 
 test('data health: missing inputs degrade instead of passing silently', () => {
   const r = evaluateData({ totalRecords: 10 }, NOW);
   assert.equal(r.status, 'degraded');
-  assert.equal(r.issues.length, 4);
+  assert.equal(r.issues.length, 5);
+});
+
+test('data health: Tuesday morning before the cron is not an outage', () => {
+  // Poslední novinky z pátku, úterý 06:00 UTC, cron až v 07:00
+  const tuesday = new Date('2026-10-20T06:00:00Z');
+  const r = evaluateData({ chartWeek: '2026-10-11', lastNew: '2026-10-16', lastCatalog: { movie: '2026-10-16T07:05:00Z', series: '2026-10-16T07:06:00Z' }, totalRecords: 2266 }, tuesday);
+  assert.equal(r.status, 'healthy', r.issues.join('; '));
+});
+
+test('data health: a failing series sync is not hidden by fresh films', () => {
+  const r = evaluateData({ chartWeek: '2026-10-04', lastNew: '2026-10-17', lastCatalog: { movie: '2026-10-16T07:05:00Z', series: '2026-10-06T07:06:00Z' }, totalRecords: 2266 }, NOW);
+  assert.equal(r.status, 'degraded');
+  assert.deepEqual(r.issues, ['Netflix catalog (series) sync is 11 days old (>5)']);
 });
 
 function fakeResend(routes, calls = []) {
@@ -77,6 +92,48 @@ test('newsletter health: admin sees subscribers and a missing text version', asy
   assert.equal(r.last_broadcast.text_length, 0);
   assert.equal(r.status, 'degraded');
   assert.match(r.issues.join(' '), /without a plain-text version/);
+});
+
+test('newsletter health: a count cut off after 50 pages is marked incomplete', async () => {
+  const env = { RESEND_API_KEY: 're_x', RESEND_AUDIENCE_ID: 'aud' };
+  let n = 0;
+  const endless = async (url) => {
+    const path = new URL(url).pathname;
+    if (path === '/contacts') return new Response(JSON.stringify({ has_more: true, data: [{ id: `c${n++}`, unsubscribed: false }] }));
+    return new Response(JSON.stringify({ data: [] }));
+  };
+  const inputs = await loadNewsletterInputs(env, { admin: true, fetchImpl: endless });
+  const r = evaluateNewsletter(env, inputs, { admin: true }, NOW);
+  assert.equal(r.active_subscribers, 50);
+  assert.equal(r.active_subscribers_complete, false);
+});
+
+test('health endpoint still answers when the cache write fails', async () => {
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = fakeResend(RESEND_ROUTES);
+  try {
+    const db = createD1(MIGRATIONS);
+    const env = {
+      DB: db, RESEND_API_KEY: 're_x', TMDB_API_KEY: 't',
+      TOPFLIX_KV: { get: async () => null, put: async () => { throw new Error('KV down'); } }
+    };
+    const res = await healthHandler({ request: new Request('https://www.topflix.cz/api/health?check=newsletter'), env });
+    const body = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(body.checks.newsletter.last_sent, '2026-10-16T05:39:08.123Z');
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+test('newsletter: a title not stored yet links to the homepage, not to a 404 page', async () => {
+  const db = createD1(MIGRATIONS);
+  db.raw.prepare(`INSERT INTO content (tmdb_id, type, title, first_seen, last_seen) VALUES (808, 'movie', 'Shrek', '2026-10-01', '2026-10-01')`).run();
+  const items = [{ tmdb_id: 808, type: 'movie', title: 'Shrek' }, { tmdb_id: 999, type: 'movie', title: 'Úplně nový' }];
+  await markTitlePages(db, items);
+  assert.equal(newsletterLinks(items[0]).page, 'https://www.topflix.cz/film/shrek-808?utm_source=newsletter&utm_medium=email&utm_campaign=weekly');
+  assert.equal(newsletterLinks(items[1]).page, 'https://www.topflix.cz/?utm_source=newsletter&utm_medium=email&utm_campaign=weekly');
+  assert.equal(newsletterLinks({ ...items[1], netflix_id: '81000001' }).watch, 'https://www.topflix.cz/go/netflix/81000001?s=newsletter&t=movie-999');
 });
 
 test('newsletter health: a key without read access is reported, not crashed', async () => {
