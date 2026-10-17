@@ -88,14 +88,11 @@ export async function onRequest(context) {
         html: htmlContent,
         text: textContent,
         // Without this, Resend stores a draft and does not mail anyone.
-        send: true,
-        headers: {
-          'List-Unsubscribe': '<https://www.topflix.cz/unsubscribe>',
-          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-          'List-ID': '"Topflix Newsletter" <newsletter.topflix.cz>',
-          'Precedence': 'bulk',
-          'X-Auto-Response-Suppress': 'All'
-        }
+        send: true
+        // No custom headers: the broadcast API has no `headers` field and drops them.
+        // Resend adds List-Unsubscribe (unsubscribe.resend.com, per-contact token),
+        // List-Unsubscribe-Post: One-Click and Precedence: bulk itself, DKIM-signed.
+        // Checked on the 2026-10-16 broadcast.
       })
     });
 

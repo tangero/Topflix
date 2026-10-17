@@ -85,14 +85,10 @@ export async function onRequest(context) {
         reply_to: 'noreply@topflix.cz',
         subject: subjectLine,
         html: htmlContent,
-        text: textContent,
-        headers: {
-          'List-Unsubscribe': '<https://www.topflix.cz/unsubscribe>',
-          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
-          'List-ID': '"Topflix Newsletter" <newsletter.topflix.cz>',
-          'Precedence': 'bulk',
-          'X-Auto-Response-Suppress': 'All'
-        }
+        text: textContent
+        // A test goes to one address the admin typed in, so no List-Unsubscribe here:
+        // www.topflix.cz/unsubscribe cannot unsubscribe anyone. Real broadcasts get
+        // Resend's own one-click headers (see newsletter-send.js).
       })
     });
 

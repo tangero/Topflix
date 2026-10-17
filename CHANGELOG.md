@@ -5,6 +5,14 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.3] - 2026-10-17
+
+### Fixed
+- Testovací newsletter (`/api/newsletter-test`) posílal `List-Unsubscribe` na `/unsubscribe`, které nikoho neodhlásí. Hlavičky jsou pryč
+
+### Technical
+- Z `newsletter-send.js` odstraněn blok `headers`: API pro broadcasty ho nepřijímá. Doručený broadcast z 16. 10. 2026 má od Resendu `List-Unsubscribe` (unsubscribe.resend.com, token pro kontakt), `List-Unsubscribe-Post: One-Click` a `Precedence: bulk`, obojí podepsané DKIM `topflix.cz`
+
 ## [1.14.2] - 2026-10-17
 
 ### Added
