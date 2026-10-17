@@ -24,7 +24,8 @@ export async function onRequest(context) {
 
   try {
     const url = new URL(request.url);
-    const limit = Math.min(parseInt(url.searchParams.get('limit') || '300', 10) || 300, 600);
+    // Rozsah 1 až 600: SQLite bere záporný LIMIT jako „bez omezení“.
+    const limit = Math.max(1, Math.min(parseInt(url.searchParams.get('limit') || '300', 10) || 300, 600));
     return json(await syncNetflixIdsStep(env.DB, { limit }));
   } catch (error) {
     return safeErrorResponse(error, {});

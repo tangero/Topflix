@@ -119,6 +119,49 @@ test('a later found id is not overwritten by a later miss', async () => {
   assert.equal(row.netflix_id, '60020686');
 });
 
+test('concurrent refreshes of the same titles ask Wikidata only once', async () => {
+  const db = createD1(MIGRATIONS);
+  const now = new Date('2026-10-17T10:00:00Z');
+  const calls = [];
+  const slow = async (url) => {
+    calls.push(url);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    return fakeWikidata({ tmdb: { 'movie:808': '60020686' } })(url);
+  };
+  const items = () => [{ tmdb_id: 808, type: 'movie' }, { tmdb_id: 77, type: 'series' }];
+  const [a, b] = await Promise.all([
+    refreshNetflixIds(db, items(), { fetchImpl: slow, now }),
+    refreshNetflixIds(db, items(), { fetchImpl: slow, now })
+  ]);
+  assert.equal(a.checked + b.checked, 2, 'each title is looked up by one run only');
+  assert.equal(calls.length, 1);
+  const rows = db.raw.prepare('SELECT tmdb_id, netflix_id FROM netflix_ids ORDER BY tmdb_id').all();
+  assert.deepEqual(rows.map((r) => [r.tmdb_id, r.netflix_id]), [[77, null], [808, '60020686']]);
+});
+
+test('a recently checked miss is not claimed again before it is stale', async () => {
+  const db = createD1(MIGRATIONS);
+  const t0 = new Date('2026-10-17T10:00:00Z');
+  const calls = [];
+  await refreshNetflixIds(db, [{ tmdb_id: 77, type: 'series' }], { fetchImpl: fakeWikidata({}, calls), now: t0 });
+  const again = await refreshNetflixIds(db, [{ tmdb_id: 77, type: 'series' }], { fetchImpl: fakeWikidata({}, calls), now: new Date('2026-10-18T10:00:00Z') });
+  assert.equal(again.checked, 0);
+  assert.equal(calls.length, 1);
+  const later = await refreshNetflixIds(db, [{ tmdb_id: 77, type: 'series' }], { fetchImpl: fakeWikidata({}, calls), now: new Date('2026-10-21T11:00:00Z') });
+  assert.equal(later.checked, 1);
+});
+
+test('syncNetflixIdsStep treats a negative or junk limit as a small bounded batch', async () => {
+  const db = createD1(MIGRATIONS);
+  const ins = db.raw.prepare(`INSERT INTO content (tmdb_id, type, title, first_seen, last_seen) VALUES (?, 'movie', 'x', '2026-10-01', '2026-10-01')`);
+  for (let id = 1; id <= 5; id++) ins.run(id);
+  const fetchImpl = fakeWikidata({});
+  const now = new Date('2026-10-17T10:00:00Z');
+  const negative = await syncNetflixIdsStep(db, { limit: -1, fetchImpl, now });
+  assert.equal(negative.checked, 1, 'limit -1 must not mean unlimited');
+  assert.equal(negative.remaining, 4);
+});
+
 test('without the netflix_ids table nothing breaks', async () => {
   const db = createD1(['migrations/0001_initial_schema.sql']);
   const items = [{ tmdb_id: 808, type: 'movie' }];

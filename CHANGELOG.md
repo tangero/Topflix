@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Technical
 - Migrace `0005_netflix_ids.sql`: tabulka `netflix_ids` (tmdb_id, type, netflix_id, source, checked_at)
-- `functions/_lib/netflix-ids.js`: dohledání ID na Wikidatech (P1874 podle TMDB P4947/P4983, záložně podle IMDb P345), opakovaný pokus, rezervace dávky na hodinu, nenalezené znovu po 3 dnech
+- `functions/_lib/netflix-ids.js`: dohledání ID na Wikidatech (P1874 podle TMDB P4947/P4983, záložně podle IMDb P345), opakovaný pokus, nenalezené znovu po 3 dnech. Titul se dohledává jen v běhu, který si ho podmíněným upsertem zarezervoval (na hodinu), takže souběžné požadavky a cron se na Wikidata neptají dvakrát
+- `/api/netflix-ids-sync` i `syncNetflixIdsStep` omezují `limit` na 1 až 600 (záporný LIMIT by v SQLite znamenal bez omezení)
 - `functions/api/_middleware.js` doplní `netflix_id` do odpovědí `/api/top10`, `netflix-new`, `netflix-added`, `archive`, `hidden-gems`, `best`, `search` a `detail`, chybějící ID dohledá na pozadí
 - `/api/netflix-ids-sync` (admin) pro dávkové doplnění archivu a katalogu, krok v cronu a v `scripts/backfill-netflix-data.sh`
 - Testy `tests/node/netflix-ids.test.mjs`

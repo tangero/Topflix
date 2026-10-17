@@ -142,23 +142,39 @@ export async function attachNetflixIds(db, items, now = Date.now()) {
   return stale;
 }
 
-/** Zeptá se Wikidat na tituly a uloží výsledek, i „nenalezeno“. */
+// D1 vrací meta.changes, node:sqlite v testech changes
+const changesOf = (result) => Number(result?.meta?.changes ?? result?.changes ?? 0);
+
+/**
+ * Zeptá se Wikidat na tituly a uloží výsledek, i „nenalezeno“.
+ * Dohledává jen tituly, které si tento běh zarezervoval: souběžný
+ * požadavek nebo cron se stejným titulem ho přeskočí.
+ */
 export async function refreshNetflixIds(db, items, { fetchImpl = fetch, now = new Date() } = {}) {
   let found = 0;
+  let checked = 0;
+  // Rezervace vyprší za hodinu, aby výpadek Wikidat nezablokoval tituly na dny.
+  const claimedAt = new Date(now.getTime() - RETRY_MISSING_MS + 60 * 60 * 1000).toISOString();
+  // Zastaralý je titul bez záznamu, nebo nenalezený s kontrolou starší než RETRY_MISSING_MS.
+  const staleBefore = new Date(now.getTime() - RETRY_MISSING_MS).toISOString();
+
   for (let i = 0; i < items.length; i += BATCH) {
     const batch = items.slice(i, i + BATCH);
-    // Nejdřív rezervace: souběžné požadavky pak tytéž tituly nepovažují za
-    // zastaralé. Vyprší za hodinu, aby výpadek Wikidat nezablokoval tituly na dny.
-    const claimedAt = new Date(now.getTime() - RETRY_MISSING_MS + 60 * 60 * 1000).toISOString();
-    await db.batch(batch.map((item) => db.prepare(`
+    // Rezervace se zapíše jen u titulu, který je pořád zastaralý. Když ho mezitím
+    // zarezervoval jiný běh, UPDATE nic nezmění a titul se přeskočí.
+    const claims = await db.batch(batch.map((item) => db.prepare(`
       INSERT INTO netflix_ids (tmdb_id, type, netflix_id, source, checked_at)
       VALUES (?1, ?2, NULL, NULL, ?3)
       ON CONFLICT(tmdb_id, type) DO UPDATE SET checked_at = excluded.checked_at
-      WHERE netflix_ids.netflix_id IS NULL
-    `).bind(Number(item.tmdb_id), item.type, claimedAt)));
-    const ids = await lookupWikidata(batch, fetchImpl);
+      WHERE netflix_ids.netflix_id IS NULL AND netflix_ids.checked_at < ?4
+    `).bind(Number(item.tmdb_id), item.type, claimedAt, staleBefore)));
+    const claimed = batch.filter((item, index) => changesOf(claims[index]) > 0);
+    if (!claimed.length) continue;
+    checked += claimed.length;
+
+    const ids = await lookupWikidata(claimed, fetchImpl);
     const checkedAt = now.toISOString();
-    await db.batch(batch.map((item) => {
+    await db.batch(claimed.map((item) => {
       const netflixId = ids.get(key(item.type, item.tmdb_id)) || null;
       if (netflixId) found += 1;
       return db.prepare(`
@@ -171,7 +187,7 @@ export async function refreshNetflixIds(db, items, { fetchImpl = fetch, now = ne
       `).bind(Number(item.tmdb_id), item.type, netflixId, netflixId ? 'wikidata' : null, checkedAt);
     }));
   }
-  return { checked: items.length, found };
+  return { checked, found };
 }
 
 /**
@@ -179,6 +195,7 @@ export async function refreshNetflixIds(db, items, { fetchImpl = fetch, now = ne
  * ID ještě nemají a dlouho se nekontrolovaly. Vrátí počet zbývajících.
  */
 export async function syncNetflixIdsStep(db, { limit = 300, fetchImpl = fetch, now = new Date() } = {}) {
+  const size = Math.max(1, Math.min(Number.parseInt(limit, 10) || 300, 600));
   const cutoff = new Date(now.getTime() - RETRY_MISSING_MS).toISOString();
   const pending = `
     FROM (
@@ -189,7 +206,7 @@ export async function syncNetflixIdsStep(db, { limit = 300, fetchImpl = fetch, n
     LEFT JOIN netflix_ids n ON n.tmdb_id = t.tmdb_id AND n.type = t.type
     WHERE n.tmdb_id IS NULL OR (n.netflix_id IS NULL AND n.checked_at < ?1)
   `;
-  const { results } = await db.prepare(`SELECT t.tmdb_id, t.type, t.imdb_id ${pending} LIMIT ?2`).bind(cutoff, limit).all();
+  const { results } = await db.prepare(`SELECT t.tmdb_id, t.type, t.imdb_id ${pending} LIMIT ?2`).bind(cutoff, size).all();
   const items = results || [];
   const result = items.length ? await refreshNetflixIds(db, items, { fetchImpl, now }) : { checked: 0, found: 0 };
   const { remaining } = await db.prepare(`SELECT COUNT(*) AS remaining ${pending}`).bind(cutoff).first();
