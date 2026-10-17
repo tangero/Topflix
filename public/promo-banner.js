@@ -1,13 +1,13 @@
 /**
- * Reklamní zóna Topflixu.
+ * Promo zóna Topflixu se štítkem „Naše akce“ (vlastní akce, ne placená reklama).
  *
  * Obsah vybírá sdílený propagační systém vibecoding.cz (stejně jako na
  * marigold.cz a prijimackynaskolu.cz): /api/active-promotion vrátí jednu
  * váženě vylosovanou položku, nebo null.
  *
  * Použití:
- *   <aside class="ad-zone" data-promo-surface="homepage" aria-label="Reklama" hidden>
- *     <p class="ad-zone-label">Reklama</p>
+ *   <aside class="ad-zone" data-promo-surface="homepage" aria-label="Naše akce" hidden>
+ *     <p class="ad-zone-label">Naše akce</p>
  *     <div class="ad-zone-slot"></div>
  *   </aside>
  *   <script src="promo-banner.js" defer></script>
@@ -15,7 +15,7 @@
  * data-promo-surface: homepage | other (plocha pro promo statistiky)
  *
  * Zóna zůstane skrytá, dokud nepřijde obsah. Když API vrátí null nebo selže,
- * zmizí celá, včetně štítku „Reklama“.
+ * zmizí celá, včetně štítku „Naše akce“.
  */
 (function () {
     'use strict';

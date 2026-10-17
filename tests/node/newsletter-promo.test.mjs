@@ -55,11 +55,12 @@ test('early bird disappears after its deadline', () => {
   assert.equal(promo.highlight, '');
 });
 
-test('image ad gets an absolute vibecoding.cz image and stays labelled as Reklama', () => {
+test('image ad gets an absolute vibecoding.cz image and is labelled as Naše akce', () => {
   const promo = normalizePromo(imageAd);
   assert.equal(promo.image, 'https://www.vibecoding.cz/promo-media/promo_abc?v=123');
   const html = formatPromoHtml(promo);
-  assert.match(html, />Reklama</);
+  assert.match(html, />Naše akce</);
+  assert.doesNotMatch(html, /Reklama/);
   assert.match(html, /src="https:\/\/www\.vibecoding\.cz\/promo-media\/promo_abc\?v=123"/);
 });
 
@@ -84,7 +85,8 @@ test('newsletter HTML and text include the promo, and work without it', () => {
   const html = generateNewsletterHTML({ ...emptyData, promo });
   const text = generateNewsletterText({ ...emptyData, promo });
   assert.match(html, /Workshop Claude Code pro pokročilé/);
-  assert.match(text, /REKLAMA/);
+  assert.match(text, /NAŠE AKCE/);
+  assert.doesNotMatch(text, /REKLAMA/);
   assert.match(text, /site=topflix&surface=newsletter/);
-  assert.doesNotMatch(generateNewsletterHTML({ ...emptyData, promo: null }), /Reklama/);
+  assert.doesNotMatch(generateNewsletterHTML({ ...emptyData, promo: null }), /Naše akce/);
 });
