@@ -5,6 +5,11 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.4] - 2026-10-17
+
+### Added
+- Náhledový obrázek pro sdílení `og-image.jpg` (1200 × 630, 148 kB) na titulce, Filmech, Seriálech, Archivu a Newsletteru, s `og:image:width/height/alt` a `twitter:image`. Stránky titulů dál ukazují plakát, titul bez plakátu dostane tento obrázek
+
 ## [1.14.3] - 2026-10-17
 
 ### Fixed

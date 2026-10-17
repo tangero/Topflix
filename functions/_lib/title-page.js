@@ -69,6 +69,8 @@ export async function renderTitlePage(context, section) {
 
   const canonical = SITE_URL + path;
   const meta = buildMeta(item, canonical);
+  // Bez plakátu zůstane obecný náhled webu ze šablony
+  if (!meta.image) meta.image = `${SITE_URL}/og-image.jpg`;
   const content = renderDetailHtml(item, history, similar, { shareUrl: canonical, titlePath });
   // Titul, který zatím jen přibyl do katalogu, nemá hodnocení: stránka slouží
   // návštěvníkům, do vyhledávačů ji nedáváme.
