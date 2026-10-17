@@ -127,7 +127,7 @@ export async function fetchNewsletterData(apiKey, omdbApiKey) {
   }
 }
 
-// Reklama z propagačního systému vibecoding.cz, stejná jako v zóně na webu.
+// Promo „Naše akce“ z propagačního systému vibecoding.cz, stejná jako v zóně na webu.
 // Výběr proběhne jednou při generování, takže všichni odběratelé dostanou totéž.
 const PROMO_ORIGIN = 'https://www.vibecoding.cz';
 const PROMO_MONTHS = ['ledna', 'února', 'března', 'dubna', 'května', 'června',
@@ -230,7 +230,7 @@ export function normalizePromo(item, now = new Date()) {
 export function formatPromoHtml(promo) {
   if (!promo) return '';
   const url = escapeHtml(promo.url);
-  const label = '<p style="margin: 0 0 8px 0; color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;">Reklama</p>';
+  const label = '<p style="margin: 0 0 8px 0; color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;">Naše akce</p>';
 
   if (promo.image) {
     return `
@@ -268,7 +268,7 @@ export function formatPromoHtml(promo) {
 
 export function formatPromoText(promo) {
   if (!promo) return '';
-  let text = `\nREKLAMA\n${'-'.repeat(50)}\n`;
+  let text = `\nNAŠE AKCE\n${'-'.repeat(50)}\n`;
   text += `${promo.badge}: ${promo.title}\n`;
   if (promo.meta) text += `${promo.meta}\n`;
   if (promo.description) text += `${promo.description}\n`;
