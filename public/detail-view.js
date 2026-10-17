@@ -35,6 +35,20 @@ function czDate(iso) {
     return `${parseInt(d, 10)}. ${parseInt(m, 10)}. ${y}`;
 }
 
+/**
+ * Tlačítko pro Netflix: s netflix_id přímo na titul, jinak vyhledávání.
+ * Jen u titulů, které jsou na Netflixu.
+ */
+export function netflixWatch(item) {
+    const providers = Array.isArray(item.streaming_providers) ? item.streaming_providers : [];
+    if (!providers.includes('netflix')) return null;
+    if (/^\d{5,12}$/.test(String(item.netflix_id || ''))) {
+        return { href: `https://www.netflix.com/title/${item.netflix_id}`, direct: true, label: 'Pustit na Netflixu' };
+    }
+    const query = encodeURIComponent(item.title_original || item.title || '');
+    return query ? { href: `https://www.netflix.com/search?q=${query}`, direct: false, label: 'Hledat na Netflixu' } : null;
+}
+
 function weeksLabel(n) {
     if (n === 1) return 'týden';
     return n >= 2 && n <= 4 ? 'týdny' : 'týdnů';
@@ -76,6 +90,11 @@ export function renderDetailHtml(item, history, similar, { shareUrl, titlePath }
             `<span class="provider-badge provider-${escapeHtml(p)}">${escapeHtml(PROVIDER_NAMES[p] || p)}</span>`).join('')}</div></div>`
         : '';
 
+    const watch = netflixWatch(item);
+    const watchHTML = watch
+        ? `<div class="detail-watch"><a class="hero-play" href="${escapeHtml(watch.href)}" target="_blank" rel="noopener noreferrer" data-watch="${watch.direct ? 'direct' : 'search'}">${watch.label}</a></div>`
+        : '';
+
     let linksHTML = '';
     if (item.tmdb_url) linksHTML += `<a href="${escapeHtml(item.tmdb_url)}" target="_blank" rel="noopener" class="detail-link-btn">TMDB</a>`;
     if (item.imdb_id) linksHTML += `<a href="https://www.imdb.com/title/${escapeHtml(item.imdb_id)}/" target="_blank" rel="noopener" class="detail-link-btn">IMDb</a>`;
@@ -113,6 +132,7 @@ export function renderDetailHtml(item, history, similar, { shareUrl, titlePath }
                 <div class="detail-meta">${metaParts.map((p) => `<span>${escapeHtml(p)}</span>`).join('<span>•</span>')}</div>
                 ${appearancesText ? `<div class="detail-appearances">${appearancesText}</div>` : ''}
                 ${providersHTML}
+                ${watchHTML}
                 ${item.description ? `<div class="detail-description">${escapeHtml(item.description)}</div>` : ''}
                 <div class="detail-links">${linksHTML}</div>
                 <div class="detail-share">

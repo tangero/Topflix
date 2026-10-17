@@ -133,6 +133,18 @@ npx wrangler secret put ADMIN_API_KEY --config wrangler-cron.toml
 npm run deploy:cron
 ```
 
+### Přímé odkazy na Netflix (od verze 1.15.0)
+
+Tlačítka „Pustit“ vedou na `https://www.netflix.com/title/<id>`. ID se berou z Wikidat
+(P1874) a ukládají do tabulky `netflix_ids` (migrace `0005`). Middleware `functions/api/_middleware.js`
+je doplní do odpovědí API, chybějící dohledá na pozadí. Cron doplňuje archiv a katalog dávkami.
+
+```bash
+npx wrangler d1 execute topflix-db --remote --file=migrations/0005_netflix_ids.sql
+# jednorázové doplnění celého archivu a katalogu (opakovat, dokud remaining není 0)
+curl -X POST -H "Authorization: Bearer $ADMIN_API_KEY" "https://www.topflix.cz/api/netflix-ids-sync?limit=300"
+```
+
 ### Katalog Netflixu a historie Top 10 (od verze 1.11.0)
 
 Migrace `0004` přidává tabulky pro týdenní snímky katalogu Netflixu v ČR (`netflix_catalog`)

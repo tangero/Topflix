@@ -10,6 +10,7 @@ import '../../public/title-url.js';
 import { renderDetailHtml, buildMeta, buildJsonLd, escapeHtml, SITE_URL } from '../../public/detail-view.js';
 import { createDatabase } from './database.js';
 import { getCatalogItem } from '../api/detail.js';
+import { attachNetflixIds, refreshNetflixIds } from './netflix-ids.js';
 
 const { titlePath, parseId } = globalThis.TopflixUrl;
 
@@ -40,10 +41,14 @@ async function notFound(env, request) {
   });
 }
 
-export async function loadTitle(env, tmdbId, type) {
+export async function loadTitle(env, tmdbId, type, waitUntil) {
   const db = createDatabase(env);
-  const item = await db.getContentByIdFull(tmdbId, type) || await getCatalogItem(env.DB, tmdbId, type);
-  if (!item) return null;
+  const found = await db.getContentByIdFull(tmdbId, type) || await getCatalogItem(env.DB, tmdbId, type);
+  if (!found) return null;
+  // Kopie: getContentByIdFull vrací objekt z mezipaměti
+  const item = { ...found };
+  const stale = await attachNetflixIds(env.DB, [item]);
+  if (stale.length && waitUntil) waitUntil(refreshNetflixIds(env.DB, stale).catch(() => {}));
   const [history, similar] = await Promise.all([
     db.getAppearanceHistory(tmdbId, type, 20),
     db.getSimilarContent(item, 6)
@@ -57,7 +62,7 @@ export async function renderTitlePage(context, section) {
   const tmdbId = parseId(params.slug);
   if (!type || !tmdbId || !env.DB) return notFound(env, request);
 
-  const data = await loadTitle(env, tmdbId, type);
+  const data = await loadTitle(env, tmdbId, type, context.waitUntil.bind(context));
   if (!data) return notFound(env, request);
 
   const { item, history, similar } = data;

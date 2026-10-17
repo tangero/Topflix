@@ -6,7 +6,7 @@
  * obsah na stránce chybí (stará adresa detail.html?id=…).
  */
 
-import { renderDetailHtml, buildMeta } from '/detail-view.js?v=1.14.5';
+import { renderDetailHtml, buildMeta } from '/detail-view.js?v=1.15.0';
 
 const loading = document.getElementById('loading');
 const error = document.getElementById('error');
