@@ -5,6 +5,11 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1] - 2026-10-17
+
+### Fixed
+- Stránky titulů, `/sitemap.xml` a přesměrování `/detail` odpovídaly na HEAD stavem 404, funkce obsluhovaly jen GET
+
 ## [1.14.0] - 2026-10-17
 
 ### Added

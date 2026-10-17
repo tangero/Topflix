@@ -50,3 +50,6 @@ export async function onRequestGet({ env }) {
     }
   });
 }
+
+// HEAD (kontroly odkazů, některé nástroje SEO) dostane stejnou odpověď bez těla.
+export { onRequestGet as onRequestHead };

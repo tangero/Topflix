@@ -22,3 +22,6 @@ export async function onRequestGet(context) {
   if (!data) return Response.redirect(`${url.origin}/`, 301);
   return Response.redirect(`${url.origin}${titlePath(data.item)}`, 301);
 }
+
+// HEAD (kontroly odkazů, některé nástroje SEO) dostane stejnou odpověď bez těla.
+export { onRequestGet as onRequestHead };
