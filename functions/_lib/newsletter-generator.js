@@ -53,10 +53,12 @@ export async function markTitlePages(db, items) {
 export async function fetchNewsletterData(apiKey, omdbApiKey, db = null) {
   try {
     // Same sources and ratings as the website (OMDb included), so the numbers match
-    const [top10Data, newData, promo] = await Promise.all([
+    // Promo first and on its own: the TMDB/OMDb fetches below fill the Workers limit of
+    // 6 open connections, and a queued fetch runs out its timeout without ever being sent.
+    const promo = await fetchNewsletterPromo();
+    const [top10Data, newData] = await Promise.all([
       fetchAndEnrichData(apiKey, omdbApiKey),
-      fetchNetflixNew(apiKey, omdbApiKey),
-      fetchNewsletterPromo()
+      fetchNetflixNew(apiKey, omdbApiKey)
     ]);
 
     // The newsletter is about Netflix: new titles from other services stay out
@@ -190,19 +192,28 @@ export async function fetchNewsletterData(apiKey, omdbApiKey, db = null) {
 // Promo „Naše akce“ z propagačního systému vibecoding.cz, stejná jako v zóně na webu.
 // Výběr proběhne jednou při generování, takže všichni odběratelé dostanou totéž.
 const PROMO_ORIGIN = 'https://www.vibecoding.cz';
+const PROMO_SITE = 'https://www.topflix.cz';
 const PROMO_MONTHS = ['ledna', 'února', 'března', 'dubna', 'května', 'června',
   'července', 'srpna', 'září', 'října', 'listopadu', 'prosince'];
 
-export async function fetchNewsletterPromo() {
+export async function fetchNewsletterPromo(fetchImpl = fetch) {
   try {
-    const response = await fetch(`${PROMO_ORIGIN}/api/active-promotion`, {
-      signal: AbortSignal.timeout(3000)
+    const response = await fetchImpl(`${PROMO_ORIGIN}/api/active-promotion`, {
+      // The API picks by Origin. Without it this counts as vibecoding.cz, and slots
+      // exclusive to topflix.cz would not apply.
+      headers: { Origin: PROMO_SITE },
+      signal: AbortSignal.timeout(5000)
     });
-    if (!response.ok) return null;
-    return normalizePromo(await response.json());
+    if (!response.ok) {
+      console.warn(`Newsletter promo unavailable: HTTP ${response.status}`);
+      return null;
+    }
+    const promo = normalizePromo(await response.json());
+    if (!promo) console.warn('Newsletter promo unavailable: no usable item in the answer');
+    return promo;
   } catch (error) {
     // Newsletter musí odejít i bez reklamy
-    console.warn('Newsletter promo unavailable:', error.message);
+    console.warn(`Newsletter promo unavailable: ${error.name}: ${error.message}`);
     return null;
   }
 }

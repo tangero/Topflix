@@ -5,6 +5,15 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.1] - 2026-11-08
+
+### Fixed
+- Newsletter: vložka „Naše akce“ se načítá před ostatními daty a s delším časovým limitem. Dosud mohla z rozesílky vypadnout, protože dotaz na vibecoding.cz stál ve frontě za desítkami dotazů na TMDB a OMDb
+- Newsletter: dotaz na promo se představuje jako topflix.cz, takže platí i výhradní reklamy nastavené pro Topflix
+
+### Technical
+- `fetchNewsletterPromo` přijímá vlastní `fetch` pro testy a do logu píše důvod, proč promo chybí
+
 ## [1.16.0] - 2026-10-17
 
 ### Added

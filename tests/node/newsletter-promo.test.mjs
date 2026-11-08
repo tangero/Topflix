@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
+  fetchNewsletterData,
+  fetchNewsletterPromo,
   normalizePromo,
   formatPromoHtml,
   formatPromoText,
@@ -89,4 +91,40 @@ test('newsletter HTML and text include the promo, and work without it', () => {
   assert.doesNotMatch(text, /REKLAMA/);
   assert.match(text, /site=topflix&surface=newsletter/);
   assert.doesNotMatch(generateNewsletterHTML({ ...emptyData, promo: null }), /Naše akce/);
+});
+
+test('promo request identifies Topflix, so exclusive slots apply', async () => {
+  let seen;
+  const promo = await fetchNewsletterPromo(async (url, init) => {
+    seen = { url, init };
+    return new Response(JSON.stringify(imageAd));
+  });
+  assert.equal(seen.url, 'https://www.vibecoding.cz/api/active-promotion');
+  assert.equal(seen.init.headers.Origin, 'https://www.topflix.cz');
+  assert.equal(promo.title, imageAd.title);
+});
+
+test('a failed promo request gives null, the newsletter still goes out', async () => {
+  assert.equal(await fetchNewsletterPromo(async () => { throw new DOMException('late', 'TimeoutError'); }), null);
+  assert.equal(await fetchNewsletterPromo(async () => new Response('x', { status: 500 })), null);
+  assert.equal(await fetchNewsletterPromo(async () => new Response('null')), null);
+});
+
+test('promo finishes before the title fetches start, so it cannot be queued behind them', async () => {
+  const realFetch = globalThis.fetch;
+  const log = [];
+  globalThis.fetch = async (url) => {
+    const isPromo = String(url).includes('/api/active-promotion');
+    log.push(`start:${isPromo ? 'promo' : 'other'}`);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    if (isPromo) log.push('end:promo');
+    return new Response(JSON.stringify(isPromo ? imageAd : {}));
+  };
+  try {
+    await fetchNewsletterData('k', 'k').catch(() => {});
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+  assert.deepEqual(log.slice(0, 2), ['start:promo', 'end:promo']);
+  assert.ok(log.includes('start:other'));
 });
