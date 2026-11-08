@@ -1,4 +1,13 @@
 User-agent: *
+# Čtecí API, ze kterých se skládají seznamy na hlavních stránkách.
+# Bez nich vyhledávač po vykreslení uvidí stránku bez titulů.
+Allow: /api/top10$
+Allow: /api/top10?
+Allow: /api/netflix-new
+Allow: /api/netflix-added
+Allow: /api/archive
+Allow: /api/hidden-gems
+Allow: /api/stats
 Disallow: /api/
 Disallow: /prototyp/
 Disallow: /newsletter/confirm

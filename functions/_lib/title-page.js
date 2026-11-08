@@ -26,6 +26,10 @@ class SetAttr {
   element(el) { el.setAttribute(this.name, this.value); }
 }
 
+class Remove {
+  element(el) { el.remove(); }
+}
+
 async function loadTemplate(env, requestUrl) {
   // /detail, ne /detail.html: na .html odpoví Pages přesměrováním na hezkou adresu.
   const response = await env.ASSETS.fetch(new URL('/detail', requestUrl));
@@ -106,7 +110,10 @@ export async function renderTitlePage(context, section) {
         el.setInnerContent(isSeries ? '← Všechny seriály' : '← Všechny filmy');
       }
     })
-    .on('div#loading', new SetAttr('class', 'loading hidden'))
+    // Obsah je hotový. Stavové bloky ze šablony by roboti četli jako text stránky
+    // („Titul nebyl nalezen“), i když je prohlížeč skrývá.
+    .on('div#loading', new Remove())
+    .on('div#error', new Remove())
     .on('div#detailContent', {
       element(el) {
         el.setAttribute('class', 'detail-container');
