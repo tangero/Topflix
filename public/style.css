@@ -167,7 +167,8 @@ select {
     border-radius: 6px;
 }
 
-.logo-header:hover h1 {
+.logo-header:hover h1,
+.logo-header:hover .site-name {
     text-decoration: underline;
     text-decoration-thickness: 1px;
     text-underline-offset: 0.15em;
@@ -186,7 +187,8 @@ select {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-.logo h1 {
+.logo h1,
+.logo .site-name {
     font-family: Fraunces, Georgia, serif;
     font-size: 1.7rem;
     font-weight: 560;
@@ -398,6 +400,11 @@ select {
     border: 1px solid var(--quality-poor);
     border-radius: 10px;
     margin: 1rem 0;
+}
+
+/* Text chyby je v atributu, aby ho roboti nečetli jako obsah stránky */
+.error[data-message]::before {
+    content: attr(data-message);
 }
 
 /* Update info */
@@ -1582,7 +1589,8 @@ body.light-mode .pick-main:hover {
         height: 2rem;
     }
 
-    .logo h1 {
+    .logo h1,
+.logo .site-name {
         font-size: 1.55rem;
     }
 
@@ -1930,7 +1938,8 @@ body.light-mode .pick-main:hover {
         height: 2.4rem;
     }
 
-    .logo h1 {
+    .logo h1,
+.logo .site-name {
         font-size: 1.85rem;
     }
 

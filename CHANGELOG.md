@@ -5,6 +5,17 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.16.2] - 2026-11-08
+
+### Fixed
+- Stránky filmů a seriálů: skrytá hláška „Titul nebyl nalezen“ a blok načítání už nejsou v HTML ze serveru, roboti je četli jako text stránky
+- Filmy, Seriály, Archiv: chybový text je v atributu a zobrazí se přes CSS, není součástí obsahu stránky
+- `robots.txt` povoluje čtecí API, ze kterých se skládají seznamy. Vyhledávače po vykreslení viděly stránky bez titulů
+
+### Changed
+- Hlavní stránky mají `rel=canonical` na adresu s `www`
+- Stránky titulů a Changelog mají jediné H1, logo je běžný prvek
+
 ## [1.16.1] - 2026-11-08
 
 ### Fixed
