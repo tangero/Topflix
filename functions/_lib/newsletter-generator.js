@@ -55,7 +55,8 @@ export async function fetchNewsletterData(apiKey, omdbApiKey, db = null) {
     // Same sources and ratings as the website (OMDb included), so the numbers match
     // Promo first and on its own: the TMDB/OMDb fetches below fill the Workers limit of
     // 6 open connections, and a queued fetch runs out its timeout without ever being sent.
-    const promo = await fetchNewsletterPromo();
+    // Promo and event tips share the first two connections, then the title fetches start.
+    const [promo, eventTips] = await Promise.all([fetchNewsletterPromo(), fetchNewsletterTips()]);
     const [top10Data, newData] = await Promise.all([
       fetchAndEnrichData(apiKey, omdbApiKey),
       fetchNetflixNew(apiKey, omdbApiKey)
@@ -179,7 +180,8 @@ export async function fetchNewsletterData(apiKey, omdbApiKey, db = null) {
       series: mainSeries,
       regionalMovies: regionalMovies,
       regionalSeries: regionalSeries,
-      promo,
+      promo: eventTips.length && promo && !promo.isAd ? null : promo,
+      eventTips,
       top10Data,
       newData
     };
@@ -195,6 +197,61 @@ const PROMO_ORIGIN = 'https://www.vibecoding.cz';
 const PROMO_SITE = 'https://www.topflix.cz';
 const PROMO_MONTHS = ['ledna', 'února', 'března', 'dubna', 'května', 'června',
   'července', 'srpna', 'září', 'října', 'listopadu', 'prosince'];
+
+/**
+ * Tip na akce Vibecodingu: nejbližší workshop a Setkání (vibecoding.cz /api/event-tips).
+ * When tips exist, an event promo is dropped so the same event is not shown twice;
+ * a paid ad slot stays. Any failure gives [] and the newsletter goes out without it.
+ */
+export async function fetchNewsletterTips(fetchImpl = fetch) {
+  try {
+    const response = await fetchImpl(`${PROMO_ORIGIN}/api/event-tips?source=topflix`, {
+      headers: { Origin: PROMO_SITE },
+      signal: AbortSignal.timeout(5000)
+    });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return normalizeTips(data && data.items);
+  } catch (error) {
+    console.warn('Newsletter event tips unavailable:', error.message);
+    return [];
+  }
+}
+
+export function normalizeTips(items) {
+  if (!Array.isArray(items)) return [];
+  return items
+    .filter((i) => i && i.title && /^https:\/\/www\.vibecoding\.cz\//.test(i.url || ''))
+    .slice(0, 2)
+    .map((i) => ({ label: String(i.label || 'Akce'), title: String(i.title), meta: String(i.meta || ''), subtitle: String(i.subtitle || ''), url: String(i.url) }));
+}
+
+export function formatTipsHtml(tips) {
+  if (!tips || !tips.length) return '';
+  const rows = tips.map((t) => `
+                    <p style="margin: 0 0 2px 0; color: #b8432e; font-size: 12px; font-weight: bold;">${escapeHtml(t.label)}</p>
+                    <p style="margin: 0 0 4px 0; font-size: 16px; font-weight: bold; line-height: 1.3;"><a href="${escapeHtml(t.url)}" style="color: #141414; text-decoration: none;">${escapeHtml(t.title)}</a></p>
+                    ${t.meta ? `<p style="margin: 0 0 12px 0; color: #666; font-size: 13px;">${escapeHtml(t.meta)}</p>` : ''}`).join('');
+  return `
+          <tr>
+            <td style="padding: 10px 30px 20px 30px;">
+              <p style="margin: 0 0 8px 0; color: #999; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;">Akce Vibecodingu</p>
+              <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f7f5f2; border: 1px solid #e6e0d8; border-left: 3px solid #d4533c; border-radius: 8px;">
+                <tr>
+                  <td style="padding: 16px 18px 4px 18px;">${rows}
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>`;
+}
+
+export function formatTipsText(tips) {
+  if (!tips || !tips.length) return '';
+  let text = `\nAKCE VIBECODINGU\n${'-'.repeat(50)}\n`;
+  for (const t of tips) text += `${t.label}: ${t.title}\n${t.meta ? `${t.meta}\n` : ''}${t.url}\n\n`;
+  return text;
+}
 
 export async function fetchNewsletterPromo(fetchImpl = fetch) {
   try {
@@ -262,6 +319,7 @@ export function normalizePromo(item, now = new Date()) {
 
   if (item.isAd) {
     return {
+      isAd: true,
       url,
       image,
       imageAlt: item.imageAlt || item.title,
@@ -352,7 +410,7 @@ export function formatPromoText(promo) {
  * Generate HTML email template
  */
 export function generateNewsletterHTML(data) {
-  const { movies, series, regionalMovies, regionalSeries, promo } = data;
+  const { movies, series, regionalMovies, regionalSeries, promo, eventTips } = data;
 
   // Helper: Get quality emoji
   function getQualityEmoji(rating) {
@@ -526,6 +584,7 @@ export function generateNewsletterHTML(data) {
           ` : ''}
 
           <!-- Promo (vibecoding.cz) -->
+          ${formatTipsHtml(eventTips)}
           ${formatPromoHtml(promo)}
 
           <!-- Series Section -->
@@ -613,7 +672,7 @@ export function generateNewsletterHTML(data) {
  * Generate plain text version
  */
 export function generateNewsletterText(data) {
-  const { movies, series, regionalMovies, regionalSeries, promo } = data;
+  const { movies, series, regionalMovies, regionalSeries, promo, eventTips } = data;
 
   let text = `TOPFLIX - TÝDENNÍ VÝBĚR\n`;
   text += `Co stojí za to vidět tento týden\n\n`;
@@ -639,6 +698,7 @@ export function generateNewsletterText(data) {
     });
   }
 
+  text += formatTipsText(eventTips);
   text += formatPromoText(promo);
 
   if (series.length > 0) {

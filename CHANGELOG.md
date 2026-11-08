@@ -5,6 +5,11 @@ All notable changes to Topflix will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.17.0] - 2026-11-08
+
+### Added
+- Newsletter: vložka „Akce Vibecodingu“ s nejbližším workshopem a Setkáním z `https://www.vibecoding.cz/api/event-tips?source=topflix`. Když jsou tipy k dispozici, propagovaná akce z `/api/active-promotion` se nezobrazí (stejná akce by byla dvakrát), placená reklama zůstává. Výpadek API newsletter nezastaví
+
 ## [1.16.2] - 2026-11-08
 
 ### Fixed
